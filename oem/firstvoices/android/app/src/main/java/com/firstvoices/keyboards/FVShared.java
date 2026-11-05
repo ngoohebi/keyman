@@ -6,23 +6,35 @@ import android.content.SharedPreferences;
 import android.content.res.AssetManager;
 import android.net.Uri;
 import android.util.Log;
-import com.tavultesoft.kmea.KMManager;
-import java.io.BufferedReader;
+import android.widget.Toast;
+import com.keyman.engine.JSONParser;
+import com.keyman.engine.KMManager;
+import com.keyman.engine.data.Keyboard;
+import com.keyman.engine.packages.PackageProcessor;
+import com.keyman.engine.util.KMLog;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 
 final class FVShared {
     private static FVShared instance = null;
+    private boolean isInitialized = false;
 
+    // File containing keyboard+region info for each keyboard
+    private static final String FVKeyboards_JSON = "keyboards.json";
     private static final String FVLoadedKeyboardList = "loaded_keyboards.dat";
 
     // Keys from earlier versions of app, used only in the upgrade process
@@ -32,15 +44,25 @@ final class FVShared {
     private static final String FVUpgrade_KeyboardFilenameKey = "FVKeyboardFilename";
     private static final String FVUpgrade_KeyboardCheckStateKey = "FVKeyboardCheckState";
 
-    private static final String FVKeyboardHelpLink = "http://help.keyman.com/keyboard/";
+    private Context context;
+    private FVRegionList regionList;
+    private FVLoadedKeyboardList loadedKeyboards;
+
+    private static final String FVKeyboardHelpLink = "https://help.keyman.com/keyboard/";
+
+    public static final String FVDefault_PackageID = "fv_all";
+    public static final String TAG = "FVShared";
 
     /// Describes a keyboard used in FirstVoices Keyboards
     static class FVKeyboard {
-        final String id, name, legacyId;
-        FVKeyboard(String id, String name, String legacyId) {
+        final String id, name, legacyId, version, lgId, lgName;
+        FVKeyboard(String id, String name, String legacyId, String version, String lgId, String lgName) {
             this.id = id;
             this.name = name;
             this.legacyId = legacyId;
+            this.version = version;
+            this.lgId = lgId;
+            this.lgName = lgName;
         }
     }
 
@@ -83,71 +105,110 @@ final class FVShared {
         }
     }
 
-    FVShared(Context context) {
-        // We only want a single instance
-        assert(instance == null);
-        instance = this;
+    public synchronized void initialize(Context context) {
+        if (isInitialized) {
+          Log.w(TAG, "initialize called multiple times");
+          return;
+        }
 
         this.context = context.getApplicationContext();
-        this.regionList = loadRegionList();
+        String keyboardsJSONPath = getPackagesDir() + FVDefault_PackageID + File.separator + FVKeyboards_JSON;
+        this.regionList = loadRegionList(keyboardsJSONPath);
         this.loadedKeyboards = loadLoadedKeyboardList();
+
+        isInitialized = true;
     }
 
-    private final Context context;
-    private final FVRegionList regionList;
-    private final FVLoadedKeyboardList loadedKeyboards;
-
-    static FVShared getInstance() {
-        // This 'singleton' requires initialization, so
-        // we cannot lazily instanatiate.
-        assert(instance != null);
-        return instance;
+  /**
+   * @return get or create shared singleton instance.
+   */
+  public static FVShared getInstance() {
+    if (instance == null) {
+      instance = new FVShared();
     }
+    return instance;
+  }
 
-    private FVRegionList loadRegionList() {
-        FVRegionList list = new FVRegionList();
-        try {
-            InputStream inputStream = context.getAssets().open("keyboards.csv");
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+  /**
+   * Parse keyboards.json file to associate region info for each keyboard
+   * @param keyboardsJSONPath - path to the keyboards.json file containing region info for each keyboard
+   * @return FVRegionList
+   */
+  private FVRegionList loadRegionList(String keyboardsJSONPath) {
+      FVRegionList list = new FVRegionList();
+      JSONParser parser = new JSONParser();
+      File jsonFile = new File(keyboardsJSONPath);
+      if (!jsonFile.exists()) {
+          // Fatal error
+          throw new Error("keyboards.json file doesn't exist");
+      }
+      try {
+          // At this point in initialization, fv_all.kmp is now extracted, so
+          // populate keyboard info from keyboards.json
+          JSONArray keyboardsArray = parser.getJSONObjectFromFile(jsonFile, JSONArray.class);
 
-            reader.readLine(); // skip header row
-            String line = reader.readLine();
+          if (keyboardsArray == null) {
+              KMLog.LogError(TAG, "Unable to parse keyboards.json");
+              return list;
+          }
 
-            while (line != null) {
-                while (line.contains(",,"))
-                    line = line.replace(",,", ", ,");
+          for (int i=0; i<keyboardsArray.length(); i++) {
+              JSONObject keyboardObj = keyboardsArray.getJSONObject(i);
+              if (keyboardObj == null) {
+                  throw new Error("keyboard Object in keyboards.json is null");
+              }
+              JSONArray languageArray = keyboardObj.getJSONArray("languages");
+              if (languageArray == null) {
+                  throw new Error("languages Array in keyboards.json is null");
+              }
+              String regionName = keyboardObj.getString("region");
+              FVRegion region = list.findRegion(regionName);
+              if(region == null) {
+                  region = new FVRegion(regionName);
+                  list.add(region);
+              }
 
-                String[] values = line.split(",");
-                if (values.length > 0) {
-                    // Columns: shortname,id,name,region,legacyId
-                    String kbId = values[1];
-                    String kbName = values[2];
-                    String regionName = values[3];
-                    String legacyId = values[4];
+              String kbID = keyboardObj.getString("id");
+              String kbName = keyboardObj.getString("name");
+              JSONObject languageObj = languageArray.getJSONObject(0);
+              String lgID = languageObj.getString("id").toLowerCase(); // Normalize language Id
+              String lgName = languageObj.getString("name");
 
-                    FVRegion region = list.findRegion(regionName);
-                    if(region == null) {
-                        region = new FVRegion(regionName);
-                        list.add(region);
-                    }
+              // Override European keyboard info
+              if (kbID.equalsIgnoreCase("sil_euro_latin")) {
+                kbName = "English";
+                lgID = "en";
+                lgName = "English";
+              } else if (kbID.equalsIgnoreCase("basic_kbdcan")) {
+                kbName = "Français";
+                lgID = "fr-ca";
+                lgName = "French";
+              }
 
-                    FVKeyboard keyboard = new FVKeyboard(kbId, kbName, legacyId);
+              FVKeyboard kbd = new FVKeyboard(
+                  kbID,
+                  kbName,
+                  kbID, // unused legacy ID
+                  keyboardObj.getString("version"),
+                  lgID,
+                  lgName);
 
-                    region.keyboards.add(keyboard);
-                }
+              region.keyboards.add(kbd);
+          }
+      } catch (Exception e) {
+          // loadRegionList had malformed keyboard list
+          throw new Error(e.getMessage());
+      }
 
-                line = reader.readLine();
-            }
+      // Sort by region name
+      Collections.sort(list, (r1, r2) -> r1.name.compareTo(r2.name));
 
-            inputStream.close();
-        }
-        catch (Exception e) {
-            Log.e("createKeyboardList", "Error: " + e);
-            // We'll return a malformed list for now in this situation
-        }
-
-        return list;
-    }
+      for (int i=0; i<list.size(); i++) {
+        // Sort by keyboard name in each region
+        Collections.sort(list.get(i).keyboards, (k1, k2) -> k1.name.compareTo(k2.name));
+      }
+      return list;
+  }
 
     private FVLoadedKeyboardList loadLoadedKeyboardList() {
         FVLoadedKeyboardList data = new FVLoadedKeyboardList();
@@ -178,6 +239,20 @@ final class FVShared {
         }
 
         updateActiveKeyboardsList();
+    }
+
+    // Saves the migrated keyboard list for upgradeTo14()
+    private void saveUpdateTo14List(ArrayList<HashMap<String, String>>list) {
+        try {
+            File file = new File(context.getDir("userdata", Context.MODE_PRIVATE), KMManager.KMFilename_KeyboardsList);
+            ObjectOutputStream outputStream = new ObjectOutputStream(new FileOutputStream(file));
+            outputStream.writeObject(list);
+            outputStream.flush();
+            outputStream.close();
+        }
+        catch (Exception e) {
+            KMLog.LogException("saveUpdateTo14List", "Error saving migrated keyboard list", e);
+        }
     }
 
     FVRegionList getRegionList() {
@@ -216,57 +291,54 @@ final class FVShared {
         String helpUrl = String.format("%s%s", FVKeyboardHelpLink, id);
         Intent i = new Intent(Intent.ACTION_VIEW);
         i.setData(Uri.parse(helpUrl));
-        localContext.startActivity(i);
+        if (i.resolveActivity(localContext.getPackageManager()) != null) {
+          localContext.startActivity(i);
+        } else {
+            Toast.makeText(localContext, localContext.getString(R.string.unable_to_open_browser), Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void updateActiveKeyboardsList() {
-        // Clear existing active keyboards list
+      // Clear existing active keyboards list
 
-        ArrayList<HashMap<String, String>> activeKbList = KMManager.getKeyboardsList(context);
-        if (activeKbList != null) {
-            int len = activeKbList.size();
-            for (int i = len-1; i >= 0; i--)
-                KMManager.removeKeyboard(context, i);
-        }
+      List<Keyboard> activeKbList = KMManager.getKeyboardsList(context);
+      if (activeKbList != null) {
+        int len = activeKbList.size();
+        for (int i = len - 1; i >= 0; i--)
+          KMManager.removeKeyboard(context, i);
+      }
 
-        // Recreate active keyboards list
-        for(FVRegion region : regionList) {
-            for(FVKeyboard keyboard : region.keyboards) {
-                if(loadedKeyboards.contains(keyboard.id)) {
-                    // Load the .keyboard_info file and find its first language code
-                    HashMap<String, String> kbInfo = new HashMap<>();
-                    kbInfo.put(KMManager.KMKey_PackageID, keyboard.id); //TODO: we want to share keyboard build scripts between ios and android; can we do this?
-                    kbInfo.put(KMManager.KMKey_KeyboardID, keyboard.id);
-                    kbInfo.put(KMManager.KMKey_LanguageID, "en"); //TODO: use language code from kmp.json
-                    kbInfo.put(KMManager.KMKey_KeyboardName, keyboard.name);
-                    kbInfo.put(KMManager.KMKey_LanguageName, keyboard.name);
-                    kbInfo.put(KMManager.KMKey_KeyboardVersion, "1.0"); //TODO: use keyboard version from kmp.json
-                    kbInfo.put(KMManager.KMKey_Font, "NotoSansCanadianAboriginal.ttf");
-                    kbInfo.put(KMManager.KMKey_CustomKeyboard, "Y");
-                    kbInfo.put(KMManager.KMKey_CustomHelpLink, String.format("%s%s", FVKeyboardHelpLink, keyboard.id));
-                    KMManager.addKeyboard(context, kbInfo);
-                }
-            }
-        }
+      File resourceRoot = new File(getResourceRoot());
+      PackageProcessor kmpProcessor = new PackageProcessor(resourceRoot);
 
-        activeKbList = KMManager.getKeyboardsList(context);
-        if (activeKbList != null) {
-            if (activeKbList.size() > 0) {
-                if (KMManager.getCurrentKeyboardIndex(context) < 0)
-                    KMManager.setKeyboard(context, 0);
+      // Recreate active keyboards list
+      for (FVRegion region : regionList) {
+        for (FVKeyboard keyboard : region.keyboards) {
+          if (loadedKeyboards.contains(keyboard.id)) {
+            // Parse kmp.json for the keyboard info
+            Keyboard kbd = kmpProcessor.getKeyboard(
+              FVDefault_PackageID,
+              keyboard.id,
+              null); // get first associated language ID
+            if (kbd != null) {
+              kbd.setDisplayName(keyboard.name);
+              // TODO: Override fonts to NotoSansCanadianAboriginal.ttf
+              KMManager.addKeyboard(context, kbd);
             }
-            else {
-                // Add a default keyboard in if none are available
-                HashMap<String, String> kbInfo = new HashMap<>();
-                kbInfo.put(KMManager.KMKey_KeyboardID, KMManager.KMDefault_KeyboardID);
-                kbInfo.put(KMManager.KMKey_LanguageID, KMManager.KMDefault_LanguageID);
-                kbInfo.put(KMManager.KMKey_KeyboardName, KMManager.KMDefault_KeyboardName);
-                kbInfo.put(KMManager.KMKey_LanguageName, KMManager.KMDefault_LanguageName);
-                //kbInfo.put(KMManager.KMKey_KeyboardVersion, KMManager.getLatestKeyboardFileVersion(context, KMManager.KMDefault_KeyboardID));
-                kbInfo.put(KMManager.KMKey_Font, KMManager.KMDefault_KeyboardFont);
-                KMManager.addKeyboard(context, kbInfo);
-            }
+          }
         }
+      }
+
+      activeKbList = KMManager.getKeyboardsList(context);
+      if ((activeKbList != null) && (activeKbList.size() > 0)) {
+        if (KMManager.getCurrentKeyboardIndex(context) < 0) {
+          KMManager.setKeyboard(context, 0);
+        }
+      } else {
+        // Add a default keyboard if none are available
+        Keyboard kbInfo = KMManager.getDefaultKeyboard(context);
+        KMManager.addKeyboard(context, kbInfo);
+      }
     }
 
     private String getResourceRoot() {
@@ -332,7 +404,7 @@ final class FVShared {
         }
     }
 
-    /// Upgrades from an earlier vesion, converting data structures
+    /// Upgrades from an earlier version, converting data structures
     /// The data structures in earlier versions were a bit messy
     @SuppressWarnings("unchecked")
     void upgradeTo12() {
@@ -402,5 +474,52 @@ final class FVShared {
         }
 
         saveLoadedKeyboardList();
+    }
+
+    /// Upgrades the keyboard list Keyman Engine for Android uses from an earlier version to 14.0
+    // because the FirstVoices keyboard packageIDs changed to "fv_all".
+    // Note: KMManager.initialize will eventually migrate KMFilename_KeyboardsList to a JSON file
+    @SuppressWarnings("unchecked")
+    void upgradeTo14() {
+        String TAG = "upgradeTo14";
+        File file = new File(context.getDir("userdata", Context.MODE_PRIVATE), KMManager.KMFilename_KeyboardsList);
+        if(!file.exists()) {
+            // New install, or already upgraded to 14.0
+            return;
+        }
+
+        ArrayList<HashMap<String, String>> keyboardList;
+
+        try {
+            ObjectInputStream inputStream = new ObjectInputStream(new FileInputStream(file));
+            keyboardList = (ArrayList<HashMap<String, String>>) inputStream.readObject();
+            inputStream.close();
+
+            // Migrate the package IDs and include OSK font
+            if (keyboardList != null) {
+                for(int i=0; i<keyboardList.size(); i++) {
+                    HashMap<String, String> kbdMap = keyboardList.get(i);
+                    kbdMap.put(KMManager.KMKey_PackageID, FVDefault_PackageID);
+                    if (kbdMap.containsKey(KMManager.KMKey_Font)) {
+                        kbdMap.put(KMManager.KMKey_OskFont, kbdMap.get(KMManager.KMKey_Font));
+                    }
+                }
+            }
+        }
+        catch (Exception e) {
+            // Unable to load and migrate the data from earlier version. Log the issue, then we will
+            // just delete the file and give up on it. The user will have to reconfigure
+            // their keyboards but that's not the end of the world.
+            KMLog.LogException(TAG, "Unable to migrate keyboard list", e);
+            if(!file.delete()) {
+                Log.w(TAG, "Could not remove legacy data file "+ KMManager.KMFilename_KeyboardsList);
+            }
+            return;
+        }
+
+        // We've migrated the data so overwrite the legacy file
+        if (keyboardList != null) {
+            saveUpdateTo14List(keyboardList);
+        }
     }
 }

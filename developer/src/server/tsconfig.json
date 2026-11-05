@@ -1,0 +1,29 @@
+{
+  "extends": "../../../tsconfig.base.json",
+
+  "compilerOptions": {
+    "target": "es2022",
+    "sourceMap": true,
+    "outDir": "build/src/",
+    "rootDir": "src/",
+    "baseUrl": ".",
+
+    "declaration": true,
+    "alwaysStrict": true,
+    "noImplicitThis": true,
+    "noImplicitReturns": true,
+    "noImplicitAny": true,
+    "strictBindCallApply": true,
+    "strictFunctionTypes": true,
+    "noUnusedLocals": true,
+    "allowJs": true,
+    "lib": ["es2022"],
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "references": [
+    { "path": "../../../common/web/keyman-version" },
+    { "path": "../common/web/utils" },
+  ]
+}

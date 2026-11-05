@@ -81,7 +81,7 @@ uses
   Accctrl,
   AclApi,
   ErrorControlledRegistry,
-  ErrLogPath,
+  KeymanPaths,
   RegistryKeys,
   Unicode;
 
@@ -149,7 +149,7 @@ begin
   pSessionProperties.Wnode.Flags := WNODE_FLAG_TRACED_GUID;
   pSessionProperties.Wnode.ClientContext := 1; //QPC clock resolution
   pSessionProperties.Wnode.Guid := SessionGuid;
-  pSessionProperties.LogFileMode := EVENT_TRACE_FILE_MODE_SEQUENTIAL;
+  pSessionProperties.LogFileMode := EVENT_TRACE_FILE_MODE_CIRCULAR;
   pSessionProperties.MaximumFileSize := 256;  // 256 MB
   pSessionProperties.LoggerNameOffset := sizeof(EVENT_TRACE_PROPERTIES);
   pSessionProperties.LogFileNameOffset := sizeof(EVENT_TRACE_PROPERTIES) + sizeof(LOGSESSION_NAME);
@@ -237,7 +237,7 @@ const
 
 function TDebugLogManager.DebugLogFileName(n: Integer): string;
 begin
-  Result := GetErrLogPath + 'system' + IntToStr(n) + '.etl';
+  Result := TKeymanPaths.ErrorLogPath + 'system' + IntToStr(n) + '.etl';
 end;
 
 procedure TDebugLogManager.FindFirstLogFileName;

@@ -8,13 +8,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import com.tavultesoft.kmea.KMManager;
+import com.keyman.engine.BaseActivity;
+import com.keyman.engine.KMManager;
+import com.keyman.engine.data.Keyboard;
 
 import android.os.Bundle;
 import android.provider.Settings;
 import android.view.View;
 import android.view.Window;
-import android.view.inputmethod.InputMethodInfo;
+
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.CheckBox;
@@ -22,26 +24,37 @@ import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.ImageButton;
 import android.widget.ListView;
-import androidx.appcompat.app.AppCompatActivity;
+
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.widget.TextView;
 
-public class GetStartedActivity extends AppCompatActivity {
+public class GetStartedActivity extends BaseActivity {
 
   private static ListView listView = null;
   private static ArrayList<HashMap<String, String>> list = null;
   private static KMListAdapter listAdapter = null;
   protected static final String showGetStartedKey = "ShowGetStarted";
+  public static final String openDefaultKeyboardPickerOnlyKey = "OpenDefaultKeyboardPickerOnly";
   private final String iconKey = "icon";
   private final String textKey = "text";
   private final String isEnabledKey = "isEnabled";
+  private boolean openDefaultKeyboardPickerOnly = false;
+  private boolean didAutoOpenDefaultKeyboardPicker = false;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     supportRequestWindowFeature(Window.FEATURE_NO_TITLE);
+    openDefaultKeyboardPickerOnly = getIntent().getBooleanExtra(openDefaultKeyboardPickerOnlyKey, false);
+
+    if (openDefaultKeyboardPickerOnly) {
+      // Picker-only mode: intentionally skip rendering Get Started UI.
+      KMManager.dontCloseParentAppOnShowKeyboardPicker();
+      return;
+    }
+
     final Context context = this;
     setContentView(R.layout.get_started_list_layout);
 
@@ -62,6 +75,7 @@ public class GetStartedActivity extends AppCompatActivity {
     checkBox.setOnCheckedChangeListener(new OnCheckedChangeListener() {
       @Override
       public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+        // Save user preference on showing "Get Started"
         SharedPreferences.Editor editor = prefs.edit();
         editor.putBoolean(showGetStartedKey, isChecked);
         editor.commit();
@@ -69,6 +83,7 @@ public class GetStartedActivity extends AppCompatActivity {
     });
 
     final TextView getStartedText = findViewById(R.id.getStartedText);
+    getStartedText.setText(String.format(getString(R.string.show_get_started), getString(R.string.get_started)));
     getStartedText.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View v) {
@@ -111,7 +126,9 @@ public class GetStartedActivity extends AppCompatActivity {
       @Override
       public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
         if (position == 0) {
-          KMManager.showLanguageList(context);
+          // Keyman Settings install activity
+          Intent i = new Intent(context, KeymanSettingsInstallActivity.class);
+          context.startActivity(i);
         } else if (position == 1) {
           startActivity(new Intent(Settings.ACTION_INPUT_METHOD_SETTINGS));
         } else if (position == 2) {
@@ -123,8 +140,31 @@ public class GetStartedActivity extends AppCompatActivity {
           startActivity(i);
           overridePendingTransition(android.R.anim.fade_in, R.anim.hold);
         }
+
+        uncheckGetStartedIfComplete();
       }
     });
+  }
+
+  /**
+   * Uncheck show "Get Started" on startup if:
+   * User hasn't set a preference on showing "Get Started",
+   * Keyman enabled as a system-wide keyboard, and
+   * Keyman set as default keyboard
+   */
+  private void uncheckGetStartedIfComplete() {
+    if (SystemIMESettings.isEnabledAsSystemKB(this) &&
+        SystemIMESettings.isDefaultKB(this)) {
+
+      final SharedPreferences prefs = getSharedPreferences(getString(R.string.kma_prefs_name), Context.MODE_PRIVATE);
+      if (!prefs.contains(showGetStartedKey)) {
+        // Everything is completed, so un-check "Get Started" on startup.
+        // onCheckedChanged() will save the preference
+        final CheckBox checkBox = (CheckBox) findViewById(R.id.checkBox);
+        checkBox.setChecked(false);
+
+      }
+    }
   }
 
   @Override
@@ -133,22 +173,42 @@ public class GetStartedActivity extends AppCompatActivity {
   }
 
   @Override
-  protected void onPause() {
-    super.onPause();
-  }
-
-  @Override
   public void onWindowFocusChanged(boolean hasFocus) {
     super.onWindowFocusChanged(hasFocus);
     if (hasFocus) {
+      if (openDefaultKeyboardPickerOnly) {
+
+        // When the user taps 'Set Default Keyboard' from the drawer,
+        // GetStartedActivity is launched in picker-only mode. But you
+        // can't open the system keyboard picker directly from a menu
+        // tap — it requires a window with focus. So we use
+        // onWindowFocusChanged as the trigger point: first focus opens
+        // the picker, and when the user dismisses it and focus returns
+        // to this activity, we call finish() to close it. The activity
+        // is essentially just a invisible bridge to show the system
+        // picker.
+
+        if (!didAutoOpenDefaultKeyboardPicker) {
+          didAutoOpenDefaultKeyboardPicker = true;
+          InputMethodManager imManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+          if (imManager != null) {
+            imManager.showInputMethodPicker();
+          }
+        } else {
+          // Focus returned after the picker was dismissed, so close the host activity.
+          finish();
+        }
+        return;
+      }
+
       // Enumerated steps are replaced with checkboxes when the user completes a step
       String one = String.valueOf(R.drawable.ic_looks_one);
       String two = String.valueOf(R.drawable.ic_looks_two);
       String three = String.valueOf(R.drawable.ic_looks_three);
-      String checkbox_on = String.valueOf(android.R.drawable.checkbox_on_background);
+      String checkbox_on = String.valueOf(R.drawable.ic_checkbox);
       String info = String.valueOf(R.drawable.ic_info_outline);
 
-      ArrayList<HashMap<String, String>> kbList = KMManager.getKeyboardsList(this);
+      List<Keyboard> kbList = KMManager.getKeyboardsList(this);
       if (kbList != null && kbList.size() > 1) {
         list.get(0).put(iconKey, checkbox_on);
       } else {
@@ -175,6 +235,16 @@ public class GetStartedActivity extends AppCompatActivity {
       int[] to = new int[]{R.id.left_icon, R.id.text};
       listAdapter = new KMListAdapter(this, list, R.layout.get_started_row_layout, from, to);
       listView.setAdapter(listAdapter);
+
+      uncheckGetStartedIfComplete();
+    }
+  }
+
+  @Override
+  protected void onPause() {
+    super.onPause();
+    if (openDefaultKeyboardPickerOnly && didAutoOpenDefaultKeyboardPicker) {
+      finish();
     }
   }
 }

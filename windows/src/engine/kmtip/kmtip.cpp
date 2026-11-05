@@ -1,18 +1,18 @@
 /*
   Name:             kmtip
   Copyright:        Copyright (C) SIL International.
-  Documentation:    
-  Description:      
+  Documentation:
+  Description:
   Create Date:      7 Sep 2009
 
   Modified Date:    28 Mar 2016
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
-  Bugs:             
-  Todo:             
-  Notes:            
+  Bugs:
+  Todo:
+  Notes:
   History:          07 Sep 2009 - mcdurdin - I2095 - TSF addin is not threadsafe
                     20 Nov 2012 - mcdurdin - I3582 - V9.0 - Remove language bar integration
                     20 Nov 2012 - mcdurdin - I3581 - V9.0 - KMTip needs to pass activated profile guid through to Keyman32 to switch keyboards
@@ -31,6 +31,7 @@
 
 #include "pch.h"
 #include "kmtip.h"
+#include "registryw.h"
 
 //+---------------------------------------------------------------------------
 //
@@ -78,6 +79,18 @@ CKMTipTextService::CKMTipTextService()
     _tfClientId = TF_CLIENTID_NULL;
    // I3582
     _dwThreadMgrEventSinkCookie = TF_INVALID_COOKIE;
+
+    _keystrokeSinkInitialized = FALSE;
+    _dwActiveLanguageProfileNotifySinkCookie = 0;
+    _PreservedKeys = NULL;
+    _cPreservedKeyCount = 0;
+    _dwDeepIntegration = 0;
+
+    _activeGuidProfile = GUID_NULL;
+    _keymanInitialized = FALSE;
+
+    RegistryReadOnlyW reg(HKEY_CURRENT_USER);
+    _tryAndStartKeyman = reg.OpenKeyReadOnly(REGSZ_KeymanEngineDebug_CU) && reg.ValueExists(REGSZ_Flag_UseAutoStartTask) && reg.ReadInteger(REGSZ_Flag_UseAutoStartTask) != 0;
 
     _cRef = 1;
     ThreadThis = this;
@@ -169,7 +182,7 @@ STDAPI_(ULONG) CKMTipTextService::Release()
 
     if (_cRef == 0)
     {
-      Log(L"CKMTipTextService::Release --> deleting");
+      SendDebugMessage(L"deleting this");
       delete this;
     }
 
@@ -183,7 +196,7 @@ STDAPI_(ULONG) CKMTipTextService::Release()
 //----------------------------------------------------------------------------
 
 STDAPI CKMTipTextService::ActivateEx(ITfThreadMgr *ptim, TfClientId tid, DWORD dwFlags) {   // I4216
-  LogEnter();
+  SendDebugEntry();
   ITfDocumentMgr *pFocusDoc;
 
   _cPreservedKeyCount = 0;   // I3588   // I3714
@@ -195,16 +208,9 @@ STDAPI CKMTipTextService::ActivateEx(ITfThreadMgr *ptim, TfClientId tid, DWORD d
   _tfClientId = tid;
 
   if(!_InitThreadMgrSink()) {
-		Log(L"Could not initialise thread manager sink");
+		SendDebugMessage(L"Could not initialise thread manager sink");
     goto ExitError;
 	}
-
-  if(_LoadKeyman()) {   // I3590   // I4274
-    if(!_InitKeyman()) {
-		  Log(L"Could not initialise Keyman");
-      goto ExitError;
-	  }
-  }
 
   // start tracking the focus doc
   if(_pThreadMgr->GetFocus(&pFocusDoc) == S_OK) {
@@ -214,53 +220,17 @@ STDAPI CKMTipTextService::ActivateEx(ITfThreadMgr *ptim, TfClientId tid, DWORD d
     pFocusDoc->Release();
   }
 
+  SendDebugExit();
   return S_OK;
 
 ExitError:
   Deactivate(); // cleanup any half-finished init   // I3706
+  SendDebugExit();
   return E_FAIL;
 }
 
-STDAPI CKMTipTextService::Activate(ITfThreadMgr *pThreadMgr, TfClientId tfClientId)
-{
-  LogEnter();
-  ITfDocumentMgr *pFocusDoc;
-
-  _cPreservedKeyCount = 0;   // I3588   // I3714
-  _PreservedKeys = NULL;   // I3588   // I3714
-
-  _pThreadMgr = pThreadMgr;
-  _pThreadMgr->AddRef();
-
-  _tfClientId = tfClientId;
-
-  if (!_InitThreadMgrSink())
-	{
-		Log(L"Could not initialise thread manager sink");
-    goto ExitError;
-	}
-
-  if(_LoadKeyman()) {   // I4274
-    if(!_InitKeyman())	{
-		  Log(L"Could not initialise Keyman");
-      goto ExitError;
-	  }
-  }
-
-  // start tracking the focus doc
-  if (_pThreadMgr->GetFocus(&pFocusDoc) == S_OK)
-  {
-    // The system will call OnSetFocus only for focus events after Activate
-    // is called.
-    OnSetFocus(pFocusDoc, NULL);
-    pFocusDoc->Release();
-  }
-
-  return S_OK;
-
-ExitError:
-  Deactivate(); // cleanup any half-finished init   // I3706
-  return E_FAIL;
+STDAPI CKMTipTextService::Activate(ITfThreadMgr *pThreadMgr, TfClientId tfClientId) {
+  return ActivateEx(pThreadMgr, tfClientId, 0);
 }
 
 //+---------------------------------------------------------------------------
@@ -271,16 +241,16 @@ ExitError:
 
 STDAPI CKMTipTextService::Deactivate()
 {
-  LogEnter();
+  SendDebugEntry();
 
   _UninitThreadMgrSink();
   _UninitKeystrokeSink();
-  _UninitKeyman();
 
   // we MUST release all refs to _pThreadMgr in Deactivate
   SafeReleaseClear(_pThreadMgr);
 
   _tfClientId = TF_CLIENTID_NULL;
 
+  SendDebugExit();
   return S_OK;
 }

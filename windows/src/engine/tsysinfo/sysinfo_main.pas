@@ -7,12 +7,12 @@
 
   Modified Date:    15 Apr 2015
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
-  Bugs:             
-  Todo:             
-  Notes:            
+  Bugs:
+  Todo:
+  Notes:
   History:          13 May 2005 - mcdurdin - Integrated into kmshell from tsysinfo
                     15 Apr 2015 - mcdurdin - I4659 - V9.0 - Add more detailed keyboard diagnostics
 *)
@@ -20,11 +20,14 @@ unit sysinfo_main; // I3309
 
 interface
 
+{$MESSAGE HINT 'Hook up remainder of CEF'}
+
 uses
   System.UITypes,
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, ComCtrls, Contnrs, Menus, si_base, ExtCtrls,
-  EmbeddedWB, msxml;
+  Keyman.UI.UframeCEFHost,
+  msxml;
 
 type
   TfrmDiagnostics = class(TForm)
@@ -61,6 +64,8 @@ type
     Label3: TLabel;
     mnuOptionsXMLView: TMenuItem;
     Reloadpage1: TMenuItem;
+    mnuOptionsDebugTests: TMenuItem;
+    mnuOptionsSentryExceptionTest: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure mnuFileOpenClick(Sender: TObject);
@@ -71,6 +76,8 @@ type
     procedure mnuOptionsAdvancedViewClick(Sender: TObject);
     procedure mnuHelpAboutClick(Sender: TObject);
     procedure mnuOptionsXMLViewClick(Sender: TObject);
+    procedure mnuOptionsSentryExceptionTestClick(Sender: TObject);
+    procedure mnuOptionsClick(Sender: TObject);
   private
     FSIList: TSIList;
     FGlobalXMLDocument: IXMLDOMDocument;
@@ -78,14 +85,11 @@ type
     { Private declarations }
     procedure SINewParent(Sender: TSIList; const Caption: string;
       var Parent: TWinControl);
-    procedure RunCrashReportAndExit;
     procedure GetDiagFiles;
     procedure PrepareTabs; // I3556
     procedure ShowFiles; // I3556
     procedure LoadPage(FPageIndex: Integer); // I3556
-    procedure webDocumentComplete(ASender: TObject; const pDisp: IDispatch;
-      // I3556
-      var URL: OleVariant);
+    procedure webLoadEnd(ASender: TObject);
     procedure WMUserLoad(var Message: TMessage); message WM_USER_Load;
     procedure SaveDiagnosticsAndExit(FileName: string);
     procedure LoadGlobalData;
@@ -104,17 +108,25 @@ procedure KeymanDiag;
 implementation
 
 uses
-  // keymanstrings,
-  ErrLogPath, ActiveX, ComObj,
-  ErrorControlledRegistry, RegistryKeys,
-  shlobj, UfrmRemoteExceptionHandler,
+  System.Win.ComObj,
+  Winapi.ActiveX,
+  Winapi.shlobj,
+
+  ErrorControlledRegistry,
+  Keyman.System.KeymanSentryClient,
+  KeymanPaths,
+  KeymanVersion,
+  RegistryKeys,
+  sysinfo_Util,
   UframeAttachedFiles,
-  VersionInfo, UfrmEmail, sysinfo_Util, utilexecute;
+  UfrmEmail,
+  utilexecute,
+  VersionInfo;
 
 {$R *.dfm}
 
 const
-  SCaption = 'Keyman Desktop System Information';
+  SCaption = 'Keyman System Information';
 
 procedure KeymanDiag;
 begin
@@ -123,6 +135,11 @@ begin
   Application.Title := SCaption;
   Application.CreateForm(TfrmDiagnostics, frmDiagnostics);
   Application.Run;
+end;
+
+procedure TfrmDiagnostics.mnuOptionsSentryExceptionTestClick(Sender: TObject);
+begin
+  TKeymanSentryClient.Validate(True);
 end;
 
 function TfrmDiagnostics.CollectDiagnostics: string;
@@ -140,12 +157,6 @@ begin
 
   FSIList := TSIList.Create(Self);
   FSIList.OnNewParent := SINewParent;
-
-  if (ParamStr(1) = '-c') and (ParamCount = 2) then
-  begin
-    RunCrashReportAndExit;
-    Exit;
-  end;
 
   if (ParamStr(1) = '-d') and (ParamCount = 2) then
   begin
@@ -172,23 +183,6 @@ begin
     panIssuesFound.Visible := False; // lbIssues.Items.Count > 0;
     panNoIssuesFound.Visible := False; // lbIssues.Items.Count = 0;
   end;
-end;
-
-procedure TfrmDiagnostics.RunCrashReportAndExit;
-var
-  CrashLog: string;
-begin
-  CrashLog := ParamStr(2);
-
-  try
-    ShowRemoteException(Self, CrashLog); // I3694   // I3671
-  finally
-    // DeleteFile(ffilename);
-    // DeleteFile(CrashLog);
-  end;
-
-  Application.ShowMainForm := False;
-  Application.Terminate;
 end;
 
 procedure TfrmDiagnostics.SaveDiagnosticsAndExit(FileName: string);
@@ -240,7 +234,7 @@ end;
 
 procedure TfrmDiagnostics.mnuHelpAboutClick(Sender: TObject);
 begin
-  ShowMessage(SCaption + ' Version ' + GetVersionString);
+  ShowMessage(SCaption + ' Version ' + CKeymanVersionInfo.VersionWithTag);
 end;
 
 procedure TfrmDiagnostics.mnuExitClick(Sender: TObject);
@@ -257,7 +251,7 @@ var
   m: Integer;
 begin
   FSIList.Files.Clear;
-  FPath := GetErrLogPath;
+  FPath := TKeymanPaths.ErrorLogPath;
   if FindFirst(FPath + '*', 0, f) = 0 then
   begin
     i := 0;
@@ -349,56 +343,17 @@ end;
 procedure TfrmDiagnostics.mnuSendToKeymanClick(Sender: TObject);
 var
   ffilename: string;
-  i: Integer;
-  f: TSearchRec;
-  FTotalSize: Int64;
-  FSavedFileList: string;
-  FDeleteFiles: Boolean;
 begin
   ffilename := TempFileName('.tsi');
-
-  FTotalSize := 0;
-
-  for i := 0 to FSIList.Files.Count - 1 do
-  begin
-    if FindFirst(FSIList.Files[i], 0, f) = 0 then
-    begin
-      FTotalSize := FTotalSize + f.Size;
-      FindClose(f);
-    end
-  end;
-
-  FSavedFileList := FSIList.Files.Text;
-
-  FDeleteFiles := False; // I2240
-
-  if FTotalSize > 1024 * 1024 * 8 then // 8MB
-  begin
-    case MessageDlg('The attached files are very large (' +
-      FileSizeKB(FTotalSize) +
-      ').  Do you want to send them - this may take some time?', mtConfirmation,
-      mbYesNoCancel, 0) of
-      mrYes:
-        FDeleteFiles := True;
-      mrNo:
-        FSIList.Files.Text := '';
-      mrCancel:
-        Exit;
-    end;
-  end
-  else
-    FDeleteFiles := True; // I2240
+  // No longer sending log files to Keyman via this upload method
+  FSIList.Files.Clear;
 
   FSIList.Save(ffilename);
-
-  FSIList.Files.Text := FSavedFileList;
 
   with TfrmEmail.Create(Self) do
     try
       AttachFile := ffilename;
       if ShowModal = mrOk then
-        if FDeleteFiles then
-          DeleteDiagFiles; // I2240
     finally
       DeleteFile(ffilename);
       Free;
@@ -433,21 +388,20 @@ end;
 procedure TfrmDiagnostics.PrepareTabs; // I3180   // I3542   // I3556
 var
   i: Integer;
-  web: TEmbeddedWB;
+  web: TframeCEFHost;
   si: TSI_Base;
 begin
   LoadGlobalData;
   for i := 0 to FSIList.Count - 1 do
   begin
     si := FSIList[i];
-    web := TEmbeddedWB.Create(si.Parent);
-    // web.Parent := si.Parent as TWinControl;
-    (si.Parent as TWinControl).InsertControl(web);
+    web := TframeCEFHost.Create(si.Parent);
+    web.Parent := si.Parent as TWinControl;
+    //(si.Parent as TWinControl).InsertControl(web);
     (si.Parent as TTabSheet).Caption := si.Caption;
     (si.Parent as TTabSheet).TabVisible := True;
     web.Align := alClient;
     web.Visible := True;
-    web.Loaded;
     LoadPage(i);
     // pages.Pages[i].TabVisible := (pages.Pages[i].ControlCount > 0) and pages.Pages[i].Controls[0].Visible;
   end;
@@ -458,6 +412,11 @@ begin
   mnuOptionsAdvancedView.Checked := not mnuOptionsAdvancedView.Checked;
   panSimple.Visible := not mnuOptionsAdvancedView.Checked;
   pages.Visible := mnuOptionsAdvancedView.Checked;
+end;
+
+procedure TfrmDiagnostics.mnuOptionsClick(Sender: TObject);
+begin
+  mnuOptionsDebugTests.Visible := (GetKeyState(VK_CONTROL) < 0) and (GetKeyState(VK_SHIFT) < 0);
 end;
 
 procedure TfrmDiagnostics.mnuOptionsXMLViewClick(Sender: TObject); // I3766
@@ -474,8 +433,7 @@ begin
   PostMessage(Handle, WM_USER_Load, 0, FPageIndex);
 end;
 
-procedure TfrmDiagnostics.webDocumentComplete(ASender: TObject; // I3556
-  const pDisp: IDispatch; var URL: OleVariant);
+procedure TfrmDiagnostics.webLoadEnd(ASender: TObject); // I3556
 begin
   // Cleanup;
 end;
@@ -486,12 +444,12 @@ procedure TfrmDiagnostics.WMUserLoad(var Message: TMessage); // I3556
 var
   xml, xsl: IXMLDOMDocument;
   buf: WideString;
-  web: TEmbeddedWB;
+  web: TframeCEFHost;
   afilename: string;
 begin
   web := (FSIList[Message.LParam].Parent as TTabSheet).Controls[0]
-    as TEmbeddedWB;
-  web.OnDocumentComplete := webDocumentComplete;
+    as TframeCEFHost;
+  web.OnLoadEnd := webLoadEnd;
 
   if not mnuOptionsXMLView.Checked and FSIList[Message.LParam].HasXSLT then
   begin

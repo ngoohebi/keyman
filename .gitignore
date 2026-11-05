@@ -3,7 +3,6 @@
 /windows/debug/
 /windows/lib/
 /windows/release/
-/windows/src/PathDefines.mak
 /windows/src/**/*.err
 /windows/src/**/*.Build.CppClean.log
 /windows/src/**/*.dproj.local
@@ -12,35 +11,13 @@
 /windows/src/**/*.stat
 /windows/src/**/*.hpp
 /windows/src/**/*.sdf
-/windows/src/**/*.dcu
 /windows/src/**/error.log
-/windows/src/**/*.tlog
-/windows/src/**/*.obj
-/windows/src/**/*.exe
-/windows/src/**/*.obj
-/windows/src/**/*.iobj
-/windows/src/**/*.intermediate.manifest
-/windows/src/**/*.lastbuildstate
-/windows/src/**/*.cache
-/windows/src/**/*.drc
-/windows/src/**/*.map
-/windows/src/**/*.rsm
-/windows/src/**/*.tds
-/windows/src/**/*.pdb
-/windows/src/**/*.ipdb
 /windows/src/**/.vs/
 /windows/src/**/version.RES
 /windows/src/**/__history/
 /windows/src/**/__recovery/
 /windows/src/**/*.identcache
 /windows/src/**/*.vcxproj.user
-/windows/src/**/ipch/
-/windows/src/**/*.dbg
-/windows/src/**/*.cod
-/windows/src/**/manifest.res
-/windows/src/**/*.dll
-/windows/src/**/*.exp
-/windows/src/**/*.lib
 /windows/src/**/version.res
 /windows/src/**/*.pch
 /windows/src/**/*.wixobj
@@ -52,18 +29,18 @@
 /windows/src/**/*.idb
 /windows/src/**/*.suo
 /windows/src/**/.idea
+/common/windows/delphi/**/*.dcu
+/common/windows/delphi/**/*.dcp
+/common/windows/delphi/**/*.drc
+/common/windows/delphi/**/*.bpl
+/common/windows/delphi/**/*.map
+/common/windows/delphi/**/*.tds
+/common/windows/delphi/**/*.identcache
 
 # Temp files generated during release build
 /windows/src/buildtools/inst/copydebug.mak
 /windows/src/desktop/inst/desktop_resources.res
 /windows/src/desktop/inst/desktopui.wxs
-/windows/src/developer/inst/cef.wxs
-/windows/src/developer/inst/keymandeveloper.msi
-/windows/src/developer/inst/setup.inf
-/windows/src/developer/inst/setup.zip
-/windows/src/developer/inst/templates.wxs
-/windows/src/developer/inst/xml.wxs
-/windows/src/developer/inst/kmlmc.wxs
 
 # local defines for build, usually used for certificates and passwords
 /windows/src/UserDefines.mak
@@ -74,7 +51,6 @@
 
 # global build files
 /windows/src/global/help/version.out
-/windows/src/global/inst/data/UnicodeData.mdb
 /windows/src/global/delphi/general/SourceRootPath.pas
 
 # /buildtools/genkmnp/
@@ -83,23 +59,8 @@
 # /buildtools/inst/
 /windows/src/buildtools/inst/srcbackup.mak
 
-# /buildtools/importkeyboard/
-/windows/src/buildtools/importkeyboard/bin
-/windows/src/buildtools/importkeyboard/obj
-
 # /desktop/branding/
 /windows/src/desktop/branding/desktop_pro.pxx
-
-# /desktop/help/
-/windows/src/desktop/help/temp
-/windows/src/desktop/help/*.htm
-/windows/src/desktop/help/keymandesktop.chm
-/windows/src/desktop/help/keymandesktop.hhp
-/windows/src/desktop/help/toc.hhc
-
-# /desktop/help/desktop_images/
-/windows/src/desktop/help/desktop_images/Old Getting Started Images
-/windows/src/desktop/help/desktop_images/old
 
 # /desktop/inst/
 /windows/src/desktop/inst/*.wixpdb
@@ -111,7 +72,6 @@
 
 # /developer/TIKE/
 /windows/src/developer/TIKE/stock.kct
-/windows/src/developer/TIKE/kmcmpdll.dll
 
 # /developer/TIKE/redist/
 /windows/src/developer/TIKE/redist/Addins
@@ -120,13 +80,8 @@
 
 # /developer/inst/
 /windows/src/developer/inst/*.wixpdb
+/windows/src/developer/inst/download.mak
 /windows/src/developer/inst/copydev.mak
-
-# /developer/kmcmpdll/
-/windows/src/developer/kmcmpdll/*.lastbuildstate
-
-# /developer/kmcmpdll/Debug/
-/windows/src/developer/kmcmpdll/Debug/*.idb
 
 /windows/src/developer/stock/stock.kct
 /windows/src/developer/uitemplates/keyman.kct
@@ -144,19 +99,15 @@
 
 # /engine/keyman32/
 /windows/src/engine/keyman32/Keyman32.opensdf
+/windows/src/engine/keyman32/*.obj
+/windows/src/engine/keyman32/*.cod
+/windows/src/engine/keyman32/*.pdb
 
-# /engine/keymanx64/
-/windows/src/engine/keymanx64/x64
+# /engine/keymanhp/
+/windows/src/engine/keymanhp/x64
 
 # /engine/kmcomapi/
 /windows/src/engine/kmcomapi/kmcomapi.tlb
-
-# /engine/kmtip/
-/windows/src/engine/kmtip/kmtip.suo
-/windows/src/engine/kmtip/vc100.idb
-/windows/src/engine/kmtip/x64
-/windows/src/engine/kmtip/x86
-/windows/src/engine/kmtip/kmtip.opensdf
 
 # /engine/tsysinfo/
 /windows/src/engine/tsysinfo/tsysinfo_x64.res
@@ -165,10 +116,6 @@
 # /engine/tsysinfox64/
 /windows/src/engine/tsysinfox64/x64
 
-# /online/database_unicode_conversion/
-
-# /online/fixup_downloadfile_subs/
-
 # /support/NetInputBoxTest/NetInputBoxTest/
 /windows/src/support/NetInputBoxTest/NetInputBoxTest/bin
 /windows/src/support/NetInputBoxTest/NetInputBoxTest/obj
@@ -176,70 +123,23 @@
 # /support/unload_keyboards/
 /windows/src/support/unload_keyboards/Win64
 
-# /test/msghooklister/
-
-# /test/msghooklister/src/
-
-# /test/msghooklister/src/App/
-
-# /test/msghooklister/src/Drv/
-
-# /test/msghooklister/x64/
-
-# /test/msghooklister/x86/
-
-# /test/test_finddefaultlang_latin/
-
-# /test/test_i1672/
-
-# /test/test_i2590/
-
-# /test/test_i2896/
-
-# /test/test_i2908/
-
 # /test/test_i2908/i2908/
 /windows/src/test/test_i2908/i2908/Debug
 
-# /test/test_i2934/
-
 # /test/test_i2934/test_i2934/
 /windows/src/test/test_i2934/test_i2934/Debug
-
-# /test/test_i2945 - option set not clearing/
-
-# /test/test_i3021 - bad backslash key/
-
-# /test/test_i3035 - safari compat/
-
-# /test/test_i3056/
-
-# /test/test_i3137/
-
-# /test/test_i3147/
-
-# /test/test_i3214/
-
-# /test/test_i3250/
-
-# /test/test_i3301/
 
 # /test/test_i3317/
 /windows/src/test/test_i3317/*.json
 /windows/src/test/test_i3317/*.js
 
-
-# /test/test_i3358 - media keys/
-
 # /test/test_i3633
 /windows/src/test/test_i3633/sig?
 
-# /test/test_vistaaltfixunit/
-
-# /test/wm_unichar/
-
 # VS Code
-.vscode
+.vscode/
+.vs/
+.devcontainer/
 
 # IDE files
 **/.idea/**/*.xml
@@ -251,3 +151,42 @@
 
 # Atom/Nuclide
 compile_flags.txt
+
+# Auto-generated resource script for xcode
+resources/build/mac/xcode-environment.inc.sh
+
+# Copy of the master VERSION.md used for Linux packaging
+/core/VERSION.md
+
+**/node_modules/
+tsconfig.tsbuildinfo
+
+# Windows system files
+Thumbs.db
+
+# Temporary file for logging scripts in xcode runs, see builder-basic.inc.sh for
+# details
+/xcodebuild-scripts.log
+
+#
+# Code coverage tools for JS/TS - nyc and c8
+#
+.nyc_output/
+lcov-report/
+lcov.info
+
+# Linux packaging related
+/debian/
+/results/
+/keyman*.deb
+/keyman*.ddeb
+/keyman*.buildinfo
+/keyman*.changes
+/keyman*.tar.?z
+
+# flag file for build script
+.configured
+
+# see common/tools/api-extractor/README.md
+tsdoc.json
+api-extractor.json

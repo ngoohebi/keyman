@@ -1,18 +1,18 @@
 (*
   Name:             keymankeyboardinstalled
   Copyright:        Copyright (C) SIL International.
-  Documentation:    
-  Description:      
+  Documentation:
+  Description:
   Create Date:      1 Aug 2006
 
   Modified Date:    13 Mar 2015
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
-  Bugs:             
-  Todo:             
-  Notes:            
+  Bugs:
+  Todo:
+  Notes:
   History:          01 Aug 2006 - mcdurdin - Add Serialize
                     14 Sep 2006 - mcdurdin - Draw keyboard icons as bitmaps for xml serializing
                     14 Sep 2006 - mcdurdin - Support icons instead of bitmaps for keyboards
@@ -63,7 +63,8 @@ type
   TKeymanKeyboardInstalled = class(   // I3581
     TKeymanKeyboard,
     IIntKeymanKeyboardInstalled,
-    IKeymanKeyboardInstalled)
+    IKeymanKeyboardInstalled,
+    IKeymanKeyboardInstalled2)
   private
     FRegKeyboard: TRegKeyboard;
     FVisualKeyboard: IKeymanVisualKeyboard;
@@ -109,8 +110,10 @@ type
     { IIntKeymanKeyboardInstalled }
     function RegKeyboard: TRegKeyboard;
     procedure ClearVisualKeyboard;
-    procedure UpdateBaseLayout;   // I4169
-    procedure ApplyEnabled(pInputProcessorProfiles: ITfInputProcessorProfiles; AEnabled: Boolean);   // I4376
+    procedure RefreshInstallation;
+
+    { IKeymanKeyboardInstalled2 }
+    procedure MCompileForBaseKeyboard(KLID: Integer); safecall;
 
   public
     constructor Create(AContext: TKeymanContext; const Name: string);
@@ -127,17 +130,18 @@ uses
 
   KPUninstallKeyboard,
   isadmin,
-  OnlineConstants,
   kmxfile,
   ErrorControlledRegistry,
   RegistryKeys,
   custinterfaces,
+  KPInstallKeyboard,
   KPInstallVisualKeyboard,
   KPRecompileMnemonicKeyboard,
   keymanhotkey,
   keymankeyboardlanguagesinstalled,
   keymankeyboardoptions,
   keymanerrorcodes,
+  PackageInfo,
   utilxml;
 
 procedure TKeymanKeyboardInstalled.Uninstall;
@@ -148,17 +152,6 @@ begin
   finally
     Free;
   end;
-end;
-
-procedure TKeymanKeyboardInstalled.UpdateBaseLayout;   // I4169
-begin
-  if FRegKeyboard.MnemonicLayout and FileExists(FRegKeyboard.KeymanFile) then   // I4615
-    with TKPRecompileMnemonicKeyboard.Create(Context) do
-    try
-      Execute(FRegKeyboard.KeymanFile, FRegKeyboard.PackageName);
-    finally
-      Free;
-    end;
 end;
 
 function TKeymanKeyboardInstalled.Get_Copyright: WideString;
@@ -209,7 +202,8 @@ end;
 function TKeymanKeyboardInstalled.Serialize(Flags: TOleEnum; const ImagePath: WideString; References: TStrings): WideString;
 var
   FHasVisualKeyboard: Boolean;
-  FBitmap, FEncodings: WideString;
+  FBitmap, FEncodings: string;
+  TempBitmapLockFile: string;
 begin
   FEncodings := '';
   if (Get_Encodings and keymanapi_TLB.keUnicode) = keymanapi_TLB.keUnicode then
@@ -238,16 +232,21 @@ begin
 
   if ((Flags and ksfExportImages) = ksfExportImages) and Assigned(FRegKeyboard.Icon) then
   begin
-    FBitmap := XMLImageTempName(ImagePath, References);
+    FBitmap := XMLImageTempName(ImagePath, TempBitmapLockFile, References);
     with Vcl.Graphics.TBitmap.Create do
     try
       Width := 16;
       Height := 16;
-      Canvas.Draw(0,0,FRegKeyboard.Icon);
+      try
+        Canvas.Draw(0,0,FRegKeyboard.Icon);
+      except
+        on E:EInvalidGraphic do ; // ignore invalid icons
+      end;
       SaveToFile(FBitmap);
     finally
       Free;
     end;
+    DeleteFile(TempBitmapLockFile); // delete after bitmap is saved to avoid races
     Result := Result + '<bitmap>'+ExtractFileName(FBitmap)+'</bitmap>';
   end;
 
@@ -281,8 +280,48 @@ begin
 end;
 
 procedure TKeymanKeyboardInstalled.Set_Loaded(Value: WordBool);
+var
+  i: Integer;
+  lang: IKeymanKeyboardLanguageInstalled2;
+  LangID: Integer;
+  TemporaryKeyboardID: WideString;
+  RegistrationRequired: WordBool;
 begin
-  FRegKeyboard.Enabled := Value;
+  if Value then
+  begin
+    FRegKeyboard.Enabled := True;
+    for i := 0 to Get_Languages.Count - 1 do
+    begin
+      lang := Get_Languages[i] as IKeymanKeyboardLanguageInstalled2;
+      if lang.IsInstalled then
+      begin
+        if lang.FindInstallationLangID(LangID, TemporaryKeyboardID, RegistrationRequired, kifInstallTransientLanguage) and
+            not RegistrationRequired then
+          lang.InstallTip(LangID, TemporaryKeyboardID)
+        else
+        begin
+          // The registration for the keyboard TIP has somehow disappeared; this is unexpected.
+          // We don't want to crash, so we'll just try and clean it up. The user will have to
+          // reinstall it, which is not the end of the world.
+          lang.Uninstall;
+        end;
+      end;
+    end;
+  end
+  else
+  begin
+    FRegKeyboard.Enabled := False;
+    for i := 0 to Get_Languages.Count - 1 do
+    begin
+      lang := Get_Languages[i] as IKeymanKeyboardLanguageInstalled2;
+      if lang.IsInstalled then
+      begin
+        (lang as IIntKeymanKeyboardLanguage).Disable;
+      end;
+    end;
+  end;
+
+  (Context.Keyboards as IKeymanKeyboardsInstalled).Apply;
 end;
 
 function TKeymanKeyboardInstalled.Get_IconFilename: WideString;   // I3581
@@ -326,14 +365,6 @@ begin
   if FRegKeyboard.MnemonicLayout
     then Result := kltMnemonic
     else Result := kltPositional;
-end;
-
-procedure TKeymanKeyboardInstalled.ApplyEnabled(pInputProcessorProfiles: ITfInputProcessorProfiles; AEnabled: Boolean);   // I4376
-var
-  i: Integer;
-begin
-  for i := 0 to Get_Languages.Count - 1 do
-    (Get_Languages[i] as IIntKeymanKeyboardLanguage).ApplyEnabled(pInputProcessorProfiles, AEnabled);
 end;
 
 procedure TKeymanKeyboardInstalled.ClearVisualKeyboard;
@@ -406,9 +437,50 @@ begin
   end;
 end;
 
+/// <summary>Updates installed keyboard to Keyman 14+ registration pattern</summary>
+/// <remarks>This refreshes all the registered profiles for the keyboard and registers
+/// transient profiles. This function is idempotent. This function requires elevation '
+/// to succeed.</remarks>
+procedure TKeymanKeyboardInstalled.RefreshInstallation;
+var
+  kpik: TKPInstallKeyboard;
+  o: IKeymanPackageInstalled;
+  ll: TPackageKeyboardLanguageList;
+begin
+  kpik := TKPInstallKeyboard.Create(Context);
+  try
+    o := Get_OwnerPackage;
+    if Assigned(o) then
+    begin
+      ll := (o as IIntKeymanPackageInstalled).GetKeyboardLanguageList(Get_ID) as TPackageKeyboardLanguageList;
+      kpik.RegisterProfiles(FRegKeyboard.KeymanFile, o.ID, [ikPartOfPackage], ll);
+    end
+    else
+      kpik.RegisterProfiles(FRegKeyboard.KeymanFile, '', [], nil);
+  finally
+    kpik.Free;
+  end;
+end;
+
 function TKeymanKeyboardInstalled.RegKeyboard: TRegKeyboard;
 begin
   Result := FRegKeyboard;
+end;
+
+{ IKeymanKeyboardInstalled2 }
+procedure TKeymanKeyboardInstalled.MCompileForBaseKeyboard(KLID: Integer); safecall;
+var
+  RecompileMnemonicKeyboard: TKPRecompileMnemonicKeyboard;
+begin
+  if FRegKeyboard.MnemonicLayout and FileExists(FRegKeyboard.KeymanFile) then
+    begin
+      RecompileMnemonicKeyboard := TKPRecompileMnemonicKeyboard.Create(Context);
+    try
+      RecompileMnemonicKeyboard.Execute(FRegKeyboard.KeymanFile, FRegKeyboard.PackageName, KLID);
+    finally
+      RecompileMnemonicKeyboard.Free;
+    end;
+  end;
 end;
 
 end.

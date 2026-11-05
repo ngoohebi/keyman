@@ -1,24 +1,28 @@
 package com.keyman.android.tests.keyboardHarness;
 
-import androidx.appcompat.app.AppCompatActivity;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import com.tavultesoft.kmea.KMKeyboardDownloaderActivity;
-import com.tavultesoft.kmea.KMManager;
-import com.tavultesoft.kmea.KMTextView;
-import com.tavultesoft.kmea.KeyboardEventHandler.OnKeyboardEventListener;
-import com.tavultesoft.kmea.KeyboardEventHandler.OnKeyboardDownloadEventListener;
-import com.tavultesoft.kmea.KMManager.KeyboardType;
+import androidx.constraintlayout.widget.ConstraintLayout;
+
+import com.keyman.engine.BaseActivity;
+import com.keyman.engine.data.Keyboard;
+import com.keyman.engine.KMKeyboardDownloaderActivity;
+import com.keyman.engine.KMManager;
+import com.keyman.engine.KMTextView;
+import com.keyman.engine.KeyboardEventHandler.OnKeyboardEventListener;
+import com.keyman.engine.KeyboardEventHandler.OnKeyboardDownloadEventListener;
+import com.keyman.engine.KMManager.KeyboardType;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MainActivity extends AppCompatActivity implements OnKeyboardEventListener, OnKeyboardDownloadEventListener {
+public class MainActivity extends BaseActivity implements OnKeyboardEventListener, OnKeyboardDownloadEventListener {
 
+  private ConstraintLayout constraintLayout;
   private KMTextView textView;
 
   @Override
@@ -30,43 +34,91 @@ public class MainActivity extends AppCompatActivity implements OnKeyboardEventLi
     KMManager.initialize(this, KeyboardType.KEYBOARD_TYPE_INAPP);
 
     setContentView(R.layout.activity_main);
+    constraintLayout = findViewById(R.id.constraintLayout);
+    setupEdgeToEdge(R.id.constraintLayout);
+    setupStatusBarColors(
+      android.R.color.white,        // Color for top status bar
+      android.R.color.darker_gray); // Color for bottom navigation bar
+
     textView = (KMTextView) findViewById(R.id.kmTextView);
-    final String KeyboardFont = "{\"family\":\"LatinWeb\",\"source\":[\"DejaVuSans.ttf\"]}";
 
     // Add custom keyboards
 
     // Chirality test keyboard
-    HashMap<String, String> chiralityKBInfo = new HashMap<String, String>();
-    chiralityKBInfo.put(KMManager.KMKey_PackageID, "cloud");
-    chiralityKBInfo.put(KMManager.KMKey_KeyboardID, "chirality");
-    chiralityKBInfo.put(KMManager.KMKey_LanguageID, "en");
-    chiralityKBInfo.put(KMManager.KMKey_KeyboardName, "Chirality Keyboard");
-    chiralityKBInfo.put(KMManager.KMKey_LanguageName, "English");
-    chiralityKBInfo.put(KMManager.KMKey_KeyboardVersion, "1.0");
-    chiralityKBInfo.put(KMManager.KMKey_Font, KeyboardFont);
+    Keyboard chiralityKBInfo = new Keyboard(
+      "keyboardharness",
+      "chirality",
+      "Chirality Keyboard",
+      "en",
+      "English",
+      "1.0",
+      "", // help link
+      "", // kmp
+      true,
+      KMManager.KMDefault_KeyboardFont,
+      KMManager.KMDefault_KeyboardFont);
     KMManager.addKeyboard(this, chiralityKBInfo);
+    Keyboard.setDefaultKeyboard(chiralityKBInfo);
 
     // Longpress test keyboard
-    HashMap<String, String> longpressKBbInfo = new HashMap<String, String>();
-    longpressKBbInfo.put(KMManager.KMKey_PackageID, "cloud");
-    longpressKBbInfo.put(KMManager.KMKey_KeyboardID, "longpress");
-    longpressKBbInfo.put(KMManager.KMKey_LanguageID, "en");
-    longpressKBbInfo.put(KMManager.KMKey_KeyboardName, "Longpress Keyboard");
-    longpressKBbInfo.put(KMManager.KMKey_LanguageName, "English");
-    longpressKBbInfo.put(KMManager.KMKey_KeyboardVersion, "1.0");
-    longpressKBbInfo.put(KMManager.KMKey_Font, "code2001.ttf");
+    Keyboard longpressKBbInfo = new Keyboard(
+      "keyboardharness",
+      "longpress",
+      "longpress '\"\\|5% +",
+      "en",
+      "English",
+      "1.0",
+      "",
+      "",
+      true,
+      "code2001.ttf",
+      "code2001.ttf");
     KMManager.addKeyboard(this, longpressKBbInfo);
 
     // Platform test keyboard
-    HashMap<String, String> platformtestKBbInfo = new HashMap<String, String>();
-    platformtestKBbInfo.put(KMManager.KMKey_PackageID, "cloud");
-    platformtestKBbInfo.put(KMManager.KMKey_KeyboardID, "platformtest");
-    platformtestKBbInfo.put(KMManager.KMKey_LanguageID, "en");
-    platformtestKBbInfo.put(KMManager.KMKey_KeyboardName, "platformtest Keyboard");
-    platformtestKBbInfo.put(KMManager.KMKey_LanguageName, "English");
-    platformtestKBbInfo.put(KMManager.KMKey_KeyboardVersion, "1.0");
-    platformtestKBbInfo.put(KMManager.KMKey_Font, KeyboardFont);
+    Keyboard platformtestKBbInfo = new Keyboard(
+      "keyboardharness",
+      "platformtest",
+      "platformtest Keyboard",
+      "en",
+      "English",
+      "1.0",
+      "",
+      "",
+      true,
+      KMManager.KMDefault_KeyboardFont,
+      KMManager.KMDefault_KeyboardFont);
     KMManager.addKeyboard(this, platformtestKBbInfo);
+
+    // Issue #9469 Verify special characters in keyamnweb-osk.ttf keyboard
+    Keyboard specialKBInfo = new Keyboard(
+      "keyboardharness",
+      "test9469",
+      "test9469 Keyboard",
+      "en",
+      "English",
+      "1.0",
+      "",
+      "",
+      true,
+      KMManager.KMDefault_KeyboardFont,
+      KMManager.KMDefault_KeyboardFont);
+    KMManager.addKeyboard(this, specialKBInfo);
+
+    // Final K_ENTER test keyboard
+    Keyboard finalKBInfo = new Keyboard(
+      "final",
+      "final",
+      "final Keyboard",
+      "en",
+      "English",
+      "1.0",
+      "",
+      "",
+      true,
+      KMManager.KMDefault_KeyboardFont,
+      KMManager.KMDefault_KeyboardFont);
+    KMManager.addKeyboard(this, finalKBInfo);
   }
 
   @Override

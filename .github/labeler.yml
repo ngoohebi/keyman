@@ -1,0 +1,177 @@
+#
+# This file adds labels based on the scopes in resources/scopes/scopes.json and
+# resources/scopes/commit-types.json
+# Currently it must be manually kept up to date. Not all labels are added, only
+# common ones. The others are commented out. There is still some variance between
+# folder names and labels; consider this documentation of that ;-)
+
+docs:
+- changed-files:
+  - any-glob-to-any-file: 'docs/**'
+
+#
+# Add labels based on changed files using actions/labeler
+#
+
+android/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - android/**
+      - resources/teamcity/includes/**
+      - resources/teamcity/android/**
+android/app/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - android/KMAPro/**
+android/engine/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - android/KMEA/**
+android/samples/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - android/Samples/**
+
+common/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - common/**
+      - resources/teamcity/includes/**
+      - resources/teamcity/common/**
+common/web/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - common/web/**
+
+core/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - core/**
+      - resources/teamcity/includes/**
+      - resources/teamcity/core/**
+
+developer/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - developer/**
+      - resources/teamcity/includes/**
+      - resources/teamcity/developer/**
+developer/compilers/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - developer/src/kmc/**
+      - developer/src/kmcmplib/**
+      - developer/src/kmc-*/**
+developer/ide/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - developer/src/server/**
+      - developer/src/tike/**
+
+ios/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - ios/**
+      - resources/teamcity/includes/**
+      - resources/teamcity/ios/**
+ios/app/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - ios/keyman/**
+ios/engine/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - ios/engine/**
+ios/samples/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - ios/samples/**
+
+linux/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - linux/**
+      - resources/teamcity/includes/**
+      - resources/teamcity/linux/**
+linux/config/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - linux/keyman-config/**
+linux/engine/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - linux/ibus-keyman/**
+
+mac/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - mac/**
+      - resources/teamcity/includes/**
+      - resources/teamcity/mac/**
+# mac/config/:
+# mac/engine/: mac/**
+
+oem/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - oem/**
+oem/fv/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - oem/firstvoices/**
+oem/fv/android/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - oem/firstvoices/android/**
+oem/fv/ios/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - oem/firstvoices/ios/**
+oem/fv/windows/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - oem/firstvoices/windows/**
+
+resources/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - resources/**
+
+web/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - web/**
+      - resources/teamcity/includes/**
+      - resources/teamcity/web/**
+# web/bookmarklet/
+web/engine/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - web/source/**
+web/ui/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - web/source/kmwui*
+web/samples/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - web/samples/**
+web/predictive-text/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - web/src/engine/predictive-text/**
+
+windows/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - windows/**
+      - resources/teamcity/includes/**
+      - resources/teamcity/windows/**
+windows/config/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - windows/src/desktop/**
+windows/engine/:
+  - changed-files:
+    - any-glob-to-any-file:
+      - windows/src/engine/**

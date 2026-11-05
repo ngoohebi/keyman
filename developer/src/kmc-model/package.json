@@ -1,0 +1,67 @@
+{
+  "name": "@keymanapp/kmc-model",
+  "description": "Keyman Developer lexical model compiler",
+  "keywords": [
+    "keyboard",
+    "keyman",
+    "unicode",
+    "lexical-model",
+    "predictive-text"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./build/src/main.js"
+  },
+  "files": [
+    "/build/src/"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "lint": "eslint .",
+    "test": "./build.sh test"
+  },
+  "author": "Marc Durdin <marc@keyman.com> (https://github.com/mcdurdin)",
+  "contributors": [
+    "Eddie Antonio Santos <Eddie.Santos@nrc-cnrc.gc.ca>",
+    "Joshua Horton"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/keymanapp/keyman/issues"
+  },
+  "dependencies": {
+    "@keymanapp/common-types": "*",
+    "@keymanapp/keyman-version": "*",
+    "typescript": "^5.4.5"
+  },
+  "devDependencies": {
+    "@keymanapp/developer-test-helpers": "*",
+    "@keymanapp/models-templates": "*",
+    "c8": "^7.12.0",
+    "chalk": "^2.4.2",
+    "esbuild": "^0.28.1"
+  },
+  "mocha": {
+    "spec": "build/test/**/*.tests.js",
+    "require": [
+      "source-map-support/register"
+    ]
+  },
+  "c8": {
+    "all": true,
+    "src": [
+      "src/"
+    ],
+    "exclude-after-remap": true,
+    "exclude": [
+      "test/",
+      "tools/",
+      "src/lexical-model.ts"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/keymanapp/keyman.git",
+    "directory": "developer/src/kmc-model"
+  }
+}

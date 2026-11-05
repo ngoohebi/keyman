@@ -1,0 +1,69 @@
+{
+  "name": "@keymanapp/kmc-ldml",
+  "description": "Keyman Developer LDML keyboard compiler",
+  "keywords": [
+    "keyboard",
+    "keyman",
+    "ldml",
+    "unicode"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./build/src/main.js"
+  },
+  "files": [
+    "/build/src/"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "lint": "eslint .",
+    "test": "gosh ./build.sh test"
+  },
+  "author": "Marc Durdin <marc@keyman.com> (https://github.com/mcdurdin)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/keymanapp/keyman/issues"
+  },
+  "dependencies": {
+    "@keymanapp/developer-utils": "*",
+    "@keymanapp/keyman-version": "*",
+    "@keymanapp/kmc-kmn": "*",
+    "@keymanapp/ldml-keyboard-constants": "*",
+    "semver": "^7.5.4"
+  },
+  "devDependencies": {
+    "@keymanapp/developer-test-helpers": "*",
+    "@keymanapp/resources-gosh": "*",
+    "@types/common-tags": "^1.8.4",
+    "@types/semver": "^7.3.12",
+    "abnf": "^4.3.1",
+    "c8": "^7.12.0",
+    "chalk": "^2.4.2",
+    "common-tags": "^1.8.2",
+    "peggy": "^4.2.0",
+    "typescript": "^5.4.5"
+  },
+  "mocha": {
+    "spec": "build/test/**/*.tests.js",
+    "require": [
+      "source-map-support/register"
+    ]
+  },
+  "c8": {
+    "all": true,
+    "src": [
+      "src/"
+    ],
+    "exclude-after-remap": true,
+    "exclude": [
+      "test/",
+      "src/util/abnf/*/*.d.ts",
+      "src/util/abnf/*/*.js"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/keymanapp/keyman.git",
+    "directory": "developer/src/kmc-ldml"
+  }
+}

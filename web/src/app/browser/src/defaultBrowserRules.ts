@@ -1,0 +1,61 @@
+import { ModifierKeyConstants } from '@keymanapp/common-types';
+import {
+  Codes,
+  DefaultOutputRules,
+  type KeyEvent,
+  type TextStore
+} from 'keyman/engine/keyboard';
+
+import { ContextManager } from './contextManager.js';
+
+export class DefaultBrowserRules extends DefaultOutputRules {
+  private contextManager: ContextManager;
+
+  constructor(contextManager: ContextManager) {
+    super();
+    this.contextManager = contextManager;
+  }
+
+  isCommand(Lkc: KeyEvent): boolean {
+    const code = this.codeForEvent(Lkc);
+
+    switch(code) {
+      case Codes.keyCodes['K_TAB']:
+      case Codes.keyCodes['K_TABBACK']:
+      case Codes.keyCodes['K_TABFWD']:
+        return true;
+      default:
+        return super.isCommand(Lkc);
+    }
+  }
+
+  /**
+   * applyCommand - used when a ProcessorAction represents a non-text "command" within the Engine.
+   */
+  applyCommand(Lkc: KeyEvent, textStore: TextStore): void {
+    const code = this.codeForEvent(Lkc);
+
+    const moveToNext = (back: boolean) => {
+      const contextManager = this.contextManager;
+      const activeElement = contextManager.activeTextStore?.getElement();
+      const nextElement = contextManager.page.findNeighboringInput(activeElement, back);
+      nextElement?.focus();
+    }
+
+    switch(code) {
+      // This method will be handled between `ContextManager` and PageContextAttachment:
+      // pageContextAttachment.findNeighboringInput(contextManager.activeTextStore.getElement(), <same flag>)
+      case Codes.keyCodes['K_TAB']:
+        moveToNext((Lkc.Lmodifiers & ModifierKeyConstants.K_SHIFTFLAG) != 0);
+        break;
+      case Codes.keyCodes['K_TABBACK']:
+        moveToNext(true);
+        break;
+      case Codes.keyCodes['K_TABFWD']:
+        moveToNext(false);
+        break;
+    }
+
+    super.applyCommand(Lkc, textStore);
+  }
+}

@@ -1,0 +1,19 @@
+name: "Pull Request Labeler"
+on:
+- pull_request
+
+jobs:
+  triage:
+    if: github.repository == 'keymanapp/keyman'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Update labels based on changed files
+      uses: actions/labeler@f27b608878404679385c85cfa523b85ccb86e213 # v6.1.0
+      with:
+        repo-token: "${{ secrets.GITHUB_TOKEN }}"
+    - name: Update labels based on PR title
+      id: labeler
+      uses: fuxingloh/multi-labeler@bcd50af464202999e57f556b4aefcf05a34abf85 # v5.0.0
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        config-path: .github/multi-labeler.yml

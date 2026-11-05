@@ -1,0 +1,501 @@
+keyman (18.0.254-1) unstable; urgency=medium
+
+  * Add procps dependency (closes: #1136515)
+  * New upstream release.
+
+ -- Eberhard Beilharz <eb1@sil.org>  Mon, 19 Oct 2026 08:57:38 +0200
+
+keyman (18.0.248-2) unstable; urgency=medium
+
+  * Team upload.
+  * debian/patches/e77d2432ef91465e72460b32e5bc3e870b77fe9c.patch:
+    Backport upstream patch to fix FTBFS due to pkg_resources.
+    (Closes: #1149425)
+
+ -- Boyuan Yang <byang@debian.org>  Wed, 30 Sep 2026 10:39:04 -0400
+
+keyman (18.0.248-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Eberhard Beilharz <eb1@sil.org>  Thu, 12 Mar 2026 12:39:18 +0100
+
+keyman (18.0.247-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Eberhard Beilharz <eb1@sil.org>  Tue, 10 Mar 2026 17:58:33 +0100
+
+keyman (18.0.246-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Eberhard Beilharz <eb1@sil.org>  Wed, 04 Feb 2026 13:48:31 +0100
+
+keyman (18.0.245-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Eberhard Beilharz <eb1@sil.org>  Thu, 04 Dec 2025 10:18:49 +0100
+
+keyman (18.0.244-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Eberhard Beilharz <eb1@sil.org>  Mon, 10 Nov 2025 17:06:33 +0100
+
+keyman (18.0.243-1) unstable; urgency=medium
+
+  * replace dbus-x11 dependency with default-dbus-session-bus | dbus-session-bus
+    (closes: 1117068)
+  * New upstream release.
+
+ -- Eberhard Beilharz <eb1@sil.org>  Wed, 15 Oct 2025 12:09:24 +0200
+
+keyman (18.0.242-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Eberhard Beilharz <eb1@sil.org>  Mon, 29 Sep 2025 11:38:38 +0200
+
+keyman (18.0.241-1) unstable; urgency=medium
+
+  * remove onboard-keyman recommends (closes: 1115423)
+  * New upstream release.
+
+ -- Eberhard Beilharz <eb1@sil.org>  Thu, 18 Sep 2025 11:35:01 +0200
+
+keyman (18.0.240-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Eberhard Beilharz <eb1@sil.org>  Wed, 27 Aug 2025 18:02:36 +0200
+
+keyman (18.0.238-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Eberhard Beilharz <eb1@sil.org>  Wed, 04 Jun 2025 19:14:08 +0200
+
+keyman (18.0.236-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Eberhard Beilharz <eb1@sil.org>  Mon, 12 May 2025 16:00:42 +0200
+
+keyman (18.0.235-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Eberhard Beilharz <eb1@sil.org>  Wed, 23 Apr 2025 11:21:04 +0200
+
+keyman (18.0.227-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Eberhard Beilharz <eb1@sil.org>  Fri, 04 Apr 2025 15:12:41 +0200
+
+keyman (18.0.199-2) unstable; urgency=medium
+
+  * Team upload.
+  * Source-only upload.
+
+ -- Boyuan Yang <byang@debian.org>  Thu, 27 Feb 2025 14:17:40 -0500
+
+keyman (18.0.199-1) unstable; urgency=medium
+
+  * closes: 1092463
+  * New upstream release.
+
+ -- Eberhard Beilharz <eb1@sil.org>  Tue, 25 Feb 2025 14:57:28 +0100
+
+keyman (17.0.335-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Eberhard Beilharz <eb1@sil.org>  Thu, 06 Feb 2025 10:33:00 +0100
+
+keyman (17.0.334-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Eberhard Beilharz <eb1@sil.org>  Tue, 28 Jan 2025 16:52:06 +0100
+
+keyman (17.0.333-1) unstable; urgency=medium
+
+  * New upstream release.
+
+ -- Eberhard Beilharz <eb1@sil.org>  Thu, 16 Jan 2025 16:29:44 +0100
+
+keyman (17.0.332-1) unstable; urgency=medium
+
+  * set environment variable for rendering of downloads dialog (#12617)
+  * add `keymanFacename` to .ldml file (#12283)
+  * ignore exceptions trying to install cache (#11885)
+  * New upstream release.
+
+ -- Eberhard Beilharz <eb1@sil.org>  Wed, 11 Dec 2024 15:53:59 +0100
+
+keyman (17.0.326-1) unstable; urgency=medium
+
+  * New upstream release
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Mon, 03 Jun 2024 21:58:16 +0200
+
+keyman (17.0.295-1) unstable; urgency=medium
+
+  * Remove ibus-keyman.post{inst,rm} (closes: #1034040)
+  * New upstream release.
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Wed, 27 Mar 2024 17:14:32 +0100
+
+keyman (17.0.279-1) unstable; urgency=medium
+
+  * Add libicu-dev dependency to libkeymancore-dev (closes: #1064915)
+  * Remove ibus-keyman.post{inst,rm} (closes: #1034040)
+  * New upstream release.
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Thu, 29 Feb 2024 19:17:08 +0100
+
+keyman (17.0.274-1) unstable; urgency=medium
+
+  * Fix autopkg tests
+  * New upstream release.
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Fri, 23 Feb 2024 15:45:13 +0100
+
+keyman (17.0.272-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Wed, 21 Feb 2024 16:36:14 +0100
+
+keyman (16.0.145-1) unstable; urgency=medium
+
+  [Jeremy Bicha]
+  * Build with webkitgtk 4.1 instead of 4.0  (closes: #1061396)
+  * New upstream release.
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Thu, 01 Feb 2024 12:58:00 +0100
+
+keyman (16.0.144-1) unstable; urgency=medium
+
+  [Dandan Zhang]
+  * Add support for loong64 (closes: #1057134)
+
+  [Eberhard Beilharz]
+  * New upstream release.
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Fri, 01 Dec 2023 14:59:28 +0100
+
+keyman (16.0.143-1) unstable; urgency=medium
+
+  * Fix failure to build source after successful build (Closes #1046776)
+  * New upstream release.
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Wed, 22 Nov 2023 15:24:59 +0100
+
+keyman (16.0.141-1) unstable; urgency=medium
+
+  * Work around mips64el build failure (#1041499)
+  * New upstream release.
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Thu, 27 Jul 2023 16:30:04 +0200
+
+keyman (16.0.140-1) unstable; urgency=medium
+
+  * New upstream release (closes: #1037707).
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Mon, 24 Jul 2023 11:41:07 +0200
+
+keyman (16.0.139-4) unstable; urgency=medium
+
+  * debian/tests: Revert previous change and ignore s390x from autopkgtests
+
+ -- Eberhard Beilharz <eb1@sil.org>  Fri, 24 Mar 2023 16:05:07 +0100
+
+keyman (16.0.139-3) unstable; urgency=medium
+
+  * debian/tests: Run autopkgtests on s390x but immediately return
+
+ -- Eberhard Beilharz <eb1@sil.org>  Wed, 22 Mar 2023 19:25:02 +0100
+
+keyman (16.0.139-2) unstable; urgency=medium
+
+  * Don't build on s390x because Keyman doesn't work on big-endian architectures
+    (upstream bug https://github.com/keymanapp/keyman/issues/5111)
+
+ -- Eberhard Beilharz <eb1@sil.org>  Mon, 20 Mar 2023 19:54:44 +0100
+
+keyman (16.0.139-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Thu, 16 Mar 2023 08:59:04 +0100
+
+keyman (16.0.138-4) unstable; urgency=medium
+
+  * Team upload
+  * debian/tests/control: Don't run autopkgtest on s390x
+
+ -- Gunnar Hjalmarsson <gunnarhj@ubuntu.com>  Sat, 11 Feb 2023 18:39:13 +0100
+
+keyman (16.0.138-3) unstable; urgency=medium
+
+  * debian/tests/test-build: Fix autopkgtests
+
+ -- Eberhard Beilharz <eb1@sil.org>  Thu, 09 Feb 2023 12:18:47 +0100
+
+keyman (16.0.138-2) unstable; urgency=medium
+
+  * Team upload
+  * debian/tests/control: Added missing autopkgtest dependency on
+    pkg-config (closes: #1030815).
+
+ -- Gunnar Hjalmarsson <gunnarhj@debian.org>  Tue, 07 Feb 2023 20:34:35 +0100
+
+keyman (16.0.138-1) unstable; urgency=medium
+
+  [ Jelmer Vernooĳ ]
+  * Include packaging path in Vcs-Git header.
+
+  [ Eberhard Beilharz ]
+  * New upstream release.
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Thu, 02 Feb 2023 10:53:17 +0100
+
+keyman (15.0.274-1) unstable; urgency=medium
+
+  * New upstream release
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Thu, 01 Dec 2022 20:41:32 +0100
+
+keyman (15.0.273-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Mon, 28 Nov 2022 12:31:29 +0100
+
+keyman (15.0.272-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Thu, 10 Nov 2022 17:37:24 +0100
+
+keyman (15.0.271-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Wed, 19 Oct 2022 16:15:33 +0200
+
+keyman (15.0.270-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Tue, 13 Sep 2022 11:20:25 +0200
+
+keyman (15.0.269-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Mon, 29 Aug 2022 15:14:16 +0200
+
+keyman (15.0.268-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Fri, 05 Aug 2022 17:31:36 +0200
+
+keyman (15.0.267-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Tue, 26 Jul 2022 10:38:41 +0200
+
+keyman (15.0.266-2) unstable; urgency=high
+
+  * Team upload.
+  * debian/patches/0001-fix-common-Fix-delete.patch: Apply upstream
+    trunk patch to fix FTBFS with GCC 12. (Closes: #1012958)
+
+ -- Boyuan Yang <byang@debian.org>  Sun, 24 Jul 2022 01:07:36 -0400
+
+keyman (15.0.266-1) unstable; urgency=medium
+
+  * New upstream release.
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Tue, 12 Jul 2022 16:51:32 +0200
+
+keyman (15.0.260-1) unstable; urgency=medium
+
+  * New upstream release
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Wed, 15 Jun 2022 10:55:17 +0200
+
+keyman (15.0.235-1) unstable; urgency=medium
+
+  * New upstream release
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Tue, 19 Apr 2022 19:08:18 +0200
+
+keyman (15.0.228-2) unstable; urgency=medium
+
+  * New upstream release
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Thu, 07 Apr 2022 17:45:15 +0200
+
+keyman (15.0.213-1) unstable; urgency=medium
+
+  * Consolidate source packages
+    Closes: #1007123
+  * New upstream release
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Wed, 16 Mar 2022 11:15:54 +0100
+
+keyman-config (14.0.287-1) unstable; urgency=medium
+
+  * New upstream release
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Fri, 11 Mar 2022 12:32:34 +0100
+
+keyman-config (14.0.284-3) unstable; urgency=medium
+
+  * Team upload
+  * No-change rebuild against python-requests-cache 0.9.1-1
+    - The build of keyman-config 14.0.284-1 failed. Hopefully we'll be
+      more lucky this time.
+
+ -- Gunnar Hjalmarsson <gunnarhj@debian.org>  Wed, 19 Jan 2022 12:50:32 +0100
+
+keyman-config (14.0.284-1) unstable; urgency=medium
+
+  * New upstream release
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Fri, 14 Jan 2022 18:00:21 +0100
+
+keyman-config (14.0.283-2) unstable; urgency=medium
+
+  * New upstream release
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Thu, 02 Dec 2021 12:02:35 +0100
+
+keyman-config (14.0.282-1) unstable; urgency=medium
+
+  * New upstream release
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Wed, 29 Sep 2021 12:47:28 +0200
+
+keyman-config (14.0.280-1) unstable; urgency=medium
+
+  * New upstream release
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Mon, 23 Aug 2021 17:38:22 +0200
+
+keyman-config (14.0.276-2) experimental; urgency=medium
+
+  * Team upload
+  * Add libglib2.0-bin to keyman Depends (closes: #990226)
+
+ -- Gunnar Hjalmarsson <gunnarhj@debian.org>  Wed, 23 Jun 2021 15:28:27 +0200
+
+keyman-config (14.0.276-1) experimental; urgency=medium
+
+  * New upstream release
+  * Re-release to Debian
+
+ -- Eberhard Beilharz <eb1@sil.org>  Fri, 11 Jun 2021 14:43:46 +0200
+
+keyman-config (14.0.273-1) experimental; urgency=medium
+
+  * Keyman 14
+
+ -- Eberhard Beilharz <eb1@sil.org>  Mon, 26 Apr 2021 18:24:41 +0200
+
+keyman-config (11.0.103-3) unstable; urgency=medium
+
+  * Update maintainer to Debian Input Method Team
+
+ -- Daniel Glassey <wdg@debian.org>  Tue, 15 Jan 2019 17:35:50 +0700
+
+keyman-config (11.0.103-2) unstable; urgency=medium
+
+  * add appstream file com.keyman.config.appdata.xml
+
+ -- Daniel Glassey <wdg@debian.org>  Tue, 15 Jan 2019 17:15:09 +0700
+
+keyman-config (11.0.103-1) unstable; urgency=medium
+
+  * New upstream beta
+  * fix download window problem
+  * d/keyman.install icons for km-config application and .kmp files
+       fixes appstream hints error reported on tracker
+  * add d/keyman.sharedmimeinfo for .kmp files
+
+ -- Daniel Glassey <wdg@debian.org>  Fri, 04 Jan 2019 15:39:51 +0700
+
+keyman-config (11.0.101-1) unstable; urgency=medium
+
+  * New upstream Keyman for Linux 11.0 beta 1
+  * d/control standards 4.3.0 no changes
+  * remove d/p missing_files.patch as files are in next upstream
+  * d/watch update for beta/stable
+
+ -- Daniel Glassey <wdg@debian.org>  Fri, 04 Jan 2019 01:26:45 +0700
+
+keyman-config (10.99.69-2) unstable; urgency=medium
+
+  * d/p/missing_files.patch: files missing from released source
+
+ -- Daniel Glassey <wdg@debian.org>  Sat, 22 Dec 2018 21:56:13 +0700
+
+keyman-config (10.99.69-1) unstable; urgency=medium
+
+  * New upstream pre-release
+  * Linux part of website is active to get keyboards for Linux
+      in download window
+  * uses website search API to find list of keyboards for
+      bash completion in cl tools
+  * installs keyboards into IBus when you install them
+  * d/control change to section utils, Closes: #916350
+  * remove webkit->webkit2 patch merged upstream
+
+ -- Daniel Glassey <wdg@debian.org>  Thu, 20 Dec 2018 09:44:44 +0700
+
+keyman-config (10.99.33-1) unstable; urgency=low
+
+  * source package automatically created by stdeb 0.8.5
+    * and updated
+  * Initial upload to Debian, Closes: #914781
+  * d/patches patch from upstream git to move to WebKit2
+
+ -- Daniel Glassey <wdg@debian.org>  Tue, 27 Nov 2018 15:56:13 +0700

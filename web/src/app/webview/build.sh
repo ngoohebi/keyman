@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+
+## START STANDARD BUILD SCRIPT INCLUDE
+# adjust relative paths as necessary
+THIS_SCRIPT="$(readlink -f "${BASH_SOURCE[0]}")"
+. "${THIS_SCRIPT%/*}/../../../../resources/build/builder-full.inc.sh"
+## END STANDARD BUILD SCRIPT INCLUDE
+
+SUBPROJECT_NAME=app/webview
+. "$KEYMAN_ROOT/web/common.inc.sh"
+. "$KEYMAN_ROOT/resources/build/utils.inc.sh"
+. "$KEYMAN_ROOT/resources/build/node.inc.sh"
+
+# ################################ Main script ################################
+
+builder_describe "Builds the Keyman Engine for Web's puppetable version designed for use within WebViews." \
+  "@/common/tools/es-bundling               build" \
+  "@/web/src/engine                         build" \
+  "@/web/src/tools/building/sourcemap-root  build" \
+  "clean" \
+  "configure" \
+  "build" \
+  "test"
+
+# Possible TODO?s
+# "upload-symbols   Uploads build product to Sentry for error report symbolification.  Only defined for $DOC_BUILD_EMBED_WEB" \
+
+builder_parse "$@"
+
+config=release
+if builder_is_debug_build; then
+  config=debug
+fi
+
+builder_describe_outputs \
+  configure   /node_modules \
+  build       /web/build/$SUBPROJECT_NAME/$config/keymanweb-webview.js
+
+#### Build action definitions ####
+
+compile_and_copy() {
+  compile $SUBPROJECT_NAME
+
+  BUILD_ROOT="${KEYMAN_ROOT}/web/build/app/webview"
+  SRC_ROOT="${KEYMAN_ROOT}/web/src/app/webview/src"
+
+  node_es_bundle "${SRC_ROOT}/debug-main.js" \
+    --out        "${BUILD_ROOT}/debug/keymanweb-webview.js" \
+    --charset    "utf8" \
+    --sourceRoot "@keymanapp/keyman/web/build/app/webview/debug" \
+    --target     "es6"
+
+  node_es_bundle "${SRC_ROOT}/release-main.js" \
+    --out        "${BUILD_ROOT}/release/keymanweb-webview.js" \
+    --charset    "utf8" \
+    --profile    "${BUILD_ROOT}/filesize-profile.log" \
+    --sourceRoot "@keymanapp/keyman/web/build/app/webview/release" \
+    --minify \
+    --target     "es6"
+
+  mkdir -p "$KEYMAN_ROOT/web/build/app/resources/osk"
+  cp -R "$KEYMAN_ROOT/web/src/resources/osk/." "$KEYMAN_ROOT/web/build/app/resources/osk/"
+
+  # Clean the sourcemaps of .. and . components
+  for script in "$KEYMAN_ROOT/web/build/$SUBPROJECT_NAME/debug/"*.js; do
+    if [[ "${script}" == *"/km-core.js" ]]; then
+      continue
+    fi
+
+    sourcemap="$script.map"
+    node "$KEYMAN_ROOT/web/build/tools/building/sourcemap-root/index.js" \
+      "$script" "$sourcemap" --clean --inline
+  done
+
+  # Do NOT inline sourcemaps for release builds - we don't want them to affect
+  # load time.
+  for script in "$KEYMAN_ROOT/web/build/$SUBPROJECT_NAME/release/"*.js; do
+    if [[ "${script}" == *"/km-core.js" ]]; then
+      continue
+    fi
+    sourcemap="$script.map"
+    node "$KEYMAN_ROOT/web/build/tools/building/sourcemap-root/index.js" \
+      "$script" "$sourcemap" --clean
+  done
+
+  # For dependent test pages.
+  builder_launch /web/src/test/manual/embed/android-harness/build.sh build
+}
+
+builder_run_action configure node_select_version_and_npm_ci
+builder_run_action clean rm -rf "$KEYMAN_ROOT/web/build/$SUBPROJECT_NAME"
+builder_run_action build compile_and_copy

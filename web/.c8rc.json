@@ -1,0 +1,23 @@
+{
+  "all": true,
+  "check-coverage": false,
+  "clean": true,
+  "exclude-after-remap": true,
+  "extension": [".ts", ".js"],
+  "reporter": ["text", "text-summary"],
+  "reports-dir": "build/coverage",
+  "src": [
+    "src/**",
+    "../common/**/src"
+  ],
+  "include": [
+    "src/**"
+  ],
+  "exclude": [
+    "src/test/**",
+    "**/src/tests/**",
+    "**/build/**",
+    "src/tools/**",
+    "../node_modules/*"
+  ]
+}

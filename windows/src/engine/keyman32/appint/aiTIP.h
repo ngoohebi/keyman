@@ -1,18 +1,18 @@
 /*
   Name:             aiTIP
   Copyright:        Copyright (C) SIL International.
-  Documentation:    
-  Description:      
+ Documentation:
+  Description:
   Create Date:      11 Dec 2009
 
   Modified Date:    23 Feb 2016
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
-  Bugs:             
-  Todo:             
-  Notes:            
+  Bugs:
+  Todo:
+  Notes:
   History:          11 Dec 2009 - mcdurdin - I934 - x64 - Initial version
                     24 Jun 2010 - mcdurdin - I2436 - Add space to context for AIWin2000Unicode when not matched
                     24 Apr 2014 - mcdurdin - I4196 - V9.0 - wm_kmmoreposting must be refactored for TIP work as it is not sequential
@@ -35,32 +35,11 @@
 // This can be customised with HKLM\Software\Keyman\Keyman Engine\zap virtual key code
 #define _VK_PREFIX_DEFAULT    0x0E
 
-struct AIDEBUGKEYINFO
-{
-	UINT VirtualKey;
-	DWORD shiftFlags;
-	WCHAR Character, DeadKeyCharacter;
-	BOOL IsUp;
-};
-
 class AITIP : public AIWin2000Unicode
 {
 private:
-	int WM_KEYMANDEBUG_CANDEBUG,
-		WM_KEYMANDEBUG_GETUNICODESTATUS,
-		WM_KEYMANDEBUG_GETCONTEXT,
-		WM_KEYMANDEBUG_ACTION,
-		WM_KEYMANDEBUG_RULEMATCH;
-
-	BOOL FIsDebugControlWindow;
-	HWND GetDebugControlWindow();
-	void Debug_FillContextBuffer();
-  void MergeContextWithCache(PWSTR buf, AppContext *context);   // I4262
-
-	static BOOL IsDebugControlWindow(HWND hwnd);
-
-private:
   BOOL useLegacy;
+  BOOL isTextSelected;
 
 	BOOL PostKeys();
 //TOUCH  	void PostTouchContext();
@@ -69,33 +48,59 @@ public:
 	AITIP();
 	~AITIP();
 
-  BOOL DebugControlled();
-
-  void SaveContext(AppContextWithStores *savedContext);   // I4370   // I4978
-  void RestoreContext(AppContextWithStores *savedContext);   // I4370   // I4978
-
-
-	virtual BOOL QueueAction(int ItemType, DWORD dwData);
-
 	/* Information functions */
-	
+
 	virtual BOOL CanHandleWindow(HWND ahwnd);
-	virtual BOOL IsWindowHandled(HWND ahwnd);
-	virtual BOOL HandleWindow(HWND ahwnd);
 	virtual BOOL IsUnicode();
 
 	/* Context functions */
 
-	virtual void ReadContext();
+ /**
+   * Reads the current application context upto MAXCONTEXT length into the supplied buffer.
+   * @param  buf      The data buffer to copy current application context into, must
+   *                  be MAXCONTEXT WCHARs or larger.
+   */
+	virtual BOOL ReadContext(PWSTR buf);
 
 	/* Queue and sending functions */
-	
+
 	virtual BOOL SendActions();   // I4196
-	virtual BOOL QueueDebugInformation(int ItemType, LPGROUP Group, LPKEY Rule, PWSTR fcontext, PWSTR foutput, DWORD_PTR dwExtraFlags);
 
 	/* TIP interactions */
 
-  BOOL IsLegacy() { return useLegacy; }
+  BOOL IsLegacy() {
+    return useLegacy;
+  }
+
+  BOOL
+  IsTextSelected() {
+    return isTextSelected;
+  }
 };
+
+/**
+ * ProcessToggleChange
+ * Sets or clears the state of FLAGS in the Globals::ShiftState bit mask
+ * Using the status of the key as determined by GetKeyState,
+ * ensuring it is consistent with the actual state of the key.
+ * Supports VK_CAPITAL and VK_NUMLOCK
+ * It DOES NOT generate a system event change for these flags
+ * @param  key
+ */
+void ProcessToggleChange(UINT key);
+
+// Forward declaration - final in globals.h
+struct tagKEYMAN64THREADDATA;
+typedef struct tagKEYMAN64THREADDATA *PKEYMAN64THREADDATA;
+
+/**
+ * Update the cache of the last key event received, this is set here - TIP processing, and by
+ * the GetMessage hook.
+ * @param  _td      Thread data to update
+ * @param  wParam   WPARAM of the key event
+ * @param  scan     Scan code of the key event
+ * @param  keyTransition   Transition state of the key event (00b = key down, 01b = repeat, 11b = keyup)
+ */
+void UpdateLastKeyCache(PKEYMAN64THREADDATA _td, WPARAM wParam, BYTE scan, BYTE keyTransition);
 
 #endif

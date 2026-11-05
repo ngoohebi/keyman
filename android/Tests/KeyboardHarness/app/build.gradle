@@ -1,19 +1,39 @@
-apply plugin: 'com.android.application'
+plugins {
+    id 'com.android.application'
+}
 
 ext.rootPath = '../../../'
 apply from: "$rootPath/version.gradle"
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
 android {
-    compileSdkVersion 29
+    compileSdk 36
+    namespace="com.keyman.android.tests.keyboardHarness"
+
+    // Don't compress kmp files so they can be copied via AssetManager
+    aaptOptions {
+        noCompress "kmp"
+    }
+
+    buildFeatures {
+        buildConfig = true
+    }
 
     defaultConfig {
         applicationId "com.keyman.android.tests.keyboardHarness"
-        minSdkVersion 16
-        targetSdkVersion 29
+        minSdkVersion 21
+        targetSdkVersion 36
 
-        // VERSION_CODE and VERSION_NAME from version.gradle
-        versionCode VERSION_CODE as Integer
-        versionName VERSION_NAME
+        // KEYMAN_VERSION_CODE, KEYMAN_VERSION_NAME, KEYMAN_VERSION_FOR_FILENAME from version.gradle
+        versionCode KEYMAN_VERSION_CODE as Integer
+        versionName KEYMAN_VERSION_NAME
+        buildConfigField "String", "KEYMAN_VERSION_ENVIRONMENT", "\""+KEYMAN_VERSION_ENVIRONMENT+"\""
+        archivesBaseName = "KeyboardHarness-$KEYMAN_VERSION_FOR_FILENAME"
     }
     buildTypes {
         release {
@@ -21,24 +41,25 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['libs']
+        }
+    }
 }
 
 repositories {
-    flatDir {
-        dirs 'libs'
-    }
     google()
-
+    mavenCentral()
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'androidx.appcompat:appcompat:1.2.0-alpha02'
-    implementation 'com.google.android.material:material:1.0.0'
-    api (name:'keyman-engine', ext:'aar')
-    implementation "com.google.firebase:firebase-core:17.2.1"
-    implementation "com.google.firebase:firebase-crash:16.2.1"
-    implementation('com.crashlytics.sdk.android:crashlytics:2.10.1@aar') {
-        transitive = true
-    }
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation files('libs/keyman-engine.aar')
+    implementation 'androidx.preference:preference:1.2.1'
+    implementation 'androidx.webkit:webkit:1.14.0'
 }

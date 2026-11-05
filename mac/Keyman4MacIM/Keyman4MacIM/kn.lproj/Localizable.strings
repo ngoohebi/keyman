@@ -1,0 +1,2 @@
+/* message displayed to alert user to need grant accessibility permission */
+"privacy-alert-text" = "ಕೀಮ್ಯಾನ್‌ ಸರಿಯಾಗಿ ಕಾರ್ಯನಿರ್ವಹಿಸಲು, ಕೀಮ್ಯಾನ್‌ಗೆ (accessibility features) ಪ್ರವೇಶಿಸುವಿಕೆ ವೈಶಿಷ್ಟ್ಯಗಳ ಅಗತ್ಯವಿದೆ:\n\nಸಿಸ್ಟಂ ಆದ್ಯತೆಗಳು, ಭದ್ರತೆ ಮತ್ತು ಗೌಪ್ಯತೆಗೆ ಪ್ರವೇಶವನ್ನು ನೀಡಿ.\nನಿಮ್ಮ ಸಿಸ್ಟಂ ಅನ್ನು ಮರುಪ್ರಾರಂಭಿಸಿ.";

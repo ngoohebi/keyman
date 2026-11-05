@@ -13,6 +13,7 @@
 @interface KMInputController : IMKInputController
 
 - (void)menuAction:(id)sender;
-- (BOOL)handleDeleteBackLowLevel:(NSEvent *)event;
-
+- (void)handleBackspace:(NSEvent *)event;
+- (void)changeClients:(NSString *)clientAppId;
+- (void)deactivateClient;
 @end

@@ -1,153 +1,230 @@
 #!/usr/bin/python3
 
 import argparse
+import datetime
 import logging
-import sys
 import os
-from keyman_config import __version__
+import sys
+import time
+from zipfile import is_zipfile
+import packaging.version
+import requests
+import requests_cache
+
+from keyman_config import KeymanApiUrl, add_standard_arguments, initialize_logging, initialize_sentry, secure_lookup, verify_dbus_running
+from keyman_config.fcitx_util import is_fcitx_running
+from keyman_config.get_kmp import get_keyboard_data, get_kmp, keyman_cache_dir
+from keyman_config.ibus_util import IbusDaemon, verify_ibus_daemon
+from keyman_config.install_kmp import extract_kmp, InstallError, InstallStatus, install_kmp
+from keyman_config.kmpmetadata import get_metadata
+from keyman_config.list_installed_kmp import get_kmp_version_shared, get_kmp_version_user
 from keyman_config.uninstall_kmp import uninstall_kmp
 
-import datetime
-import time
 
 def get_languages():
-	import json
-	import requests
-	import requests_cache
-	from keyman_config.get_kmp import keyman_cache_dir
+    logging.info("Getting language list from search")
+    api_url = f"{KeymanApiUrl}/search?q=l:*&platform=linux"
+    logging.debug("At URL %s", api_url)
+    cache_dir = keyman_cache_dir()
+    current_dir = os.getcwd()
+    expire_after = datetime.timedelta(days=7)
+    if not os.path.isdir(cache_dir):
+        os.makedirs(cache_dir)
+    os.chdir(cache_dir)
+    requests_cache.install_cache(cache_name='keyman_cache', backend='sqlite', expire_after=expire_after)
+    now = time.ctime(int(time.time()))
+    try:
+        response = requests.get(api_url)
+        logging.debug("Time: {0} / Used Cache: {1}".format(now, response.from_cache))
+        os.chdir(current_dir)
+        requests_cache.uninstall_cache()
+        return response.json() if response.status_code == 200 else None
+    except Exception:
+        return None
 
-	logging.info("Getting language list from search")
-	api_url = "https://api.keyman.com/search?q=l:*&platform=linux"
-	logging.debug("At URL %s", api_url)
-	cache_dir = keyman_cache_dir()
-	current_dir = os.getcwd()
-	expire_after = datetime.timedelta(days=7)
-	if not os.path.isdir(cache_dir):
-		os.makedirs(cache_dir)
-	os.chdir(cache_dir)
-	requests_cache.install_cache(cache_name='keyman_cache', backend='sqlite', expire_after=expire_after)
-	now = time.ctime(int(time.time()))
-	try:
-		response = requests.get(api_url)
-		logging.debug("Time: {0} / Used Cache: {1}".format(now, response.from_cache))
-		os.chdir(current_dir)
-		requests_cache.core.uninstall_cache()
-		if response.status_code == 200:
-			return response.json()
-		else:
-			return None
-	except:
-		return None
 
 def get_keyboard_list():
-	languages = get_languages()
-	keyboards = []
-	if "languages" in languages:
-		for lang in languages["languages"]:
-			if "keyboards" in lang:
-				for kb in lang["keyboards"]:
-					kbnospace = kb.replace(" ", "%20")
-					if kbnospace not in keyboards:
-						keyboards.append(kbnospace)
-	if keyboards:
-		keyboards.sort()
-	return keyboards
+    languages = get_languages()
+    keyboards = []
+    if not languages:
+        return []
+
+    if "languages" in languages:
+        for lang in languages["languages"]:
+            if "keyboards" in lang:
+                for kb in lang["keyboards"]:
+                    kbnospace = kb.replace(" ", "%20")
+                    if kbnospace not in keyboards:
+                        keyboards.append(kbnospace)
+    if keyboards:
+        keyboards.sort()
+    return keyboards
+
 
 def write_kmpdirlist(kmpdirfile):
-	with open(kmpdirfile, 'wt') as kmpdirlist:
-		keyboards = get_keyboard_list()
-		if keyboards:
-			for kb in get_keyboard_list():
-				print(kb, file=kmpdirlist)
+    try:
+        with open(kmpdirfile, 'wt') as kmpdirlist:
+            if keyboards := get_keyboard_list():
+                for kb in keyboards:
+                    print(kb, file=kmpdirlist)
+    except Exception as e:
+        logging.warning('Exception %s writing %s %s', type(e), kmpdirfile, e.args)
+
 
 def list_keyboards():
-	from keyman_config.get_kmp import keyman_cache_dir
-	kmpdirfile = os.path.join(keyman_cache_dir(), 'kmpdirlist')
-	if not os.path.exists(kmpdirfile):
-		write_kmpdirlist(kmpdirfile)
-	else:
-		logging.debug("kmpdirlist already exists")
-		# file empty
-		if os.path.getsize(kmpdirfile) == 0:
-			write_kmpdirlist(kmpdirfile)
+    kmpdirfile = os.path.join(keyman_cache_dir(), 'kmpdirlist')
+    if not os.path.exists(kmpdirfile):
+        write_kmpdirlist(kmpdirfile)
+    else:
+        logging.debug("kmpdirlist already exists")
+        # file empty
+        if os.path.getsize(kmpdirfile) == 0:
+            write_kmpdirlist(kmpdirfile)
+
+
+def _list_languages_for_keyboard_impl(packageId, packageDir):
+    kmpfile = os.path.join(keyman_cache_dir(), packageId)
+    if not os.path.exists(kmpfile):
+        kmpfile = f'{kmpfile}.kmp'
+        if not os.path.exists(kmpfile):
+            return ''
+    extract_kmp(kmpfile, packageDir)
+    info, system, options, keyboards, files = get_metadata(packageDir)
+    if not keyboards:
+        return ''
+    firstKeyboard = keyboards[0]
+    if not secure_lookup(firstKeyboard, 'languages') or len(firstKeyboard['languages']) <= 0:
+        return ''
+    result = ''
+    for lang in firstKeyboard['languages']:
+        if result:
+            result += '\n'
+        result += lang['id']
+    return result
+
+
+# Used in bash completion
+def list_languages_for_keyboard(packageId, packageDir):
+    result = _list_languages_for_keyboard_impl(packageId, packageDir)
+    print(result)
+
+
+def try_install_kmp(inputfile, arg, language=None, sharedarea=False):
+    try:
+        install_kmp(inputfile, sharedarea, language)
+    except InstallError as e:
+        if e.status == InstallStatus.Abort:
+            logging.error("km-package-install: error: Failed to install %s", arg)
+            logging.error(e.message)
+            sys.exit(3)
+        else:
+            logging.warning(e.message)
+
+
+def install_package(args):
+    if args.shared:
+        if get_kmp_version_user(args.package):
+            logging.warning(
+                f'km-package-install: Warning: Keyboard {args.package} is also installed for the current user.'
+            )
+        installed_kmp_ver = get_kmp_version_shared(args.package)
+    else:
+        if get_kmp_version_shared(args.package):
+            logging.warning(
+                f'km-package-install: Warning: Keyboard {args.package} is already installed in the shared area.'
+            )
+        installed_kmp_ver = get_kmp_version_user(args.package)
+    pkgdata = get_keyboard_data(args.package)
+    if not pkgdata:
+        logging.error("km-package-install: error: Could not download keyboard data for %s", args.package)
+        sys.exit(3)
+    pkg_version = secure_lookup(pkgdata, 'version')
+    if installed_kmp_ver and pkg_version:
+        if packaging.version.parse(installed_kmp_ver) > packaging.version.parse(pkg_version):
+            if args.force:
+                logging.warning(f'km-package-install: warning: The {args.package} keyboard ' +
+                                f'is already installed with a newer version {installed_kmp_ver}. ' +
+                                f'Downgrading to version {pkg_version}.')
+            else:
+                logging.error(f'km-package-install: error: The {args.package} keyboard is ' +
+                              f'already installed with a newer version {installed_kmp_ver}. ' +
+                              f'Not installing version {pkg_version}. Use `--force` to downgrade.')
+                sys.exit(1)
+    if args.force:
+        uninstall_kmp(args.package, args.shared, False)
+
+    if kmpfile := get_kmp(args.package):
+        try_install_kmp(kmpfile, f"keyboard package {args.package}", args.bcp47, args.shared)
+    else:
+        logging.error("km-package-install: error: Could not download keyboard package %s", args.package)
+        sys.exit(2)
+
+
+def install_file(parser, args):
+    name, ext = os.path.splitext(args.file)
+    if ext != ".kmp" or not is_zipfile(args.file):
+        print_usage_and_exit(
+            parser,
+            f"km-package-install: Input file ${args.file} is not a kmp file."
+        )
+    if not os.path.isfile(args.file):
+        print_usage_and_exit(
+            parser,
+            f"km-package-install: Keyman kmp file {args.file} not found."
+        )
+    try_install_kmp(args.file, f"file {args.file}", args.bcp47, args.shared)
+
+
+def print_usage_and_exit(parser, msg):
+    parser.print_usage()
+    logging.error(msg)
+    sys.exit(2)
+
 
 def main():
-	parser = argparse.ArgumentParser(description='Install a Keyman keyboard package, either a local .kmp file or specify a keyboard id to download and install')
-	parser.add_argument('-s', '--shared', action='store_true', help='Install to shared area /usr/local')
-	parser.add_argument('-f', '--file', metavar='<kmpfile>', help='Keyman kmp file')
-	parser.add_argument('-p', '--package', metavar='<packageID>', help='Keyman package id')
-	parser.add_argument('--version', action='version', version='%(prog)s version '+__version__)
-	parser.add_argument('-v', '--verbose', action='store_true', help='verbose logging')
-	parser.add_argument('-vv', '--veryverbose', action='store_true', help='very verbose logging')
+    parser = argparse.ArgumentParser(
+      description='Install a Keyman keyboard package, either a local .kmp file or specify a ' +
+      'keyboard id to download and install, optionally specifying a language for which to ' +
+      'install the keyboard.',
+      epilog='Example: km-package-install -s -p sil_el_ethiopian_latin --bcp47 ssy-latn')
+    parser.add_argument('-s', '--shared', action='store_true', help='Install to shared area /usr/local')
+    parser.add_argument('-f', '--file', metavar='KMPFILE', help='Keyman kmp file')
+    parser.add_argument('-p', '--package', metavar='PACKAGE', help='Keyman package id')
+    parser.add_argument('-l', '--bcp47', metavar='LANGTAG', help='bcp47 language tag')
+    parser.add_argument('--force', action='store_true', help='force installation of keyboard even if it is ' +
+                        'a downgrade to an older version of the keyboard')
+    add_standard_arguments(parser)
 
-	args = parser.parse_args()
-	if args.verbose:
-		logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(message)s')
-	elif args.veryverbose:
-		logging.basicConfig(level=logging.DEBUG, format='%(levelname)s:%(message)s')
-	else:
-		logging.basicConfig(format='%(levelname)s:%(message)s')
+    args = parser.parse_args()
 
-	if args.package and args.file:
-		logging.error("km-package-install: error: too many arguments: either install a local kmp file or specify a keyboard id to download and install.")
-		sys.exit(2)
+    initialize_logging(args)
+    initialize_sentry()
+    verify_dbus_running()
 
-	from keyman_config.install_kmp import install_kmp, InstallError, InstallStatus
-	from keyman_config.list_installed_kmp import get_kmp_version
-	from keyman_config.get_kmp import get_keyboard_data, get_kmp, keyman_cache_dir
+    if (not is_fcitx_running()) and (verify_ibus_daemon(True) != IbusDaemon.RUNNING):
+        logging.error("km-package-install: error: ibus-daemon is not running. You might have to reboot or logout and login again.")
+        sys.exit(4)
 
-	if os.path.exists(os.path.join(keyman_cache_dir(), 'kmpdirlist')):
-		os.remove(os.path.join(keyman_cache_dir(), 'kmpdirlist'))
+    if args.package and args.file:
+        print_usage_and_exit(
+            parser,
+            "km-package-install: error: too many arguments: either install a local kmp file or " +
+            "specify a keyboard id to download and install.",
+        )
+    if os.path.exists(os.path.join(keyman_cache_dir(), 'kmpdirlist')):
+        os.remove(os.path.join(keyman_cache_dir(), 'kmpdirlist'))
 
-
-	def try_install_kmp(inputfile, arg, online=False, sharedarea=False):
-		try:
-			install_kmp(inputfile, online, sharedarea)
-		except InstallError as e:
-			if e.status == InstallStatus.Abort:
-				logging.error("km-package-install: error: Failed to install %s", arg)
-				logging.error(e.message)
-				sys.exit(3)
-			else:
-				logging.warning(e.message)
-
-	if args.file:
-		name, ext = os.path.splitext(args.file)
-		if ext != ".kmp":
-			logging.error("km-package-install: Input file %s is not a kmp file.", args.file)
-			logging.error("km-package-install -f <kmpfile>")
-			sys.exit(2)
-
-		if not os.path.isfile(args.file):
-			logging.error("km-package-install: Keyman kmp file %s not found.", args.file)
-			logging.error("km-package-install -f <kmpfile>")
-			sys.exit(2)
-		try_install_kmp(args.file, "file " + args.file, False, args.shared)
-	elif args.package:
-		installed_kmp_ver = get_kmp_version(args.package)
-		kbdata = get_keyboard_data(args.package)
-		if not kbdata:
-			logging.error("km-package-install: error: Could not download keyboard data for %s", args.package)
-			sys.exit(3)
-		if installed_kmp_ver:
-			if kbdata['version'] == installed_kmp_ver:
-				logging.error("km-package-install: The %s version of the %s keyboard package is already installed.", installed_kmp_ver, args.package)
-				sys.exit(1)
-			elif float(kbdata['version']) > float(installed_kmp_ver):
-				logging.error("km-package-install: A newer version of %s keyboard package is available. Uninstalling old version %s then downloading and installing new version %s.", args.package, installed_kmp_ver, kbdata['version'])
-				uninstall_kmp(args.package, args.shared)
-
-		kmpfile = get_kmp(args.package)
-		if kmpfile:
-			try_install_kmp(kmpfile, "keyboard package " + args.package, True, args.shared)
-		else:
-			logging.error("km-package-install: error: Could not download keyboard package %s", args.package)
-			sys.exit(2)
-	else:
-		logging.error("km-package-install: error: no arguments: either install a local kmp file or specify a keyboard package id to download and install.")
-		sys.exit(2)
-
+    if args.file:
+        install_file(parser, args)
+    elif args.package:
+        install_package(args)
+    else:
+        print_usage_and_exit(
+            parser,
+            "km-package-install: error: no arguments: either install a local kmp file " +
+            "or specify a keyboard package id to download and install.",
+        )
 
 
 if __name__ == "__main__":
-	main()
+    main()

@@ -1,5 +1,0 @@
-<?php
-  $COPYRIGHT = "Copyright &copy;1994-2001 Tavultesoft";
-  $KEYMANVERSION = "$VERSION";
-  $DOCVERSION = "$DATE";
-?>

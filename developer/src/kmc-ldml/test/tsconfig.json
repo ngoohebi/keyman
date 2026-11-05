@@ -1,0 +1,22 @@
+{
+  "extends": "../../kmc/tsconfig.kmc-base.json",
+
+  "compilerOptions": {
+      "rootDir": ".",
+      "rootDirs": ["./", "../src/"],
+      "outDir": "../build/test",
+      "baseUrl": ".",
+      "strictNullChecks": false, // TODO: get rid of this as some point
+    },
+  "include": [
+      "**/*.tests.ts",
+      "./helpers/*.ts",
+  ],
+  "references": [
+      { "path": "../../../../common/web/keyman-version" },
+      { "path": "../../../../common/web/types/" },
+      { "path": "../../../../common/tools/hextobin/" },
+      { "path": "../../common/web/test-helpers/" },
+      { "path": "../" }
+    ]
+}

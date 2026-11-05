@@ -1,0 +1,70 @@
+Keyman Third Party Package Readme: Sentry
+=========================================
+
+Name:              Sentry
+Purpose:           Sentry provides error reporting to a Sentry server
+Source:            https://github.com/getsentry/sentry-native
+Version:           0.6.0
+License:           MIT
+Updated for:       N/A
+Documentation:     https://docs.sentry.io/platforms/native/
+Download location: https://github.com/getsentry/sentry-native/releases/
+Include Paths:     N/A
+
+
+Installation notes
+------------------
+
+The original C++ version can be downloaded from site above, and must be
+built following the instructions below.
+
+Build notes
+-----------
+
+sentry.pas is a conversion of sentry.h currently maintained by the Keyman
+team. This needs to be updated whenever Sentry is updated.
+
+Sentry.Client.pas is a wrapper of sentry.pas which provides a Delphi-style
+interface to Sentry.
+
+Note: as of 0.6.0, performance SDKs are not included in Sentry.Client.pas,
+because we are not currently using them.
+
+build_sentry_for_keyman.bat should be copied into the sentry-native repo,
+and tweaked as required for updated versions of Sentry. Run:
+
+  build_sentry_for_keyman configure build install deploy
+
+  configure: setup build environment
+  build: build x86 and x64 libraries
+  install: prepare install folder in sentry-native
+  deploy: copy the sentry.dll and related files into this repo
+
+**Important:** ensure that the sentry folder name in all .wxs files is
+updated to match the SENTRY_SDK_VERSION from sentry.h. Source C++ and .pas
+files use the constant to refer to the location where the files may be
+found.
+
+License - MIT
+-------------
+
+Copyright (c) 2019 Sentry (https://sentry.io) and individual contributors.
+All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

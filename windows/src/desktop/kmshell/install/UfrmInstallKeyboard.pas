@@ -1,23 +1,23 @@
 (*
   Name:             UfrmInstallKeyboard
   Copyright:        Copyright (C) SIL International.
-  Documentation:    
-  Description:      
+  Documentation:
+  Description:
   Create Date:      20 Jun 2006
 
   Modified Date:    1 May 2014
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
-  Bugs:             
-  Todo:             
-  Notes:            
+  Bugs:
+  Todo:
+  Notes:
   History:          20 Jun 2006 - mcdurdin - Initial version
                     01 Aug 2006 - mcdurdin - Check if keyboard is already installed and uninstall if so
                     06 Oct 2006 - mcdurdin - Display welcome after package install
                     04 Dec 2006 - mcdurdin - Change to a xml/xslt/html page
-                    05 Dec 2006 - mcdurdin - Refactor using XMLRenderer
+                    05 Dec 2006 - mcdurdin - Refactor using XML-Renderer
                     12 Dec 2006 - mcdurdin - Refresh after uninstalling keyboard
                     12 Dec 2006 - mcdurdin - Fix package and keyboard names in messages
                     12 Dec 2006 - mcdurdin - Capitalize form name
@@ -47,7 +47,7 @@
                     25 Mar 2011 - mcdurdin - I2678 - Uninitialized variant can crash Keyman Configuration when reading package data
                     18 May 2012 - mcdurdin - I3306 - V9.0 - Remove TntControls + Win9x support
                     01 Dec 2012 - mcdurdin - I3612 - V9.0 - Keyboard install should run as Admin only
-                    26 Dec 2013 - mcdurdin - I4012 - V9.0 - Merge I4007 - Keyman Desktop check language environment blocks install if "remind me later" ticked
+                    26 Dec 2013 - mcdurdin - I4012 - V9.0 - Merge I4007 - Keyman check language environment blocks install if "remind me later" ticked
                     24 Apr 2014 - mcdurdin - I4172 - Pressing Enter in install keyboard dialog gives error about admin req
                     01 May 2014 - mcdurdin - I4181 - V9.0 - Stop using DeleteFileAlways, MOVEFILE_DELAY_UNTIL_REBOOT
 *)
@@ -56,12 +56,27 @@ unit UfrmInstallKeyboard;  // I3306   // I3612
 interface
 
 uses
+  System.Classes,
   System.Contnrs,
+  System.SysUtils,
+  System.Types,
   System.UITypes,
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, keymanapi_TLB, ExtCtrls, Menus, UfrmKeymanBase, UfrmWebContainer,
-  OleCtrls, SHDocVw, EmbeddedWB,
-  WideStrings, SHDocVw_EWB, EwbCore, KeymanEmbeddedWB;
+  System.WideStrings,
+
+  Winapi.Messages,
+  Winapi.Windows,
+
+  Vcl.Controls,
+  Vcl.Dialogs,
+  Vcl.Forms,
+  Vcl.Graphics,
+  Vcl.Menus,
+  Vcl.StdCtrls,
+
+  keymanapi_TLB,
+  KeymanOptionNames,
+  UfrmKeymanBase,
+  UfrmWebContainer;
 
 
 type
@@ -72,196 +87,58 @@ type
     FKeyboard: IKeymanKeyboardFile;
     FPackage: IKeymanPackageFile;
 
-    FFileReferences: OleVariant;
+    FFiles: TStringDynArray;
     FTempPath: string;
     FSilent: Boolean;
+    PageTag: Integer;
+    FDefaultBCP47Tag: string;
     //FLanguageEnvironmentManager: TLanguageEnvironmentManager; // I1220
 
     procedure SetInstallFile(const Value: string);
     procedure DeleteFileReferences;
-    procedure InstallKeyboard(const ALogFile: string);
     procedure CheckLogFileForWarnings(const Filename: string; Silent: Boolean);
+    function CleanupPaths(var xml: string): string;
+    function InstallTipForKeyboard(const BCP47Tag: string): Boolean;
+    procedure SetDefaultBCP47Tag(const Value: string);
   protected
     procedure FireCommand(const command: WideString; params: TStringList); override;
   public
+    procedure InstallKeyboard(const ALogFile, BCP47Tag: string; BaseKeyboardID: Integer);
+    property DefaultBCP47Tag: string read FDefaultBCP47Tag write SetDefaultBCP47Tag;
     property InstallFile: string read FInstallFile write SetInstallFile;
     property Silent: Boolean read FSilent write FSilent;
   end;
-
-function InstallKeyboardFromFile(Owner: TComponent): Boolean;
-function InstallFile(Owner: TComponent; const FileName: string; ASilent, ANoWelcome: Boolean; const LogFile: string): Boolean;
-function InstallFiles(Owner: TComponent; const FileNames: TWideStrings; ASilent: Boolean): Boolean;
 
 implementation
 
 {$R *.DFM}
 
 uses
-  ComObj,
+  System.StrUtils,
+  System.Variants,
+  System.Win.ComObj,
+  Winapi.ShellApi,
+
+  KLog,
   custinterfaces,
-  GenericXMLRenderer,
   GetOSVersion,
   MessageIdentifierConsts,
   MessageIdentifiers,
+  Keyman.UI.UfrmProgress,
   Keyman.Configuration.UI.MitigationForWin10_1803,
+  Keyman.Configuration.System.HttpServer.App.InstallKeyboard,
+  Keyman.Configuration.System.UmodWebHttpServer,
+  Keyman.Configuration.System.TIPMaintenance,
   kmcomapi_errors,
   kmint,
-  OnlineConstants,
-  ShellApi,
-  StrUtils,
   TempFileManager,
-  UfrmHTML,
-  //UfrmSelectLanguage,
   utildir,
   utilkmshell,
   utilsystem,
   utiluac,
-  UtilWaitForTSF,
-  Variants;
-
-{procedure FixupShadowKeyboards;
-begin
-
-end;}
-
-function InstallFiles(Owner: TComponent; const FileNames: TWideStrings; ASilent: Boolean): Boolean;
-var
-  I: Integer;
-  //FLanguageEnvironmentManager: TLanguageEnvironmentManager;
-  FPackage: IKeymanPackageFile;
-  FKeyboard: IKeymanKeyboardFile;
-  j: Integer;
-begin
-  Result := False;
-  FPackage := nil;
-  FKeyboard := nil;
-
-  for I := 0 to FileNames.Count - 1 do
-  begin
-    try
-      kmcom.Keyboards.Refresh;
-
-      if AnsiSameText(ExtractFileExt(FileNames[i]), '.kmp')
-        then kmcom.Packages.Install(FileNames[i], True)
-        else kmcom.Keyboards.Install(FileNames[i], True);
-      CheckForMitigationWarningFor_Win10_1803(ASilent, '');
-    except
-      on E:EOleException do
-      begin
-        if kmcom.Errors.Count = 0 then Raise;
-        if not ASilent then
-          for j := 0 to kmcom.Errors.Count - 1 do
-            ShowMessage(kmcom.Errors[j].Description);
-        Exit;
-      end;
-    end;
-
-    FPackage := nil;
-    FKeyboard := nil;
-  end;
-
-  kmcom.Keyboards.Refresh;
-  kmcom.Keyboards.Apply;
-  Result := True;
-end;
-
-procedure AddDefaultLanguageHotkey(Keyboard: IKeymanKeyboardInstalled);
-var
-  i: Integer;
-begin
-  if not Keyboard.DefaultHotkey.IsEmpty and (Keyboard.Languages.Count > 0) then
-  begin
-    for i := 0 to kmcom.Languages.Count - 1 do
-    begin
-      if kmcom.Languages[i].KeymanKeyboardLanguage = Keyboard.Languages[0] then
-      begin
-        kmcom.Languages[i].Hotkey.RawValue := Keyboard.DefaultHotkey.RawValue;
-        Break;
-      end;
-    end;
-  end;
-end;
-
-procedure AddDefaultLanguageHotkeys(InstalledKeyboards: array of IKeymanKeyboardInstalled);
-var
-  i: Integer;
-begin
-  for i := 0 to High(InstalledKeyboards) do
-    AddDefaultLanguageHotkey(InstalledKeyboards[i]);
-end;
-
-function InstallFile(Owner: TComponent; const FileName: string; ASilent, ANoWelcome: Boolean; const LogFile: string): Boolean;
-var
-  n: Integer;
-  InstalledKeyboards: array of IKeymanKeyboardInstalled;
-  InstalledPackage: IKeymanPackageInstalled;
-  i: Integer;
-begin
-  with TfrmInstallKeyboard.Create(Owner) do
-  try
-    Silent := ASilent;
-    InstallFile := FileName;
-    if ModalResult = mrCancel then
-      // failed to start install
-      Result := False
-    else
-    begin
-      if ASilent then
-      begin
-        InstallKeyboard(LogFile);
-        Result := True;
-      end
-      else
-        Result := ShowModal = mrOk;
-    end;
-  finally
-    Free;
-  end;
-
-  if not Result then
-    Exit;
-
-  kmcom.Keyboards.Refresh;
-  kmcom.Keyboards.Apply;
-  kmcom.Packages.Refresh;
-
-  InstalledPackage := nil;
-  SetLength(InstalledKeyboards, 0);
-  if LowerCase(ExtractFileExt(FileName)) = '.kmp' then
-  begin
-    n := kmcom.Packages.IndexOf(FileName);
-    if (n >= 0) then
-    begin
-      InstalledPackage := kmcom.Packages[n];
-      SetLength(InstalledKeyboards, InstalledPackage.Keyboards.Count);
-      for i := 0 to InstalledPackage.Keyboards.Count - 1 do
-        InstalledKeyboards[i] := InstalledPackage.Keyboards[i] as IKeymanKeyboardInstalled;
-    end;
-  end
-  else
-  begin
-    n := kmcom.Keyboards.IndexOf(FileName);
-    if n >= 0 then
-    begin
-      SetLength(InstalledKeyboards, 1);
-      InstalledKeyboards[0] := kmcom.Keyboards[n];
-    end;
-  end;
-
-  kmcom.Languages.Apply;
-  TWaitForTSF.WaitForLanguageProfilesToBeApplied(InstalledKeyboards);
-  AddDefaultLanguageHotkeys(InstalledKeyboards);
-
-  if InstalledPackage <> nil then
-  begin
-    //if not ASilent then SelectLanguage(False);
-    if not ASilent and not ANoWelcome then
-      DoShowPackageWelcome(InstalledPackage, False);
-  end;
-
-  {$MESSAGE HINT 'How do we correlate this with a Cancel in configuration? Do we change that to Close?' }
-  kmcom.Apply;
-end;
+  utilxml,
+  Xml.XmlDoc,
+  Xml.XmlIntf;
 
 { TfrmInstall }
 
@@ -269,10 +146,18 @@ end;
  - Property function handlers                                                  -
  ------------------------------------------------------------------------------}
 
+procedure TfrmInstallKeyboard.SetDefaultBCP47Tag(const Value: string);
+begin
+  FDefaultBCP47Tag := (kmcom as IKeymanBCP47Canonicalization).GetCanonicalTag(Value);
+end;
+
 procedure TfrmInstallKeyboard.SetInstallFile(const Value: string);
 var
-  FXML: WideString;
+  FXML: string;
+  FFileReferences: OleVariant;
   i: Integer;
+  Data: IInstallKeyboardSharedData;
+  FPackagePath: string;
 begin
   screen.Cursor := crHourglass;
   try
@@ -313,17 +198,65 @@ begin
       FXML := FKeyboard.SerializeXML(keymanapi_TLB.ksfExportImages, FTempPath, FFileReferences);
     end;
 
-    XMLRenderers.RenderTemplate := 'InstallKeyboard.xsl';
-    XMLRenderers.Add(TGenericXMLRenderer.Create(FXML));
-    Content_Render;
+    if VarIsArray(FFileReferences) then
+    begin
+      SetLength(FFiles, VarArrayHighBound(FFileReferences, 1) - VarArrayLowBound(FFileReferences, 1) + 1);
+      for I := VarArrayLowBound(FFileReferences, 1) to VarArrayHighBound(FFileReferences, 1) do
+        FFiles[I-VarArrayLowBound(FFileReferences, 1)] := FFileReferences[I];
+    end;
+
+    FPackagePath := CleanupPaths(FXML);
+
+    FXML := FXML + '<DefaultBCP47Tag>' + XMLEncode(FDefaultBCP47Tag) + '</DefaultBCP47Tag>';
+
+    Data := TInstallKeyboardSharedData.Create(FXML, FTempPath, FPackagePath, FFiles);
+    PageTag := modWebHttpServer.SharedData.Add(Data);
+    FRenderPage := 'installkeyboard';
+    HelpTopic := 'context/install-keyboard';
+    Content_Render('tag='+IntToStr(PageTag));
   finally
     Screen.Cursor := crDefault;
+  end;
+end;
+
+function TfrmInstallKeyboard.CleanupPaths(var xml: string): string;
+var
+  doc: IXMLDocument;
+  node: IXMLNode;
+begin
+  // TODO: add ksfRelativePaths to SerializeXML and add ChildValues['packagepath']
+  // so this is not necessary; this requires update to Keyman API though.
+
+  Result := '';
+  doc := LoadXMLData(xml);
+
+  if Assigned(doc.DocumentElement) then
+  begin
+    node := doc.DocumentElement.ChildNodes.FindNode('readme');
+    if Assigned(node) then
+    begin
+      Result := node.NodeValue;
+      node.NodeValue := ExtractFileName(Result);
+      Result := ExtractFilePath(Result);
+    end;
+
+    node := doc.DocumentElement.ChildNodes.FindNode('graphic');
+    if Assigned(node) then
+    begin
+      Result := node.NodeValue;
+      node.NodeValue := ExtractFileName(Result);
+      Result := ExtractFilePath(Result);
+    end;
+
+    doc.SaveToXML(xml);
   end;
 end;
 
 procedure TfrmInstallKeyboard.TntFormDestroy(Sender: TObject);
 begin
   inherited;
+  if PageTag > 0 then
+    modWebHttpServer.SharedData.Remove(PageTag);
   DeleteFileReferences;
 end;
 
@@ -331,34 +264,79 @@ procedure TfrmInstallKeyboard.DeleteFileReferences;
 var
   I: Integer;
 begin
-  if VarIsArray(FFileReferences) then
-    for I := VarArrayLowBound(FFileReferences, 1) to VarArrayHighBound(FFileReferences, 1) do
-      DeleteFile(FTempPath + FFileReferences[i]);   // I4181
+  for I := Low(FFiles) to High(FFiles) do
+    System.SysUtils.DeleteFile(FTempPath + FFiles[i]);   // I4181
+  SetLength(FFiles, 0);
 end;
 
 procedure TfrmInstallKeyboard.FireCommand(const command: WideString; params: TStringList);
 var
-  t: TTempFile;
+  BCP47Tag: string;
+  BaseKeyboardID :Integer;
 begin
+  BCP47Tag := '';
   if (command = 'keyboard_install') and kmcom.SystemInfo.IsAdministrator then   // I4172
   begin
-    InstallKeyboard('');
+    if params.Count = 1 then
+      BCP47Tag := params.ValueFromIndex[0];
+    TfrmProgress.Execute(Self,
+      function(Manager: IProgressManager): Boolean
+      begin
+        Manager.Title := 'Installing Keyboard';
+        Manager.CanCancel := False;
+        Manager.UpdateProgress('Installing Keyboard', 0, 0);
+        BaseKeyboardID := kmcom.Options[KeymanOptionName(koBaseLayout)].Value;
+        InstallKeyboard('', BCP47Tag, BaseKeyboardID);
+        Result := True;
+      end
+    );
   end
   else if command = 'keyboard_cancel' then
     ModalResult := mrCancel
   else if (command = 'keyboard_installallusers') or (command = 'keyboard_install') then   // I4172
   begin
-    t := TTempFileManager.Get('.log');
-    try
-      if WaitForElevatedConfiguration(Handle, '-log "'+t.Name+'" -s -i "'+FInstallFile+'" -nowelcome') = 0 then
-        ModalResult := mrOk
-      else
-        ModalResult := mrCancel;
+    if params.Count = 1 then
+      BCP47Tag := params.ValueFromIndex[0];
+    TfrmProgress.Execute(Self,
+      function(Manager: IProgressManager): Boolean
+      var
+        t: TTempFile;
+        ExecParams: string;
+        BaseKeyboardString :string;
+      begin
+        KL.MethodEnter(Self, '"keyboard_install"', [params.Text]);
+        try
+          Manager.Title := 'Installing Keyboard';
+          Manager.CanCancel := False;
+          Manager.UpdateProgress('Installing Keyboard', 0, 0);
+          t := TTempFileManager.Get('.log');
+          BaseKeyboardString := IntToHex(kmcom.Options[KeymanOptionName(koBaseLayout)].Value, 8);
+          try
+            ExecParams := '-log "'+t.Name+'" -bklid "'+BaseKeyboardString+'" -s -i "'+FInstallFile+'='+BCP47Tag+'"'+
+              ' -nowelcome '+TTIPMaintenance.GetUserDefaultLangParameterString;
+            KL.Log('Calling elevated kmshell %s', [ExecParams]);
+            if WaitForElevatedConfiguration(GetForegroundWindow, ExecParams) = 0 then
+            begin
+              // install the keyboard tip
+              if not InstallTipForKeyboard(BCP47Tag) then
+                Exit(False);
 
-      CheckLogFileForWarnings(t.Name, False);
-    finally
-      t.Free;
-    end;
+              CheckForMitigationWarningFor_Win10_1803(False, '');
+              ModalResult := mrOk;
+            end
+            else
+              ModalResult := mrCancel;
+
+            CheckLogFileForWarnings(t.Name, False);
+          finally
+            t.Free;
+          end;
+        finally
+          KL.MethodExit(Self, '"keyboard_install"');
+        end;
+        Result := True;
+      end
+    );
   end
   else
     inherited;
@@ -384,13 +362,16 @@ end;
  - Control events                                                              -
  ------------------------------------------------------------------------------}
 
-procedure TfrmInstallKeyboard.InstallKeyboard(const ALogFile: string);
+// TODO: move this to TInstallFile
+procedure TfrmInstallKeyboard.InstallKeyboard(const ALogFile, BCP47Tag: string; BaseKeyboardID: Integer);
 var
   i: Integer;
   kbd: IKeymanKeyboardInstalled;
   pkg: IKeymanPackageInstalled;
   //FKeyboardsList: WideString;
   j: Integer;
+  FInstalledPackage: IKeymanPackageInstalled;
+  FInstalledKeyboard: IKeymanKeyboardInstalled;
 begin
   kmcom.Errors.Clear;
   try
@@ -424,7 +405,12 @@ begin
         kbd := nil;
         kmcom.Keyboards.Apply;
         kmcom.Keyboards.Refresh;
-        FKeyboard.Install(True);
+        FInstalledKeyboard := (FKeyboard as IKeymanKeyboardFile3).Install3(True, BaseKeyboardID);
+        if not InstallTipForKeyboard(BCP47Tag) then
+        begin
+          // TODO can we return a failure code?
+          Exit;
+        end;
         CheckForMitigationWarningFor_Win10_1803(FSilent, ALogFile);
       end
       else
@@ -480,7 +466,15 @@ begin
         kmcom.Keyboards.Apply;
         kmcom.Keyboards.Refresh;  // I2169
 
-        FPackage.Install(True);
+        (FPackage as IKeymanPackageFile3).Install3(True, BaseKeyboardID);
+
+        kmcom.Refresh;
+
+        if not InstallTipForKeyboard(BCP47Tag) then
+        begin
+          Exit;
+        end;
+
         CheckForMitigationWarningFor_Win10_1803(FSilent, ALogFile);
       end;
     except
@@ -505,23 +499,53 @@ begin
   ModalResult := mrOk;
 end;
 
-function InstallKeyboardFromFile(Owner: TComponent): Boolean;
-var
-  dlgOpen: TOpenDialog;
-begin
-  dlgOpen := TOpenDialog.Create(nil);
-  try
-    dlgOpen.Filter :=
-      'Keyman files (*.kmx, *.kxx, *.kmp)|*.kmx;*.kxx;*.kmp|Keyman keyboards (*.kmx,*.kxx)' +
-      '|*.kmx;*.kxx|Keyman packages (*.kmp)|*.kmp|All files (*.*)|*.*';
-    dlgOpen.Title := 'Install Keyman Keyboard';
-
-    if dlgOpen.Execute then
-      Result := InstallFile(Owner, dlgOpen.FileName, False, False, '')
+function TfrmInstallKeyboard.InstallTipForKeyboard(const BCP47Tag: string): Boolean;
+  function DoInstallTipForKeyboard(const BCP47Tag: string): Boolean;
+  var
+    i: Integer;
+  begin
+    // Install the TIP for the current user
+    if Assigned(FKeyboard) then
+    begin
+      if BCP47Tag <> ''
+        then Result := TTIPMaintenance.DoInstall(FKeyboard.ID, BCP47Tag)
+        else Result := TTIPMaintenance.DoInstall(FKeyboard.ID, TTIPMaintenance.GetFirstLanguage(FKeyboard));
+    end
     else
-      Result := False;
-  finally
-    dlgOpen.Free;
+    begin
+      if (FPackage.Keyboards.Count = 1) and (BCP47Tag <> '') then
+        Result := TTIPMaintenance.DoInstall(FPackage.Keyboards[0].ID, BCP47Tag)
+      else
+      begin
+        Result := True;
+        for i := 0 to FPackage.Keyboards.Count - 1 do
+          // For a multi-keyboard package, it's hard to know what to do!
+          if not TTIPMaintenance.DoInstall(FPackage.Keyboards[i].ID,
+              TTIPMaintenance.GetFirstLanguage(FPackage.Keyboards[i] as IKeymanKeyboardFile)) then
+            Result := False;
+      end;
+    end;
+  end;
+begin
+  // Ensure keyboard is recorded in CU registry before we install the TIP, otherwise it will be marked as disabled by default,
+  // as installing the TIP adds CU registry settings, potentially confusing the keyboard settings
+
+  // Only do this for the keyboards, so we don't cause a global refresh
+  kmcom.Keyboards.Refresh;
+  kmcom.Keyboards.Apply;
+
+  Result := DoInstallTipForKeyboard(BCP47Tag);
+  if not Result then
+  begin
+    // We'll silently fall back to installing under the default language;
+    // they may have hit the limit of custom languages but an error message
+    // is likely to be very confusing.
+    Result := DoInstallTipForKeyboard(TTIPMaintenance.GetUserDefaultLanguage);
+    if not Result then
+    begin
+      if not FSilent then
+        ShowMessage(MsgFromIdFormat(SKInstallLanguageTransientLimit, [BCP47Tag]));
+    end;
   end;
 end;
 

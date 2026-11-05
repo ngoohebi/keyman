@@ -1,0 +1,162 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: keyman
+Upstream-Contact: Keyman team <support@keyman.com>
+Source: https://github.com/keymanapp/keyman
+Comment: Debian's licensecheck tool uses the term `Expat` for the `MIT` license.
+         `Unicode-3.0` is identified `Unicode-DFS-2016`.
+
+Files: *
+Copyright: 2018-2026 SIL Global
+License: Expat
+
+Files: linux/ibus-keyman/*
+Copyright: 2004-2026 SIL Global
+License: GPL-2+
+
+Files: linux/ibus-keyman/src/keymanutil.c
+       linux/ibus-keyman/src/keymanutil.h
+       linux/ibus-keyman/src/kmpdetails.c
+       linux/ibus-keyman/src/kmpdetails.h
+Copyright: 2009-2026 SIL Global
+License: GPL-2+ or Expat
+
+Files: linux/ibus-keyman/src/keyman-service.c
+       linux/ibus-keyman/src/keyman-service.h
+       linux/keyman-config/buildtools/help2md
+Copyright: 2018-2026 SIL Global
+License: GPL-3+
+
+Files: linux/ibus-keyman/tests/ibusimcontext.c
+       linux/ibus-keyman/tests/ibusimcontext.h
+Copyright: 2008-2010, Peng Huang <shawn.p.huang@gmail.com>
+           2008-2010, Red Hat, Inc.
+           2008-2013, Peng Huang <shawn.p.huang@gmail.com>
+           2008-2021, Red Hat, Inc.
+           2015-2021, Takao Fujiwara <takao.fujiwara1@gmail.com>
+           2021-2026, SIL Global
+License: LGPL-2.1+
+
+Files: linux/keyman-config/buildtools/help2man
+Copyright: 1997-2005, 2009-2017, 2020-2021, Free Software Foundation, Inc.
+License: GPL-3+
+
+Files: debian/com.keyman.config.appdata.xml
+       debian/com.keyman.ibus_keyman.metainfo.xml
+Copyright: 2019 Daniel Glassey <wdg@debian.org>
+           2022-2026 SIL Global
+License: Expat
+
+Files: resources/standards-data/ldml-keyboards/*
+Copyright: Copyright © 1991-2024 Unicode, Inc.
+License: Unicode-DFS-2016
+
+Files: resources/standards-data/unicode-character-database/*
+Copyright: Copyright © 1991-2023 Unicode, Inc.
+License: Unicode-DFS-2016
+
+Files: resources/standards-data/windows-lcid-to-bcp-47/*
+Copyright: Copyright © 1991-2017 Unicode, Inc.
+License: Unicode-DFS-2016
+
+License: Expat
+ Permission is hereby granted, free of charge, to any person obtaining
+ a copy of this software and associated documentation files (the
+ "Software"), to deal in the Software without restriction, including
+ without limitation the rights to use, copy, modify, merge, publish,
+ distribute, sublicense, and/or sell copies of the Software, and to
+ permit persons to whom the Software is furnished to do so, subject to
+ the following conditions:
+ .
+ The above copyright notice and this permission notice shall be
+ included in all copies or substantial portions of the Software.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+License: GPL-2+
+ This package is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2 of the License, or
+ (at your option) any later version.
+ .
+ This package is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this package. If not, see https://www.gnu.org/licenses/.
+ .
+ On Debian systems, the full text of the GNU General Public
+ License version 2 can be found in the file
+ `/usr/share/common-licenses/GPL-2'.
+
+License: GPL-3+
+ This package is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 3 of the License, or
+ (at your option) any later version.
+ .
+ This package is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this package. If not, see https://www.gnu.org/licenses/.
+ .
+ On Debian systems, the full text of the GNU General Public
+ License version 3 can be found in the file
+ `/usr/share/common-licenses/GPL-3'.
+
+License: LGPL-2.1+
+ This library is free software; you can redistribute it and/or modify it under
+ the terms of the GNU Lesser General Public License as published by the Free
+ Software Foundation; either version 2.1 of the License, or (at your option)
+ any later version.
+ .
+ This library is distributed in the hope that it will be useful, but WITHOUT
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+ details.
+ .
+ You should have received a copy of the GNU Lesser General Public License
+ along with this library. If not, see https://www.gnu.org/licenses/.
+ .
+ On Debian systems, the full text of the GNU Lesser General Public
+ License version 2.1 can be found in the file
+ `/usr/share/common-licenses/LGPL-2.1'.
+
+License: Unicode-DFS-2016
+ Permission is hereby granted, free of charge, to any person obtaining a
+ copy of data files and any associated documentation (the "Data Files") or
+ software and any associated documentation (the "Software") to deal in the
+ Data Files or Software without restriction, including without limitation
+ the rights to use, copy, modify, merge, publish, distribute, and/or sell
+ copies of the Data Files or Software, and to permit persons to whom the
+ Data Files or Software are furnished to do so, provided that either (a)
+ this copyright and permission notice appear with all copies of the Data
+ Files or Software, or (b) this copyright and permission notice appear in
+ associated Documentation.
+ .
+ THE DATA FILES AND SOFTWARE ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
+ KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF
+ THIRD PARTY RIGHTS.
+ .
+ IN NO EVENT SHALL THE COPYRIGHT HOLDER OR HOLDERS INCLUDED IN THIS NOTICE
+ BE LIABLE FOR ANY CLAIM, OR ANY SPECIAL INDIRECT OR CONSEQUENTIAL DAMAGES,
+ OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+ WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THE DATA
+ FILES OR SOFTWARE.
+ .
+ Except as contained in this notice, the name of a copyright holder shall
+ not be used in advertising or otherwise to promote the sale, use or other
+ dealings in these Data Files or Software without prior written
+ authorization of the copyright holder.

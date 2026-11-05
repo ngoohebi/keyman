@@ -1,18 +1,18 @@
 /*
   Name:             K32_DBG
   Copyright:        Copyright (C) SIL International.
-  Documentation:    
-  Description:      
+  Documentation:
+  Description:
   Create Date:      14 Sep 2006
 
   Modified Date:    23 Feb 2016
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
-  Bugs:             
-  Todo:             
-  Notes:            
+  Bugs:
+  Todo:
+  Notes:
   History:          14 Sep 2006 - mcdurdin - Rework internal debugging to use mailslot passing to Keyman
                     05 Dec 2006 - mcdurdin - Disable temporary file-based logging
                     15 Jan 2007 - mcdurdin - Use _FILELOG define
@@ -49,10 +49,12 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#ifdef _WIN64
-#define DEBUG_PLATFORM_STRING "x64"
+#if defined(_M_ARM64)
+  #define DEBUG_PLATFORM_STRING "arm64"
+#elif defined(_M_X64)
+  #define DEBUG_PLATFORM_STRING "x64"
 #else
-#define DEBUG_PLATFORM_STRING "x86"
+  #define DEBUG_PLATFORM_STRING "x86"
 #endif
 
 
@@ -65,19 +67,19 @@ void InitDebugging() {
     VS_FIXEDFILEINFO *ffi;
     DWORD sz;
     UINT ffilen;
-    char *buf = new char[1024], fname[260];
+    char fname[260];
 
     GetModuleFileName(GetModuleHandle("kmtip.dll"), fname, 260);
     sz = GetFileVersionInfoSize(fname, 0);
     if (sz > 0) {
-      buf = new char[sz];
+      char *buf = new char[sz];
       GetFileVersionInfo(fname, 0, sz, buf);
       VerQueryValue(buf, "\\", (void **)&ffi, &ffilen);
 
       SendDebugMessageFormat(L"kmtip version: %d.%d.%d.%d",
         HIWORD(ffi->dwProductVersionMS), LOWORD(ffi->dwProductVersionMS),
         HIWORD(ffi->dwProductVersionLS), LOWORD(ffi->dwProductVersionLS));
-      delete buf; // I2157
+      delete[] buf; // I2157
     }
     else {
       SendDebugMessage(L"kmtip version: damaged");
@@ -85,7 +87,7 @@ void InitDebugging() {
   }
 }
 
-int SendDebugMessageFormat_1(char *file, int line, PWCHAR fmt, ...) {
+int SendDebugMessageFormat_1(wchar_t *file, int line, wchar_t* function, PWCHAR fmt, ...) {
   if (ShouldDebug()) {
     WCHAR fmtbuf[256];
 
@@ -95,23 +97,46 @@ int SendDebugMessageFormat_1(char *file, int line, PWCHAR fmt, ...) {
       wcscpy_s(fmtbuf, L"fail");  // I2248   // I3547
     }
     fmtbuf[255] = 0;
-    SendDebugMessage_1(file, line, fmtbuf);
+    SendDebugMessage_1(file, line, function, fmtbuf);
   }
   return 0;
 }
 
-int SendDebugMessage_1(char *file, int line, PWCHAR msg) {
+int SendDebugMessage_1(wchar_t *file, int line, wchar_t* function, PWCHAR msg) {
   if (ShouldDebug()) {
-    Keyman32Interface::WriteDebugEvent(file, line, msg);
+    Keyman32Interface::WriteDebugEvent(file, line, function, msg);
   }
   return 0;
 }
 
-void DebugLastError_1(char *file, int line, char *func, PWCHAR msg, DWORD err) {
+int SendDebugEntry_1(wchar_t* file, int line, wchar_t* function) {
+  Keyman32Interface::WriteDebugEntry(file, line, function);
+  return 0;
+}
+
+int SendDebugExit_1(wchar_t* file, int line, wchar_t* function) {
+  Keyman32Interface::WriteDebugExit(file, line, function);
+  return 0;
+}
+
+void DebugLastError_1(wchar_t *file, int line, wchar_t* function, PWCHAR msg, DWORD err) {
   if(ShouldDebug()) {
     WCHAR buf[256];
     FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_ARGUMENT_ARRAY, NULL, err, 0, buf, _countof(buf), NULL);
-    SendDebugMessageFormat(L"ERROR %d in %hs [%hs:%d] calling %s: %s", err, func, file, line, msg, buf);
+    SendDebugMessageFormat_1(file, line, function, L"ERROR %d calling %s: %s", err, msg, buf);
   }
 }
 
+void WINAPI Keyman_Diagnostic(int mode) {
+  if (mode == 0) {
+    RaiseException(0xDEADBEEF, EXCEPTION_NONCONTINUABLE, 0, NULL);
+  }
+}
+
+BOOL _LogSUCCEEDED(wchar_t *file, int line, wchar_t* function, PSTR callee, HRESULT hr) {
+  BOOL result = SUCCEEDED(hr);
+  if (!result) {
+    SendDebugMessageFormat_1(file, line, function, L"call to %hs failed with %x", callee, hr);
+  }
+  return result;
+}

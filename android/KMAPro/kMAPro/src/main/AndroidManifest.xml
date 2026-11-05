@@ -1,28 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-  package="com.tavultesoft.kmapro">
+  xmlns:tools="http://schemas.android.com/tools">
 
-  <uses-permission android:name="android.permission.INTERNET" />
+  <!-- Keyman Engine removes INTERNET permission, so add it back -->
+  <uses-permission android:name="android.permission.INTERNET" tools:node="replace" />
   <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-  <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
   <uses-permission android:name="android.permission.VIBRATE" />
 
+  <!-- Devices running up to Android 12L
+       Starting in API level 33, this permission has no effect:
+       https://developer.android.com/reference/android/Manifest.permission#READ_EXTERNAL_STORAGE -->
+  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+
+  <!-- Ideally we would declare this permission so we can get other installed keyboard names.
+  But would involve a long review process with the Play Store:
+  https://support.google.com/googleplay/android-developer/answer/9214102#
+  <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" /> -->
   <application
+    android:name=".KeymanApplication"
     android:allowBackup="true"
     android:hardwareAccelerated="true"
-    android:icon="@drawable/ic_launcher"
+    android:theme="@style/AppTheme"
+    android:icon="@mipmap/ic_launcher"
     android:label="@string/app_name"
-    android:roundIcon="@drawable/ic_launcher_round"
-    android:theme="@style/AppTheme">
-    <receiver android:name=".NetworkStateReceiver">
+    android:resizeableActivity="false"
+    android:usesCleartextTraffic="true"
+    android:supportsRtl="true"
+     >
+    <receiver android:name=".NetworkStateReceiver"
+      android:exported="true">
       <intent-filter>
         <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
       </intent-filter>
     </receiver>
+    <!--    see the events from this app in sentry.keyman.com dashboard -->
+    <meta-data
+      android:name="io.sentry.dsn" android:value="https://2f067e5571a74974b9e210ca76ca9607@o1005580.ingest.sentry.io/5983520" />
+    <!--    how to enable Sentry's debug mode-->
+    <meta-data
+      android:name="io.sentry.debug" android:value="true" />
+    <!-- Have application handle initializing Sentry -->
+    <meta-data
+      android:name="io.sentry.auto-init" android:value="false" />
 
     <service
       android:name="com.keyman.android.SystemKeyboard"
+      android:exported="true"
       android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
       android:permission="android.permission.BIND_INPUT_METHOD">
       <intent-filter>
@@ -34,14 +57,16 @@
         android:resource="@xml/method" />
     </service>
     <service
-      android:name="com.tavultesoft.kmea.util.DownloadIntentService"
+      android:name="com.keyman.android.DownloadIntentService"
       android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
       android:exported="true" />
 
     <activity
       android:name=".SplashScreenActivity"
+      android:exported="true"
       android:label="@string/app_name"
-      android:theme="@style/AppTheme.BrandedLaunch">
+      android:resizeableActivity="false"
+      android:theme="@style/Theme.App.Starting">
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />
 
@@ -50,47 +75,43 @@
     </activity>
     <activity
       android:name=".MainActivity"
+      android:exported="true"
       android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
       android:label="@string/app_name"
+      android:resizeableActivity="false"
       android:launchMode="singleTask">
 
       <!-- See http://stackoverflow.com/questions/1733195/android-intent-filter-for-a-particular-file-extension/2062112#2062112 -->
 
 
       <!--
-                 Capture content by MIME type, which is how Gmail broadcasts
-                 attachment open requests.  pathPattern and file extensions
-                 are ignored, so the MIME type *MUST* be explicit, otherwise
-                 we will match absolutely every file opened.
-            -->
+        Capture content by MIME type, which is how Gmail broadcasts
+        attachment open requests.  pathPattern and file extensions
+        are ignored, so the MIME type *MUST* be explicit, otherwise
+        we will match absolutely every file opened.
+
+        See https://developer.android.com/guide/components/intents-filters#DataTest, item 3.
+      -->
       <intent-filter android:priority="50">
         <action android:name="android.intent.action.VIEW" />
 
         <category android:name="android.intent.category.BROWSABLE" />
         <category android:name="android.intent.category.DEFAULT" />
 
-        <!-- needed for properly formatted email messages -->
-        <data
-          android:mimeType="application/vnd.keyman"
-          android:scheme="content" />
+        <data android:scheme="content" />
+        <data android:host="*" />
+
         <!-- needed for mangled email messages -->
-        <data
-          android:mimeType="application/keyman"
-          android:scheme="content" />
-        <!-- needed for mangled email messages -->
-        <data
-          android:mimeType="application/octet-stream"
-          android:scheme="content" />
+        <data android:mimeType="application/vnd.keyman.kmp+zip"/>
+        <data android:mimeType="application/octet-stream"/>
       </intent-filter>
 
       <!--
-                 Capture file open requests (pathPattern is honoured) where no
-                 MIME type is provided in the Intent.  An Intent with a null
-                 MIME type will never be matched by a filter with a set MIME
-                 type, so we need a second intent-filter if we wish to also
-                 match files with this extension and a non-null MIME type
-                 (even if it is non-null but zero length).
-            -->
+        Capture open requests (pathPattern is honoured) where MIME
+        type is provided in the Intent and a URI is provided.
+
+        See https://developer.android.com/guide/components/intents-filters#DataTest, item 4.
+      -->
       <intent-filter android:priority="50">
         <action android:name="android.intent.action.VIEW" />
 
@@ -98,31 +119,28 @@
         <category android:name="android.intent.category.DEFAULT" />
 
         <data android:scheme="file" />
-        <data android:host="*" />
+        <data android:scheme="content" />
 
-        <!--
-                     Work around Android's ugly primitive PatternMatcher
-                     implementation that can't cope with finding a . early in
-                     the path unless it's explicitly matched.
-                -->
+        <data android:host="*" />
         <data android:pathPattern=".*\\.kmp" />
-        <data android:pathPattern=".*\\..*\\.kmp" />
-        <data android:pathPattern=".*\\..*\\..*\\.kmp" />
-        <data android:pathPattern=".*\\..*\\..*\\..*\\.kmp" />
-        <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.kmp" />
-        <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\.kmp" />
-        <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\.kmp" />
+
+        <data android:mimeType="application/vnd.keyman.kmp+zip" />
+        <!--
+          Backup MIME intents
+        -->
+        <data android:mimeType="application/octet-stream" />
       </intent-filter>
 
       <!--
-                 Capture file open requests (pathPattern is honoured) where a
-                 (possibly blank) MIME type is provided in the Intent.  This
-                 filter may only be necessary for supporting ES File Explorer,
-                 which has the probably buggy behaviour of using an Intent
-                 with a MIME type that is set but zero-length.  It's
-                 impossible to match such a type except by using a global
-                 wildcard.
-            -->
+        Capture file open requests (pathPattern is honoured) where no
+        MIME type is provided in the Intent.  An Intent with a null
+        MIME type will never be matched by a filter with a set MIME
+        type, so we need a second intent-filter if we wish to also
+        match files with this extension and a non-null MIME type
+        (even if it is non-null but zero length).
+
+        See https://developer.android.com/guide/components/intents-filters#DataTest, item 2.
+      -->
       <intent-filter android:priority="50">
         <action android:name="android.intent.action.VIEW" />
 
@@ -130,67 +148,129 @@
         <category android:name="android.intent.category.DEFAULT" />
 
         <data android:scheme="file" />
-        <data android:host="*" />
-        <data android:mimeType="*/*" />
+        <data android:scheme="content" />
 
-        <!--
-                     Work around Android's ugly primitive PatternMatcher
-                     implementation that can't cope with finding a . early in
-                     the path unless it's explicitly matched.
-                -->
+        <data android:host="*" />
         <data android:pathPattern=".*\\.kmp" />
-        <data android:pathPattern=".*\\..*\\.kmp" />
-        <data android:pathPattern=".*\\..*\\..*\\.kmp" />
-        <data android:pathPattern=".*\\..*\\..*\\..*\\.kmp" />
-        <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.kmp" />
-        <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\.kmp" />
-        <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\..*\\.kmp" />
       </intent-filter>
+
       <intent-filter>
+        <!-- keyman:download// deep linking to https://keyman.com/keyboards/ -->
         <action android:name="android.intent.action.VIEW" />
 
         <category android:name="android.intent.category.DEFAULT" />
         <category android:name="android.intent.category.BROWSABLE" />
 
-        <!-- http:// and  https:// protocols -->
         <data
           android:host="*"
-          android:pathPattern=".*\\.kmp"
-          android:scheme="http" />
-        <data
-          android:host="*"
-          android:pathPattern=".*\\.kmp"
-          android:scheme="https" />
+          android:scheme="keyman"
+          android:sspPrefix="download" />
+
       </intent-filter>
+
+      <intent-filter android:priority="50" android:autoVerify="true" >
+        <!-- KMPBrowserActivity converts cloud keyboard package links from http(s)://{HOST}/keyboards/install into /go/package/download
+             Use {HOST} as defined in KMPLink.java
+             Also note, Manifest will OR all the scheme/host/pathPrefix combinations -->
+        <action android:name="android.intent.action.VIEW" />
+
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+
+        <data android:scheme="http" />
+        <data android:scheme="https" />
+
+        <data android:host="keyman-staging.com" />
+        <data android:host="keyman.com" />
+
+        <data android:pathPrefix="/go/package/download" />
+        <data android:pathPrefix="/keyboards/install" />
+      </intent-filter>
+
     </activity>
+
     <activity
       android:name=".InfoActivity"
       android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
-      android:label="@string/app_name"></activity>
-    <activity
-      android:name=".WebBrowserActivity"
-      android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
-      android:label="@string/app_name"></activity>
+      android:label="@string/app_name"/>
     <activity
       android:name=".BookmarksActivity"
       android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
-      android:label="@string/app_name"></activity>
+      android:label="@string/app_name"/>
     <activity
       android:name=".PackageActivity"
       android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
-      android:label="@string/app_name"></activity>
+      android:label="@string/app_name"/>
     <activity
       android:name=".GetStartedActivity"
       android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
       android:label="@string/app_name"
       android:launchMode="singleTask"
-      android:theme="@style/Theme.AppCompat.Light.Dialog"></activity>
+      android:theme="@style/AppTheme.Dialog"/>
     <activity
-      android:name=".KeymanSettingsActivity"
-      android:label="@string/keyman_settings"
+      android:name=".KeymanSettingsInstallActivity"
+      android:label="@string/app_name"
       android:parentActivityName=".MainActivity"
       android:launchMode="singleTask"
       android:theme="@style/AppTheme.Base" />
+    <activity
+      android:name=".KeymanSettingsLocalizeActivity"
+      android:label="@string/app_name"
+      android:parentActivityName=".MainActivity"
+      android:launchMode="singleTask"
+      android:theme="@style/AppTheme.Base" />
+    <activity
+      android:name=".LanguagesSettingsActivity"
+      android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
+      android:label="@string/app_name"
+      android:theme="@style/AppTheme.Base" />
+    <activity
+      android:name=".LanguageSettingsActivity"
+      android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
+      android:label="@string/app_name"
+      android:parentActivityName=".LanguagesSettingsActivity"
+      android:theme="@style/AppTheme.Base" />
+    <activity
+      android:name=".KeyboardSettingsActivity"
+      android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
+      android:label="@string/app_name"
+      android:theme="@style/AppTheme.Dialog" />
+    <activity
+      android:name=".SelectPackageActivity"
+      android:label="@string/app_name"
+      android:parentActivityName=".KeymanSettingsInstallActivity"
+      android:launchMode="singleTask"
+      android:theme="@style/AppTheme.Base" />
+    <activity
+      android:name=".SelectLanguageActivity"
+      android:label="@string/app_name"
+      android:parentActivityName=".SelectPackageActivity"
+      android:launchMode="singleTask"
+      android:theme="@style/AppTheme.Base" />
+    <activity
+      android:name=".AdjustKeyboardHeightActivity"
+      android:configChanges="orientation"
+      android:label="@string/app_name"
+      android:theme="@style/AppTheme.Base" />
+    <activity
+      android:name=".AdjustLongpressDelayActivity"
+      android:configChanges="orientation"
+      android:label="@string/app_name"
+      android:theme="@style/AppTheme.Base" />
+
+    <!-- Put other WebViewActivities in a separate process so the Keyboard WebView doesn't lag.
+    Ref https://stackoverflow.com/questions/40650643/timed-out-waiting-on-iinputcontextcallback-with-custom-keyboard-on-android -->
+    <activity
+      android:name=".WebBrowserActivity"
+      android:process=":WebBrowserActivity"
+      android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
+      android:label="@string/app_name"/>
+    <activity
+      android:name=".KMPBrowserActivity"
+      android:process=":KMPBrowserActivity"
+      android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
+      android:label="@string/app_name"/>
+
 
     <provider
       android:name="androidx.core.content.FileProvider"

@@ -1,188 +1,290 @@
 #!/usr/bin/python3
 
-import sys
 import datetime
-import time
-import json
 import logging
+import os
+import tempfile
+import time
+
 import requests
 import requests_cache
-import os
-from pathlib import Path
+from gi.repository import GObject
+
+from keyman_config import _
+from keyman_config import KeymanApiUrl, KeymanDownloadsUrl
+from keyman_config.deprecated_decorator import deprecated
+from keyman_config.sentry_handling import SentryErrorHandling
+
+
+class InstallLocation(GObject.GEnum):
+    OS = 1
+    Shared = 2
+    User = 3
+    Unknown = 99
+
+
+# When running under sudo, we don't want to use the cache
+# since that stores files with root permissions so that they
+# can't be deleted/replaced by the user later.
+can_use_cache = not os.environ.get('SUDO_USER')
+
+
+def get_install_area_string(area):
+    if area == InstallLocation.OS:
+        return _('System')
+    elif area == InstallLocation.Shared:
+        return _('Shared')
+    elif area == InstallLocation.User:
+        return _('User')
+    return _('Unknown')
+
+
+def _install_cache(cache_name, backend, expire_after):
+    global can_use_cache
+    if can_use_cache:
+        try:
+            requests_cache.install_cache(cache_name=cache_name, backend=backend, expire_after=expire_after)
+        except AttributeError as e:
+            logging.debug(f'Got exception trying to use `install_cache`: {e}')
+            can_use_cache = False
+
+
+def _uninstall_cache():
+    global can_use_cache
+    if can_use_cache:
+        try:
+            requests_cache.uninstall_cache()
+        except AttributeError as e:
+            logging.debug(f'Got exception trying to use `uninstall_cache`: {e}')
+            can_use_cache = False
+
+
+def _did_use_cache(response):
+    if can_use_cache:
+        try:
+            return response.from_cache
+        except AttributeError as e:
+            logging.debug(f'Got exception trying to access `response.from_cache`: {e}')
+    return False
+
 
 def get_package_download_data(packageID, weekCache=False):
-	"""
-	Get package download data from keyboards download api.
+    """
+    Get package download data from keyboards download api.
 
-	Args:
-		packageID (str): package ID
-		weekCache (bool) : cache data for 1 week, default is 1 day
-	Returns:
-		dict: Keyboard data
-	"""
-	logging.info("Getting download data for package %s", packageID)
-	api_url = "https://downloads.keyman.com/api/keyboard/1.0/" + packageID
-	logging.debug("At URL %s", api_url)
-	home = str(Path.home())
-	cache_dir = keyman_cache_dir()
-	current_dir = os.getcwd()
-	if weekCache:
-		expire_after = datetime.timedelta(days=7)
-	else:
-		expire_after = datetime.timedelta(days=1)
-	os.chdir(cache_dir)
-	requests_cache.install_cache(cache_name='keyman_cache', backend='sqlite', expire_after=expire_after)
-	now = time.ctime(int(time.time()))
-	response = requests.get(api_url)
-	logging.debug("Time: {0} / Used Cache: {1}".format(now, response.from_cache))
-	os.chdir(current_dir)
-	requests_cache.core.uninstall_cache()
-	if response.status_code == 200:
-		return response.json()
-	else:
-		return None
+    Args:
+        packageID (str): package ID
+        weekCache (bool) : cache data for 1 week, default is 1 day
+    Returns:
+        dict: Keyboard data
+    """
+    logging.info('Getting download data for package %s', packageID)
+    api_url = KeymanDownloadsUrl + '/api/keyboard/1.0/' + packageID
+    logging.debug('At URL %s', api_url)
+    cache_dir = keyman_cache_dir()
+    current_dir = os.getcwd()
+    if weekCache:
+        expire_after = datetime.timedelta(days=7)
+    else:
+        expire_after = datetime.timedelta(days=1)
+    os.chdir(cache_dir)
+    _install_cache(cache_name='keyman_cache', backend='sqlite', expire_after=expire_after)
+    now = time.ctime(int(time.time()))
+    response = requests.get(api_url)
+    logging.debug('Time: {0} / Used Cache: {1}'.format(now, _did_use_cache(response)))
+    os.chdir(current_dir)
+    _uninstall_cache()
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return None
 
 
 def get_keyboard_data(keyboardID, weekCache=False):
-	"""
-	Get Keyboard or package data from web api.
+    """
+    Get Keyboard or package data from web api.
 
-	Args:
-		keyboardID (str): Keyboard or package ID
-		weekCache (bool) : cache data for 1 week, default is 1 day
-	Returns:
-		dict: Keyboard data
-	"""
-	logging.info("Getting data for keyboard %s", keyboardID)
-	api_url = "https://api.keyman.com/keyboard/" + keyboardID
-	logging.debug("At URL %s", api_url)
-	home = str(Path.home())
-	cache_dir = keyman_cache_dir()
-	current_dir = os.getcwd()
-	if weekCache:
-		expire_after = datetime.timedelta(days=7)
-	else:
-		expire_after = datetime.timedelta(days=1)
-	os.chdir(cache_dir)
-	requests_cache.install_cache(cache_name='keyman_cache', backend='sqlite', expire_after=expire_after)
-	now = time.ctime(int(time.time()))
-	response = requests.get(api_url)
-	logging.debug("Time: {0} / Used Cache: {1}".format(now, response.from_cache))
-	os.chdir(current_dir)
-	requests_cache.core.uninstall_cache()
-	if response.status_code == 200:
-		return response.json()
-	else:
-		return None
+    Args:
+        keyboardID (str): Keyboard or package ID
+        weekCache (bool) : cache data for 1 week, default is 1 day
+    Returns:
+        dict: Keyboard data
+    """
+    logging.info('Getting data for keyboard %s', keyboardID)
+    api_url = f'{KeymanApiUrl}/keyboard/{keyboardID}'
+    logging.debug('At URL %s', api_url)
+    cache_dir = keyman_cache_dir()
+    current_dir = os.getcwd()
+    if weekCache:
+        expire_after = datetime.timedelta(days=7)
+    else:
+        expire_after = datetime.timedelta(days=1)
+    os.chdir(cache_dir)
+    _install_cache(cache_name='keyman_cache', backend='sqlite', expire_after=expire_after)
+    now = time.ctime(int(time.time()))
+    try:
+        response = requests.get(api_url)
+    except requests.exceptions.RequestException:  # This is the correct syntax
+        return None
+    logging.debug('Time: {0} / Used Cache: {1}'.format(now, _did_use_cache(response)))
+    os.chdir(current_dir)
+    _uninstall_cache()
+    return response.json() if response.status_code == 200 else None
+
 
 def get_download_folder():
-	"""
-	Folder where downloaded files will be saved.
+    """
+    Folder where downloaded files will be saved.
 
-	Returns:
-	    str: path where downloaded files will be saved
-	"""
-	return keyman_cache_dir()
+    Returns:
+        str: path where downloaded files will be saved
+    """
+    return keyman_cache_dir()
+
 
 def keyman_cache_dir():
-	"""
-	User keyman cache folder
-	It will be created if it doesn't already exist
+    """
+    User keyman cache folder
+    It will be created if it doesn't already exist
 
-	Returns:
-	    str: path of user keyman cache folder
-	"""
-	home = os.path.expanduser("~")
-	cachebase = os.environ.get("XDG_CACHE_HOME", os.path.join(home, ".cache"))
-	km_cache=os.path.join(cachebase, "keyman")
-	if not os.path.isdir(km_cache):
-		os.mkdir(km_cache)
-	return km_cache
+    Returns:
+        str: path of user keyman cache folder
+    """
+    home = os.path.expanduser('~')
+    cachebase = os.environ.get('XDG_CACHE_HOME', os.path.join(home, '.cache'))
+    km_cache = os.path.join(cachebase, 'keyman')
+    if not os.path.isdir(km_cache):
+        try:
+            os.makedirs(km_cache)
+        except:
+            km_cache = tempfile.TemporaryDirectory().name
+            os.makedirs(km_cache)
+    return km_cache
 
+
+def _get_data_base_dir(area):
+    if area == InstallLocation.User:
+        return os.environ.get('XDG_DATA_HOME',
+                              os.path.join(os.path.expanduser('~'), '.local', 'share'))
+    if area == InstallLocation.Shared:
+        return '/usr/local/share'
+    return '/usr/share'
+
+
+@deprecated('Use get_keyman_dir(InstallLocation.User) instead')
 def user_keyman_dir():
-	home = os.path.expanduser("~")
-	datahome = os.environ.get("XDG_DATA_HOME", os.path.join(home, ".local", "share"))
-	return os.path.join(datahome, "keyman")
+    return get_keyman_dir(InstallLocation.User)
 
+
+def get_keyman_dir(area):
+    return os.path.join(_get_data_base_dir(area), 'keyman')
+
+
+@deprecated('Use get_keyman_font_dir(InstallLocation.User) instead')
 def user_keyman_font_dir():
-	home = os.path.expanduser("~")
-	datahome = os.environ.get("XDG_DATA_HOME", os.path.join(home, ".local", "share"))
-	return os.path.join(datahome, "fonts", "keyman")
+    return os.path.join(_get_data_base_dir(InstallLocation.User), 'fonts', 'keyman')
 
 
+def get_keyman_font_dir(area, keyboardid):
+    return os.path.join(_get_data_base_dir(area), 'fonts', 'keyman', keyboardid)
+
+
+@deprecated('Use get_keyboard_dir(InstallLocation.User, keyboardid) instead')
 def user_keyboard_dir(keyboardid):
-	return os.path.join(user_keyman_dir(), keyboardid)
+    return get_keyboard_dir(InstallLocation.User, keyboardid)
+
+
+def get_keyboard_dir(area, keyboardid):
+    return os.path.join(_get_data_base_dir(area), 'keyman', keyboardid)
+
+
+def get_keyman_doc_dir(area, keyboardid):
+    if area == InstallLocation.User:
+        return get_keyboard_dir(area, keyboardid)
+    return os.path.join(_get_data_base_dir(area), 'doc', 'keyman')
 
 
 def get_kmp_file(downloaddata, cache=False):
-	"""
-	Get info from keyboard data to download kmp then download it.
+    """
+    Get info from keyboard data to download kmp then download it.
 
-	Args:
-		downloaddata (dict): Package download data
-		cache (bool): Whether to cache the kmp file web request
-	Returns:
-		str: path where kmp file has been downloaded
-	"""
-	if 'kmp' not in downloaddata:
-		logging.info("get_kmp.py: Package does not have a kmp file available")
-		return None
+    Args:
+        downloaddata (dict): Package download data
+        cache (bool): Whether to cache the kmp file web request
+    Returns:
+        str: path where kmp file has been downloaded
+    """
+    if 'kmp' not in downloaddata:
+        logging.info('get_kmp.py: Package does not have a kmp file available')
+        return None
 
-	downloadfile = os.path.join(get_download_folder(), os.path.basename(downloaddata['kmp']))
-	return download_kmp_file(downloaddata['kmp'], downloadfile, cache)
+    downloadfile = os.path.join(get_download_folder(), os.path.basename(downloaddata['kmp']))
+    return download_kmp_file(downloaddata['kmp'], downloadfile, cache)
+
 
 def download_kmp_file(url, kmpfile, cache=False):
-	"""
-	Download kmp file.
+    """
+    Download kmp file.
 
-	Args:
-		url (str): URL to download the kmp file from.
-		kmpfile (str): Where to save the kmp file.
-			currently it does no checks on this location
-			assumes that is in users keyman cache dir
-		cache(bool): Whether to cache the kmp file web request for a week
-	Returns:
-		str: path where kmp file has been downloaded
-	"""
-	logging.info("Download URL: %s", url)
-	downloadfile = None
+    Args:
+        url (str): URL to download the kmp file from.
+        kmpfile (str): Where to save the kmp file.
+            currently it does no checks on this location
+            assumes that is in users keyman cache dir
+        cache(bool): Whether to cache the kmp file web request for a week
+    Returns:
+        str: path where kmp file has been downloaded
+    """
+    logging.info('Download URL: %s', url)
+    downloadfile = None
+    sentry = SentryErrorHandling()
+    sentry.add_breadcrumb(category='download', message=f'Downloading keyboard from {url}')
 
-	if cache:
-		cache_dir = keyman_cache_dir()
-		current_dir = os.getcwd()
-		expire_after = datetime.timedelta(days=7)
-		if not os.path.isdir(cache_dir):
-			os.makedirs(cache_dir)
-		os.chdir(cache_dir)
-		requests_cache.install_cache(cache_name='keyman_kmp_cache', backend='sqlite', expire_after=expire_after)
-		now = time.ctime(int(time.time()))
+    if cache:
+        cache_dir = keyman_cache_dir()
+        current_dir = os.getcwd()
+        expire_after = datetime.timedelta(days=7)
+        if not os.path.isdir(cache_dir):
+            os.makedirs(cache_dir)
+        os.chdir(cache_dir)
+        _install_cache(cache_name='keyman_kmp_cache', backend='sqlite', expire_after=expire_after)
+        now = time.ctime(int(time.time()))
 
-	response = requests.get(url) #, stream=True)
+    try:
+        response = requests.get(url)  # , stream=True)
+    except requests.exceptions.ConnectionError:
+        logging.error('Connection error downloading %s', url)
+        return downloadfile
 
-	if cache:
-		logging.debug("Time: {0} / Used Cache: {1}".format(now, response.from_cache))
-		os.chdir(current_dir)
-		requests_cache.core.uninstall_cache()
+    if cache:
+        logging.debug('Time: {0} / Used Cache: {1}'.format(now, _did_use_cache(response)))
+        os.chdir(current_dir)
+        _uninstall_cache()
 
-	if response.status_code == 200:
-		with open(kmpfile, 'wb') as f:
-			f.write(response.content)
-			downloadfile = kmpfile
-	return downloadfile
+    if response.status_code == 200:
+        try:
+            with open(kmpfile, 'wb') as f:
+                f.write(response.content)
+                downloadfile = kmpfile
+        except Exception as e:
+            logging.warning('Exception %s writing downloaded file %s %s', type(e), kmpfile, e.args)
+            return None
+    return downloadfile
+
 
 def get_kmp(packageID):
-	"""
-	Download a kmp file given a package id.
+    """
+    Download a kmp file given a package id.
 
-	Args:
-		packageID (str): package ID
-	Returns:
-		str: path where kmp file has been downloaded
-	"""
-	downloaddata = get_package_download_data(packageID)
-	if (downloaddata):
-		return get_kmp_file(downloaddata)
-	else:
-		logging.warning("get_kmp.py: Could not get download information about keyboard package.")
-		return None
-	return
+    Args:
+        packageID (str): package ID
+    Returns:
+        str: path where kmp file has been downloaded
+    """
+    downloaddata = get_package_download_data(packageID)
+    if (downloaddata):
+        return get_kmp_file(downloaddata)
+    else:
+        logging.warning('get_kmp.py: Could not get download information about keyboard package.')
+        return None
+    return

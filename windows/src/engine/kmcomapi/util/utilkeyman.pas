@@ -1,18 +1,18 @@
 (*
   Name:             utilkeyman
   Copyright:        Copyright (C) SIL International.
-  Documentation:    
-  Description:      
+  Documentation:
+  Description:
   Create Date:      20 Jun 2006
 
   Modified Date:    13 Mar 2015
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
-  Bugs:             
-  Todo:             
-  Notes:            
+  Bugs:
+  Todo:
+  Notes:
   History:          20 Jun 2006 - mcdurdin - Initial version
                     01 Jun 2009 - mcdurdin - I2001 - use current user not local machine when testing root keyboard path
                     03 May 2011 - mcdurdin - I2890 - Record diagnostic data when encountering registry errors
@@ -57,7 +57,6 @@ function GetKeyboardIconFileName(const KeyboardFileName: string): string;   // I
 function GetKeymanInstallPath: string;
 
 function GetDefaultHKL: HKL;   // I3581   // I3619   // I3619
-function GetDefaultKeyboardID: HKL;   // I4169
 
 var
   FInstallingKeyman: Boolean = False;
@@ -81,7 +80,6 @@ uses
 function GetShortKeyboardName(const FileName: string): string;
 begin
   if (LowerCase(ExtractFileExt(FileName)) = '.kmx') or
-      (LowerCase(ExtractFileExt(FileName)) = '.kxx') or
       (LowerCase(ExtractFileExt(FileName)) = '.kmp')
     then Result := ChangeFileExt(ExtractFileName(FileName), '')
     else Result := FileName;
@@ -146,7 +144,8 @@ begin
       s := ReadString(SRegValue_KeymanFile);
       try
         GetKeyboardInfo(s, False, ki);
-        Result := ki.KeyboardName;
+        if ki.KeyboardName <> '' then
+          Result := ki.KeyboardName;
       except
         ;
       end;
@@ -171,7 +170,8 @@ begin
       s := ReadString(SRegValue_KeymanFile);
       try
         GetKeyboardInfo(s, False, ki);
-        Result := ki.KeyboardName;
+        if ki.KeyboardName <> '' then
+          Result := ki.KeyboardName;
       except
         ;
       end;
@@ -304,20 +304,6 @@ function GetDefaultHKL: HKL;   // I3581   // I3619   // I3619
 begin
   if not SystemParametersInfo(SPI_GETDEFAULTINPUTLANG, 0, @Result, 0) then
     Result := 0;
-end;
-
-function GetDefaultKeyboardID: HKL;   // I4169
-const
-  BaseKeyboardID_USEnglish: Integer = $00000409;
-begin
-  if not SystemParametersInfo(SPI_GETDEFAULTINPUTLANG, 0, @Result, 0) then
-    Result := 0;
-
-  if Result <> 0 then
-    Result := HKLToKeyboardID(Result);
-
-  if Result = 0 then
-    Result := BaseKeyboardID_USEnglish;
 end;
 
 end.

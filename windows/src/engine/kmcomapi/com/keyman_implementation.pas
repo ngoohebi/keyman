@@ -1,18 +1,18 @@
 (*
   Name:             keyman_implementation
   Copyright:        Copyright (C) SIL International.
-  Documentation:    
-  Description:      
+  Documentation:
+  Description:
   Create Date:      1 Aug 2006
 
   Modified Date:    22 Feb 2011
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
   Bugs:
-  Todo:             
-  Notes:            
+  Todo:
+  Notes:
   History:          01 Aug 2006 - mcdurdin - Add UniqueIndex, SerializeXML and ObjectByIndex
                     04 Dec 2006 - mcdurdin - Rework COM objects to be internally owned by TKeyman so that they can't be destroyed by an external process
                     19 Mar 2007 - mcdurdin - Remove forms.pas dependency
@@ -29,13 +29,26 @@ unit keyman_implementation;
 interface
 
 uses
-  Windows, ActiveX, ComObj, keymanapi_TLB, StdVcl, keymancontext,
-  keymanerrors, keymankeyboardsinstalled, keymanpackagesinstalled,
-  keymansysteminfo, keymanoptions, keymanlanguages, keymancontrol, keymanhotkeys,
-  keymanautoobject, internalinterfaces;
+  System.Win.ComObj,
+  System.Win.StdVcl,
+  Winapi.ActiveX,
+  Winapi.Windows,
+
+  internalinterfaces,
+  keymanapi_TLB,
+  keymanautoobject,
+  keymancontext,
+  keymancontrol,
+  keymanerrors,
+  keymanhotkeys,
+  keymankeyboardsinstalled,
+  keymanlanguages,
+  keymanoptions,
+  keymanpackagesinstalled,
+  keymansysteminfo;
 
 type
-  TKeyman = class(TAutoObject, IKeyman, IIntKeyman)
+  TKeyman = class(TAutoObject, IKeyman, IIntKeyman, IKeymanBCP47Canonicalization, IKeymanDefaultLanguage)
   private
     FInitialized: Boolean;
     FContext: TKeymanContext;
@@ -63,10 +76,16 @@ type
     procedure Apply; safecall;
     procedure Refresh; safecall;
 
+    { IKeymanBCP47Canonicalization }
+    function GetCanonicalTag(const Tag: WideString): WideString; safecall;
+    function GetFullTagList(const Tag: WideString): OleVariant; safecall;
+
     { IKeymanObject }
     // Reimplement as a special case for this interface
     function SerializeXML(Flags: TOleEnum; const ImagePath: WideString; out References: OleVariant): WideString; safecall;
 
+    { IKeymanDefaultLanguage }
+    procedure SetDefaultLanguage(const BCP47: WideString; LangID: Integer); safecall;
   public
     procedure Initialize; override;
     destructor Destroy; override;
@@ -88,12 +107,15 @@ type
 implementation
 
 uses
-  Classes,
-  ComServ,
-  errlogpath,
+  System.Classes,
+  System.Variants,
+  System.Win.ComServ,
+
   sysutils,
   klog,
-  utilhandleexception;
+  utilhandleexception,
+
+  Keyman.System.CanonicalLanguageCodeUtils;
 
 const
   SErrorUninitialised = 'Keyman COM API did not initialize successfully';
@@ -102,9 +124,6 @@ procedure TKeyman.Initialize;
 begin
   KL.MethodEnter(Self, 'Initialize', []);
   try
-    // I1642 move GetErrLogPath out of DllMain - causes memory issues later due to COM calls
-    ForceDirectories(GetErrLogPath);
-
     inherited;
 
     try
@@ -122,7 +141,6 @@ begin
       on E:Exception do
       begin
         LogException('TKeyman', E, ExceptAddr);
-        SysUtils.ShowException(ExceptObject, ExceptAddr);
         FInitialized := False;
       end;
     end;
@@ -243,8 +261,16 @@ begin
   Result := inherited ObjRelease;
 end;
 
+function TKeyman.GetCanonicalTag(const Tag: WideString): WideString;
+begin
+  // We implement this here to avoid sharing standards datasets across
+  // multiple executables
+  Result := TCanonicalLanguageCodeUtils.FindBestTag(Tag, True, True);
+end;
+
 function TKeyman.Get_AutoApply: WordBool;
 begin
+  if not FInitialized then raise Exception.Create(SErrorUninitialised);
   Result := FControl.AutoApply;
 end;
 
@@ -252,6 +278,7 @@ procedure TKeyman.Apply;
 var
   AutoApply: Boolean;
 begin
+  if not FInitialized then raise Exception.Create(SErrorUninitialised);
   AutoApply := FControl.AutoApply;
   FControl.AutoApply := False;
   try
@@ -265,9 +292,22 @@ begin
   end;
 end;
 
+procedure TKeyman.SetDefaultLanguage(const BCP47: WideString; LangID: Integer);
+begin
+  FContext.DefaultBCP47 := BCP47;
+  FContext.DefaultLangID := LangID;
+end;
+
 procedure TKeyman.Set_AutoApply(Value: WordBool);
 begin
+  if not FInitialized then raise Exception.Create(SErrorUninitialised);
   FControl.AutoApply := Value;
+end;
+
+function TKeyman.GetFullTagList(const Tag: WideString): OleVariant;
+begin
+  // Converts array of strings as a Variant array
+  Result := TCanonicalLanguageCodeUtils.GetFullTagList(Tag);
 end;
 
 initialization

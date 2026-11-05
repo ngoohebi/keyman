@@ -1,42 +1,43 @@
 plugins {
     id 'com.android.application'
-    id 'io.fabric'
-    id 'com.github.triplet.play' version '2.5.0' apply false
+    id 'io.sentry.android.gradle'
+    id 'com.github.triplet.play' version '3.9.1' apply false
 }
 
 ext.rootPath = '../../../../android'
 apply from: "$rootPath/version.gradle"
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
 android {
-    compileSdkVersion 29
+    compileSdk 36
+    namespace="com.firstvoices.keyboards"
+
+    buildFeatures {
+        buildConfig = true
+    }
 
     defaultConfig {
         applicationId "com.firstvoices.keyboards"
-        minSdkVersion 17
-        targetSdkVersion 29
+        minSdkVersion 21
+        targetSdkVersion 36
 
-        String env_services_json_file = System.getenv('oem_firstvoices_services_json_file')
-
-        if (env_services_json_file != null) {
-            env_services_json_file = String.valueOf(env_services_json_file)
-            println "Copying production google-services.json and using for firstvoices"
-            copy {
-                from env_services_json_file
-                include '*.json'
-                into './'
-            }
-        }
-
-        // VERSION_CODE and VERSION_NAME from version.gradle
-        versionCode VERSION_CODE as Integer
-        versionName VERSION_NAME
+        // KEYMAN_VERSION_CODE and KEYMAN_VERSION_NAME from version.gradle
+        versionCode KEYMAN_VERSION_CODE as Integer
+        versionName KEYMAN_VERSION_NAME
+        buildConfigField "String", "KEYMAN_VERSION_ENVIRONMENT", "\""+KEYMAN_VERSION_ENVIRONMENT+"\""
+        buildConfigField "String", "KEYMAN_VERSION_GIT_TAG", "\""+KEYMAN_VERSION_GIT_TAG+"\""
     }
 
     String env_release_store_file = System.getenv("oem_firstvoices_release_store_file")
     String env_release_store_password = System.getenv("oem_firstvoices_release_store_password")
     String env_release_key_alias = System.getenv("oem_firstvoices_release_key_alias")
     String env_release_key_password = System.getenv("oem_firstvoices_release_key_password")
-    if (env_release_store_file != null) {
+    if (env_release_store_file != null && file(env_release_store_file).exists()) {
         signingConfigs {
             release {
                 println "Using signing from environment"
@@ -55,7 +56,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            if (env_release_store_file != null) {
+            if (env_release_store_file != null && file(env_release_store_file).exists()) {
                 signingConfig signingConfigs.release
             }
         }
@@ -63,60 +64,80 @@ android {
     productFlavors {
     }
 
+    applicationVariants.all { variant ->
+        // Adjust output name to "firstvoices-${KEYMAN_VERSION_MD}.apk"
+        variant.outputs.all {
+            outputFileName = "firstvoices-" + KEYMAN_VERSION_MD + ".apk"
+        }
+    }
     lintOptions {
         disable 'MissingTranslation'
+        lintConfig file("lint.xml")
+    }
+
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['libs']
+        }
+    }
+}
+
+// how to configure the sentry android gradle plugin
+task publishSentry {
+    doLast {
+        println 'Publishing FirstVoices symbols to Sentry'
+        sentry {
+            // Disables or enables the automatic configuration of Native symbols
+            uploadNativeSymbols = true
+
+            // Does or doesn't include the source code of native code for Sentry
+            includeNativeSources = true
+        }
     }
 }
 
 String env_keys_json_file = System.getenv("oem_firstvoices_keys_json_file")
-if (env_keys_json_file != null) {
+if (env_keys_json_file != null && file(env_keys_json_file).exists()) {
     apply plugin: 'com.github.triplet.play'
 
     play {
         serviceAccountCredentials = file(String.valueOf(env_keys_json_file))
 
         // Deactivate lower conflicting version APKs
-        resolutionStrategy = "ignore"
-        switch (System.env.TIER) {
+        resolutionStrategy.set(com.github.triplet.gradle.androidpublisher.ResolutionStrategy.IGNORE)
+        String tier = System.getenv("KEYMAN_TIER");
+        switch (tier) {
             case 'beta':
-                track = 'beta'
+                track.set("beta")
+                println "TIER set to beta"
                 break
 
             case 'stable':
-                track = 'production'
+                track.set("production")
+                println "TIER set to production"
                 break
 
             default:
-                track = 'alpha'
+                track.set("alpha")
+                println "TIER set to alpha"
         }
-        println "TIER set to $track"
     }
 }
 
 repositories {
-    flatDir {
-        dirs 'libs'
-    }
     google()
-    maven {
-        url 'https://maven.fabric.io/public'
-    }
+    mavenCentral()
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'androidx.appcompat:appcompat:1.2.0-alpha02'
-    implementation 'com.google.android.material:material:1.0.0'
-    api(name: 'keyman-engine', ext: 'aar')
-    implementation "com.google.firebase:firebase-analytics:17.2.1"
-    implementation "com.google.firebase:firebase-messaging:20.0.1"
-    implementation "com.google.firebase:firebase-crash:16.2.1"
-    implementation('com.crashlytics.sdk.android:crashlytics:2.10.1@aar') {
-        transitive = true
-    }
-    implementation 'androidx.preference:preference:1.1.0'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation files('libs/keyman-engine.aar')
+    implementation 'io.sentry:sentry-android:8.19.1'
+    implementation 'androidx.preference:preference:1.2.1'
+    implementation 'androidx.webkit:webkit:1.14.0'
 }
 
-apply plugin: 'com.google.gms.google-services'
 apply plugin: 'com.android.application'
-apply plugin: 'io.fabric'

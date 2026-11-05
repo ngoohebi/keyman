@@ -1,18 +1,18 @@
 (*
   Name:             Menu_KeyboardItems
   Copyright:        Copyright (C) SIL International.
-  Documentation:    
-  Description:      
+  Documentation:
+  Description:
   Create Date:      14 Sep 2006
 
   Modified Date:    23 Oct 2014
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
-  Bugs:             
-  Todo:             
-  Notes:            
+  Bugs:
+  Todo:
+  Notes:
   History:          14 Sep 2006 - mcdurdin - Initial version
                     12 Dec 2006 - mcdurdin - Localize menu
                     04 Jan 2007 - mcdurdin - Add OpenKeyboardHelp action
@@ -35,7 +35,7 @@
                     28 Aug 2014 - mcdurdin - I4390 - V9.0 - Free vs Pro
                     28 Aug 2014 - mcdurdin - I4390 - V9.0 - Free vs Pro
                     01 Sep 2014 - mcdurdin - I4398 - V9.0 - Hotkeys don't show on keyboard list
-                    01 Sep 2014 - mcdurdin - I4393 - V9.0 - Keyman Desktop Free Edition polish
+                    01 Sep 2014 - mcdurdin - I4393 - V9.0 - Keyman D_esktop Free Edition polish
                     23 Oct 2014 - mcdurdin - I4458 - Crash showing keyboard menu when product missing [CrashID:keyman.exe_9.0.472.0_2C5933D2_EAccessViolation]
 *)
 unit Menu_KeyboardItems;  // I3306   // I3614   // I4004
@@ -55,11 +55,30 @@ uses
   SysUtils,
   utilhotkey;
 
+type
+  TKeymanToolButton = class(TToolButton)   // I4606
+  private
+    FKeyboardName, FCmdLine: string;
+  public
+    property KeyboardName: string read FKeyboardName write FKeyboardName;
+    property CmdLine: string read FCmdLine write FCmdLine;
+  end;
+
 function CreateKeymanMenuItem(FKeyman: IKeyman; Owner: TPopupMenu; cmi: IKeymanCustomisationMenuItem): TKeymanMenuItem;
 
 procedure BuildCustMenu(FKeyman: IKeyman; FMenu: TPopupMenu; Location: TCustomisationMenuItemLocation);   // I3933
 
-procedure AddKeyboardToolbarItems(FKeyman: IKeyman; toolbar: TToolBar; imglist: TImageList; MenuClick: TNotifyEvent);
+function AddKeyboardToolbarItems(FKeyman: IKeyman; toolbar: TToolBar; imglist: TImageList; MenuClick: TNotifyEvent): TArray<TKeymanToolButton>;
+
+///  <summary>Adds all loaded keyboards as menu items to the popupmenu</summary>
+///  <param name="FKeyman">Reference to IKeyman</param>
+///  <param name="mnu">Menu to populate</param>
+///  <param name="MenuClick">Event to assign to OnClick of each created menu item</param>
+///  <param name="cmi">Parent customisation menu item, or nil if not being created as
+///  part of a customised menu</param>
+///  <remarks>Each menu item add will receive the Keyman menu formatting and style</remark>
+procedure AddKeyboardItems(FKeyman: IKeyman; mnu: TPopupMenu; MenuClick: TNotifyEvent;   // I3960
+  cmi: IKeymanCustomisationMenuItem);   // I3933   // I4390
 
 implementation
 
@@ -83,8 +102,6 @@ procedure AddKeyboardItems(FKeyman: IKeyman; mnu: TPopupMenu; MenuClick: TNotify
   cmi: IKeymanCustomisationMenuItem);   // I3933   // I4390
 
   function CreateLanguageMenuItem(Language: TLangSwitchLanguage): TKeymanMenuItem;   // I3933
-  var
-    s: WideString;
   begin
     Result := TKeymanMenuItem.Create(mnu);
 
@@ -92,11 +109,7 @@ procedure AddKeyboardItems(FKeyman: IKeyman; mnu: TPopupMenu; MenuClick: TNotify
     if Result.FontName = '' then Result.FontName := 'Tahoma';
 
     Result.FontSize := StrToIntDef(MsgFromId(SK_UIFontSize), 8);
-
-    s := MsgFromStr(':String[@Caption='''+xmlencode(StripHotkey(Language.Caption))+''']');
-    if s = ''
-      then Result.WideCaption := StringReplace(Language.Caption, '&', '&&', [rfReplaceAll])
-      else Result.WideCaption := s;
+    Result.WideCaption := StringReplace(Language.Caption, '&', '&&', [rfReplaceAll]);
 
     Result.OnClick := MenuClick;
     if Assigned(cmi)
@@ -161,10 +174,7 @@ procedure AddKeyboardItems(FKeyman: IKeyman; mnu: TPopupMenu; MenuClick: TNotify
       Result.ItemType := kmitKeyboard;
     end;
 
-    Result.WideCaption := MsgFromStr(':String[@Caption='''+xmlencode(StripHotkey(FCaption))+''']');
-    if Result.WideCaption = '' then
-      Result.WideCaption := StringReplace(FCaption, '&', '&&', [rfReplaceAll]);
-
+    Result.WideCaption := StringReplace(FCaption, '&', '&&', [rfReplaceAll]);
     Result.OnClick := MenuClick;
     if Assigned(FTargetLanguage) then
       Result.ShortCut := HotkeyToShortcut(FTargetLanguage.Hotkey);   // I4398
@@ -192,8 +202,6 @@ var
   j: Integer;
 begin
   { Use the lang switch manager to get the list of installed languages }
-
-  frmKeyman7Main.LangSwitchManager.Refresh;   // I4207 ?? is this really needed
 
   for i := 0 to frmKeyman7Main.LangSwitchManager.LanguageCount - 1 do   // I3933
   begin
@@ -230,7 +238,7 @@ begin
   case cmi.ItemType of
     mitText:
       begin
-        s := MsgFromStr(':String[@Caption='''+xmlencode(StripHotkey(cmi.Caption))+''']');
+        s := MsgFromStr(xmlencode(StripHotkey(cmi.Caption)));
         if s = ''
           then Result.WideCaption := cmi.Caption
           else Result.WideCaption := s;
@@ -285,6 +293,9 @@ begin
   FMenu.Items.Clear;
   FNextMenuItemIsBreak := False;
 
+  FKeyman.Refresh;
+  frmKeyman7Main.LangSwitchManager.Refresh;
+
   with kmint.KeymanCustomisation do
     for i := 1 to CustMenuItems.Count do {$MESSAGE HINT 'This indexing needs to be sorted out'}
     begin
@@ -320,7 +331,8 @@ begin
       end;
 
 
-      if (cmi.ItemType = _mitKeyboardsList) or (cmi.Action = _miaSwitchKeymanOff) then Continue;
+      if (cmi.ItemType = _mitKeyboardsList) or (cmi.Action = _miaSwitchKeymanOff) or
+        (cmi.Action = miaOSK_ViewKeyboardUsage) then Continue;
 
 
       mi := CreateKeymanMenuItem(FKeyman, FMenu, cmi);
@@ -341,11 +353,6 @@ begin
           begin
             mi.Checked := frmKeyman7Main.VisualKeyboardVisible(apKeyboard);
             mi.OnClick := frmKeyman7Main.MnuVisualKeyboard;
-          end;
-        miaOSK_ViewKeyboardUsage:
-          begin
-            mi.Checked := frmKeyman7Main.VisualKeyboardVisible(apKeyboardUsage);
-            mi.OnClick := frmKeyman7Main.MnuKeyboardUsage;
           end;
         miaOSK_ViewFontHelper:
           begin
@@ -398,14 +405,9 @@ begin
     end;
 end;
 
+function AddKeyboardToolbarItems(FKeyman: IKeyman; toolbar: TToolBar; imglist: TImageList; MenuClick: TNotifyEvent): TArray<TKeymanToolButton>;
 
-
-
-
-
-procedure AddKeyboardToolbarItems(FKeyman: IKeyman; toolbar: TToolBar; imglist: TImageList; MenuClick: TNotifyEvent);
-
-  procedure CreateKeyboardToolbarItem(Language: TLangSwitchLanguage; Keyboard: TLangSwitchKeyboard);   // I3933
+  function CreateKeyboardToolbarItem(Language: TLangSwitchLanguage; Keyboard: TLangSwitchKeyboard): TKeymanToolButton;   // I3933
   var
     btn: TKeymanToolButton;
     kbd: IKeymanKeyboardInstalled;
@@ -466,19 +468,25 @@ procedure AddKeyboardToolbarItems(FKeyman: IKeyman; toolbar: TToolBar; imglist: 
       FCaption := Language.Caption + ' - ' + Keyboard.Caption;
 
       btn.ShowHint := True;
-      btn.Hint := MsgFromStr(':String[@Caption='''+xmlencode(StripHotkey(FCaption))+''']');
+      btn.Hint := MsgFromStr(xmlencode(StripHotkey(FCaption)));
       if btn.Hint = '' then
         btn.Hint := StringReplace(FCaption, '&', '&&', [rfReplaceAll]);
 
       btn.Width := 23;
-      btn.Left := 0;
+      if toolbar.ControlCount = 0 then
+        btn.Left := 0
+      else
+        btn.Left := toolbar.Controls[toolbar.ControlCount - 1].Left +
+                    toolbar.Controls[toolbar.ControlCount - 1].Width;
       btn.OnClick := MenuClick;
 
       btn.Down := Keyboard.Active;
 
       // TODO: Support icon for TSF TIPs
 
-      toolbar.InsertControl(btn);
+      btn.Parent := toolbar;
+
+      Result := btn;
     finally
       bmp.Free;
     end;
@@ -486,20 +494,19 @@ procedure AddKeyboardToolbarItems(FKeyman: IKeyman; toolbar: TToolBar; imglist: 
 
 
 var
-  i: Integer;
+  i, j, n: Integer;
   FLanguage: TLangSwitchLanguage;
-  j: Integer;
 begin
-  { Use the lang switch manager to get the list of installed languages }
-
-  frmKeyman7Main.LangSwitchManager.Refresh;   // I4207 ?? is this really needed
-
+  n := 0;
+  SetLength(Result, 0);
   for i := 0 to frmKeyman7Main.LangSwitchManager.LanguageCount - 1 do   // I3933
   begin
     FLanguage := frmKeyman7Main.LangSwitchManager.Languages[i];
+    SetLength(Result, Length(Result) + FLanguage.KeyboardCount);
     for j := 0 to FLanguage.KeyboardCount - 1 do
     begin
-      CreateKeyboardToolbarItem(FLanguage, FLanguage.Keyboards[j]);
+      Result[n] := CreateKeyboardToolbarItem(FLanguage, FLanguage.Keyboards[j]);
+      Inc(n);
     end;
   end;
 end;

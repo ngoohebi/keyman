@@ -3,7 +3,7 @@
 /*
  * Keyman Input Method for IBUS (The Input Bus)
  *
- * Copyright (C) 2018 SIL International
+ * Copyright (C) 2018 SIL Global
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public
@@ -30,5 +30,7 @@
 	(ibus_keyman_engine_get_type ())
 
 GType   ibus_keyman_engine_get_type    (void);
+
+extern void ibus_keyman_set_text(IBusEngine* engine, const gchar* text);
 
 #endif

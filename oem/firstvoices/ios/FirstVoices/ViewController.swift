@@ -21,22 +21,13 @@ class ViewController: UIViewController, UIWebViewDelegate {
   override func viewDidLoad() {
     super.viewDidLoad()
 
-    //
-    // Install all the .js files into Keyman Engine (doesn't show them in the keyboard list)
-    //
-
-    let kbPaths: [String] = Bundle.main.paths(forResourcesOfType: FVConstants.keyboardType,
-                                              inDirectory: FVConstants.keyboardsPath)
-    for kbPath in kbPaths {
-      let pathUrl = URL(fileURLWithPath: kbPath)
-      let id = pathUrl.deletingPathExtension().lastPathComponent
-      do {
-        try Manager.shared.preloadFiles(forKeyboardID: id, at: [pathUrl], shouldOverwrite: true)
-      } catch {
-        print("Failed to preload "+id+": "+error.localizedDescription)
-      }
+    if let nc = self.navigationController {
+      let toolbar = nc.toolbar as! DownloadStatusToolbar
+      toolbar.navigationController = nc
     }
-
+    
+    self.navigationController?.toolbar.isHidden = true
+    
     //
     // Show Instructions page
     //
@@ -50,7 +41,8 @@ class ViewController: UIViewController, UIWebViewDelegate {
 
   override func viewWillAppear(_ animated: Bool) {
     super.viewWillAppear(animated)
-    navigationController?.isNavigationBarHidden = true
+    navigationController!.isNavigationBarHidden = true
+    navigationController?.setToolbarHidden(true, animated: false)
     self.setStatusBarBackgroundWithOrientation(UIApplication.shared.statusBarOrientation)
   }
 
@@ -78,7 +70,7 @@ class ViewController: UIViewController, UIWebViewDelegate {
   func webView(_ webView: UIWebView, shouldStartLoadWith request: URLRequest, navigationType: UIWebView.NavigationType) -> Bool {
     let fragment: String? = request.url!.fragment
     if fragment?.range(of: "showKeyboards") != nil {
-      self.performSegue(withIdentifier: "Keyboards", sender: nil)
+      self.performSegue(withIdentifier: "keyboardList", sender: nil)
       return false
     }
     if navigationType == .linkClicked {

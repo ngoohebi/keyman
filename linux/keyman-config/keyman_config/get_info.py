@@ -1,9 +1,13 @@
 #!/usr/bin/python3
 
+import logging
 import os
 import threading
+
+from keyman_config import secure_lookup
 from keyman_config.install_kmp import process_keyboard_data
 from keyman_config.kmpmetadata import parsemetadata
+
 
 class GetInfo(object):
     """ Get information about kmp packages and keyboards
@@ -26,10 +30,15 @@ class GetInfo(object):
         rather then from the download window.
         """
         for kmp in self.kmp_list:
-            packageDir = os.path.join(kmp['areapath'], kmp['packageID'])
-            process_keyboard_data(kmp['packageID'], packageDir)
+            packageId = secure_lookup(kmp, 'packageID')
+            areapath = secure_lookup(kmp, 'areapath')
+            if not areapath or not packageId:
+                logging.warning('corrupt kmp list')
+                return
+            packageDir = os.path.join(areapath, packageId)
+            process_keyboard_data(packageId, packageDir)
             info, system, options, keyboards, files = parsemetadata(packageDir, "kmp.json")
             if keyboards:
                 for kb in keyboards:
-                    if kb['id'] != kmp['packageID']:
+                    if kb['id'] != packageId:
                         process_keyboard_data(kb['id'], packageDir)

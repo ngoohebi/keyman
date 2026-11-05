@@ -27,14 +27,13 @@ uses
 type
   THotkeysXMLRenderer = class(TXMLRenderer)
   protected
-    function XMLData(FRefreshKeyman: Boolean): WideString; override;
+    function XMLData: WideString; override;
   end;
 
 implementation
 
 uses
   InterfaceHotkeys,
-  kmint,
   SysUtils,
   KeyNames,
   utilxml;
@@ -64,7 +63,7 @@ begin
   Result := s;
 end;
 
-function THotkeysXMLRenderer.XMLData(FRefreshKeyman: Boolean): WideString;
+function THotkeysXMLRenderer.XMLData: WideString;
 var
   FValue, i, j: Integer;
 begin

@@ -1,0 +1,115 @@
+{
+  "system": {
+    "keymanDeveloperVersion": "16.0.60.0",
+    "fileVersion": "7.0"
+  },
+  "options": {
+    "readmeFile": "readme.htm",
+    "graphicFile": "splash.gif",
+    "welcomeFile": "welcome.htm"
+  },
+  "info": {
+    "name": {
+      "description": "Khmer Angkor"
+    },
+    "copyright": {
+      "description": "\u00A9 2015-2022 SIL International"
+    },
+    "author": {
+      "description": "Makara Sok",
+      "url": "mailto:makara_sok@sil.org"
+    },
+    "version": {
+      "description": "1.3"
+    },
+    "website": {
+      "description": "https://keyman.com/keyboards/khmer_angkor",
+      "url": "https://keyman.com/keyboards/khmer_angkor"
+    }
+  },
+  "files": [
+    {
+      "name": "khmer_angkor.js",
+      "description": ""
+    },
+    {
+      "name": "khmer_angkor.kvk",
+      "description": ""
+    },
+    {
+      "name": "khmer_angkor.kmx",
+      "description": ""
+    },
+    {
+      "name": "keyboard_layout.png",
+      "description": ""
+    },
+    {
+      "name": "welcome.htm",
+      "description": ""
+    },
+    {
+      "name": "FONTLOG.txt",
+      "description": ""
+    },
+    {
+      "name": "Mondulkiri-R.ttf",
+      "description": ""
+    },
+    {
+      "name": "OFL.txt",
+      "description": ""
+    },
+    {
+      "name": "OFL-FAQ.txt",
+      "description": ""
+    },
+    {
+      "name": "KAK_Documentation_EN.pdf",
+      "description": ""
+    },
+    {
+      "name": "KAK_Documentation_KH.pdf",
+      "description": ""
+    },
+    {
+      "name": "readme.htm",
+      "description": ""
+    },
+    {
+      "name": "image002.png",
+      "description": ""
+    },
+    {
+      "name": "khmer_busra_kbd.ttf",
+      "description": ""
+    },
+    {
+      "name": "splash.gif",
+      "description": ""
+    },
+    {
+      "name": "kmp.inf",
+      "description": ""
+    },
+    {
+      "name": "kmp.json",
+      "description": ""
+    }
+  ],
+  "keyboards": [
+    {
+      "name": "Khmer Angkor",
+      "id": "khmer_angkor",
+      "version": "1.3",
+      "oskFont": "khmer_busra_kbd.ttf",
+      "displayFont": "Mondulkiri-R.ttf",
+      "languages": [
+        {
+          "name": "Central Khmer (Khmer, Cambodia)",
+          "id": "km"
+        }
+      ]
+    }
+  ]
+}

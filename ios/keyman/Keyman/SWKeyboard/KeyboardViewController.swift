@@ -8,17 +8,21 @@
 
 import KeymanEngine
 import UIKit
+import Sentry
+import os.log
 
 class KeyboardViewController: InputViewController {
   var topBarImageSource: ImageBannerViewController!
 
+  // The entrypoint for the app-extension.
   override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
-    #if DEBUG
-      KeymanEngine.log.outputLevel = .debug
-      KeymanEngine.log.logAppDetails()
-    #else
-      KeymanEngine.log.outputLevel = .warning
-    #endif
+    // Only true if it's the first init of the class under app-extension mode.
+    if !SentryManager.hasStarted {
+      // Sentry can send errors from app extensions when "Allow Full Access"
+      // is enabled.  They seem to get blocked otherwise, except in the Simulator.
+      SentryManager.start(sendingEnabled: true)
+    }
+
     Manager.applicationGroupIdentifier = "group.KM4I"
 
     let bundle = Bundle(for: KeyboardViewController.self)
@@ -52,13 +56,22 @@ class KeyboardViewController: InputViewController {
   }
 
   func getTopBarImage(size: CGSize) -> String? {
-    return topBarImageSource.renderAsBase64(size: CGSize(width: size.width, height: self.activeTopBarHeight))
+    return topBarImageSource.renderAsBase64(size: CGSize(width: size.width, height: InputViewController.topBarHeight))
   }
 
   func setupTopBarImage(size: CGSize) {
+    // We override the height in getTopBarImage, but not width.
+    // If width is 0, we return null from that function; this'll
+    // trigger the guard below.
+    if size.width == 0 {
+      return
+    }
+
     let imgPath = getTopBarImage(size: size)
     guard let path = imgPath else {
-      log.error("No image specified for the image banner!")
+      let message = "No image specified for the image banner!"
+      os_log("%{public}s", log: KeymanLogger.ui, type: .error, message)
+      SentryManager.capture(message)
       return
     }
 
@@ -68,28 +81,26 @@ class KeyboardViewController: InputViewController {
   override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
     super.traitCollectionDidChange(previousTraitCollection)
     guard let previousTraitCollection = previousTraitCollection else {return}
-    if #available(iOS 13.0, *) {
-      if previousTraitCollection.hasDifferentColorAppearance(comparedTo: traitCollection) {
-        /* Ensure that the keyboard banner image transitions!  Noting that the backing view isn't in the view hierarchy,
-         * and that manipulating said hierarchy is key for triggering the appearance change
-         * (see https://developer.apple.com/documentation/uikit/uiappearance)...
-         *
-         * We have to reload the banner's backing view to trigger the change.  Thanks, Apple.
-         * The only other alternative - creating a new instance of the view & its controller.
-         *
-         * With loadView, at least we can reuse the old instance, which would serve far better
-         * for engine API calls if we decide to let the base InputViewController perform UIView
-         * render functionality (as a KMEI offering) instead of having it only in our app.
-         * That said, note https://developer.apple.com/documentation/uikit/uiviewcontroller/1621454-loadview:
-         *
-         * > You should never call this method directly.
-         *
-         * Well... I wouldn't, if it weren't the only way to trigger this without requiring a new instance.
-         * We should be fine since we never place the banner's backing view into the actual hierarchy.
-         */
-        topBarImageSource.loadView()
-        setupTopBarImage(size: view.frame.size)
-      }
+    if previousTraitCollection.hasDifferentColorAppearance(comparedTo: traitCollection) {
+      /* Ensure that the keyboard banner image transitions!  Noting that the backing view isn't in the view hierarchy,
+       * and that manipulating said hierarchy is key for triggering the appearance change
+       * (see https://developer.apple.com/documentation/uikit/uiappearance)...
+       *
+       * We have to reload the banner's backing view to trigger the change.  Thanks, Apple.
+       * The only other alternative - creating a new instance of the view & its controller.
+       *
+       * With loadView, at least we can reuse the old instance, which would serve far better
+       * for engine API calls if we decide to let the base InputViewController perform UIView
+       * render functionality (as a KMEI offering) instead of having it only in our app.
+       * That said, note https://developer.apple.com/documentation/uikit/uiviewcontroller/1621454-loadview:
+       *
+       * > You should never call this method directly.
+       *
+       * Well... I wouldn't, if it weren't the only way to trigger this without requiring a new instance.
+       * We should be fine since we never place the banner's backing view into the actual hierarchy.
+       */
+      topBarImageSource.loadView()
+      setupTopBarImage(size: view.frame.size)
     }
   }
 }

@@ -18,6 +18,9 @@ public enum Key {
   /// Array of user lexical models info list in UserDefaults
   static let userLexicalModelsList = "UserLexicalModelsList"
 
+  /// Dictionary of cached query results for a user's installed packages
+  static let userPackageQueryCacheDict = "UserQueryDistributionStateCache"
+
   /// Currently/last selected keyboard info in UserDefaults
   static let userCurrentKeyboard = "UserCurrentKeyboard"
 
@@ -30,6 +33,7 @@ public enum Key {
   /// Dictionary of prediction/correction toggle settings keyed by language id in UserDefaults
   static let userPredictSettings = "UserPredictionEnablementSettings"
   static let userCorrectSettings = "UserCorrectionEnablementSettings"
+  static let userAutocorrectSettings = "UserAutocorrectionEnablementSettings"
 
   // Internal user defaults keys
   static let engineVersion = "KeymanEngineVersion"
@@ -38,6 +42,8 @@ public enum Key {
   static let synchronizeSWLexicalModel = "KeymanSynchronizeSWLexicalModel"
 
   static let migrationLevel = "KeymanEngineMigrationLevel"
+  static let portraitKeyboardHeight = "PortraitKeyboardHeight"
+  static let landscapeKeyboardHeight = "LandscapeKeyboardHeight"
 
   // JSON keys for language REST calls
   static let options = "options"
@@ -57,7 +63,10 @@ public enum Key {
   static let downloadQueueFrame = "queueFrame"
 
   // Settings-related keys
+  static let optShouldReportErrors = "ShouldReportErrors"
+  // Deprecated - no longer used
   static let optShouldShowBanner = "ShouldShowBanner"
+  static let optSpacebarText = "SpacebarText"
   // This one SHOULD be app-only, but is needed by the currently
   // in-engine Settings menus.  Alas.
   static let optShouldShowGetStarted = "ShouldShowGetStarted"
@@ -65,20 +74,31 @@ public enum Key {
 
 public enum Defaults {
   private static let font = Font(family: "LatinWeb", source: ["DejaVuSans.ttf"], size: nil)
-  public static let keyboard = InstallableKeyboard(id: "sil_euro_latin",
-                                                   name: "EuroLatin (SIL)",
-                                                   languageID: "en",
-                                                   languageName: "English",
-                                                   version: "1.8.1",
-                                                   isRTL: false,
-                                                   font: font,
-                                                   oskFont: nil,
-                                                   isCustom: false)
-  public static let lexicalModel = InstallableLexicalModel(id: "nrc.en.mtnt",
-                                                   name: "English dictionary (MTNT)",
-                                                   languageID: "en",
-                                                   version: "0.1.4",
-                                                   isCustom: false)
+
+  public static let keyboardID = FullKeyboardID(keyboardID: "sil_euro_latin", languageID: "en")
+  public static let lexicalModelID = FullLexicalModelID(lexicalModelID: "nrc.en.mtnt", languageID: "en")
+
+  public static var keyboardPackage: KeyboardKeymanPackage = {
+    let bundledKMP = Resources.bundle.url(forResource: keyboardID.keyboardID, withExtension: ".kmp")!
+    return try! ResourceFileManager.shared.prepareKMPInstall(from: bundledKMP) as! KeyboardKeymanPackage
+  }()
+
+  public static let lexicalModelPackage: LexicalModelKeymanPackage = {
+    let bundledKMP = Resources.bundle.url(forResource: lexicalModelID.lexicalModelID, withExtension: ".model.kmp")!
+    return try! ResourceFileManager.shared.prepareKMPInstall(from: bundledKMP) as! LexicalModelKeymanPackage
+  }()
+
+  // Must be retrieved from their packages!
+  public static let keyboard: InstallableKeyboard = {
+    return keyboardPackage.findResource(withID: keyboardID)!
+  }()
+
+  public static let lexicalModel: InstallableLexicalModel = {
+    return lexicalModelPackage.findResource(withID: lexicalModelID)!
+  }()
+  
+  // default for ancient/unrecognized devices
+  static let unknownDeviceKeyboardHeight: CGFloat = 216.0
 }
 
 public enum Resources {
@@ -109,9 +129,7 @@ public enum Util {
 
   /// The version of the Keyman SDK
   public static let sdkVersion: String = {
-    let url = Resources.bundle.url(forResource: "KeymanEngine-Info", withExtension: "plist")!
-    let info = NSDictionary(contentsOf: url)!
-    return info["CFBundleVersion"] as! String
+    return Version.current.plainString
   }()
 }
 
@@ -120,4 +138,23 @@ public enum FileExtensions {
   public static let trueTypeFont = "ttf"
   public static let openTypeFont = "otf"
   public static let configurationProfile = "mobileconfig"
+}
+
+public enum KeymanError: Error, LocalizedError {
+  case unknown
+  // file that is missing, is the file critical?
+  case missingFile(String, Bool)
+
+  var localizedDescription: String {
+    switch self {
+      case .unknown:
+        return engineBundle.localizedString(forKey: "error-unknown", value: nil, table: nil)
+      case .missingFile(_, let isCritical):
+        if isCritical {
+          return engineBundle.localizedString(forKey: "error-missing-file-critical", value: nil, table: nil)
+        } else {
+          return engineBundle.localizedString(forKey: "error-missing-file", value: nil, table: nil)
+        }
+    }
+  }
 }

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+
+    <!-- Set the viewport width to match phone and tablet device widths -->
+    <meta name="viewport" content="width=device-width,user-scalable=no" />
+
+    <title>KeymanWeb Sample Page - Uncompiled Source</title>
+
+    <!-- Your page CSS -->
+    <style type='text/css'>
+      body {font-family: Tahoma,helvetica;}
+      h3 {font-size: 1em;font-weight:normal;color: darkred; margin-bottom: 4px}
+      .test {font-size: 1.5em; width:80%; min-height:30px; border: 1px solid gray;}
+      #KeymanWebControl {width:50%;min-width:600px;}
+    </style>
+
+    <!-- Insert uncompiled KeymanWeb source scripts -->
+    <script src="../../../../../build/publish/debug/keymanweb.js" type="application/javascript"></script>
+
+    <!--
+      For desktop browsers, a script for the user interface must be inserted here.
+
+      Standard UIs are toggle, button, float and toolbar.
+      The toolbar UI is best for any page designed to support keyboards for
+      a large number of languages.
+    -->
+    <script src="../../../../../build/publish/debug/kmwuitoggle.js"></script>
+
+    <!-- Initialization: set paths to keyboards, resources and fonts as required -->
+    <script>
+      keyman.init({
+        attachType:'auto'
+      }).then(function() {
+        loadKeyboards();
+      });
+    </script>
+
+    <!-- Add keyboard management script for local selection of keyboards to use -->
+    <script src="./errorhdr.js"></script>
+
+  </head>
+
+<!-- Sample page HTML -->
+  <body>
+    <h2>KeymanWeb Sample Page - Error Testing page</h2>
+	<p>Pick one of the 'debugging' keyboards to test whether the represented error is handled correctly.
+    <div>
+    <!--
+      The following DIV is used to position the Button or Toolbar User Interfaces on the page.
+      If omitted, those User Interfaces will appear at the top of the document body.
+      (It is ignored by other User Interfaces.)
+    -->
+    <div id='KeymanWebControl'></div>
+
+    <h3>Type in your language in this text area:</h3>
+    <textarea id='ta1' class='test' placeholder='Type here'></textarea>
+
+    <h3>or in this input field:</h3>
+    <input class='test' value='' placeholder='or here'/>
+
+    <h2>Expected error messages:</h2>
+    <ul>
+      <li><i>wrong-filename</i> keyboard: "Unable to download wrong-filename keyboard for debugging"</li>
+      <li><i>non-parsable</i> keyboard: "Error registering the non-parsable keyboard for debugging; keyboard script at ./unparsable.js may contain an error."</li>
+      <li><i>timeout</i> keyboard: "Activation of 'Keyboard_timeout' failed: Download of Keyboard_timeout for language lo timed out."</li>
+    </ul>
+
+    <p><b>Note:</b> This test page will only work on the local test server due to its
+    specific requirements for handling the 'timeout.js' file.</p>
+
+    <h3><a href="../index.html">Return to testing home page</a></h3>
+  </div>
+
+    <script>
+      if (!window.location.href.startsWith('http://localhost:3000')) {
+        const body = document.getElementsByTagName('body')[0];
+        body.innerHTML = `<h1>KeymanWeb Sample Page - Error Testing page</h1>
+        <h2>Unable to load this test page!</h2>
+        <p>This test page will only work on the local test server because it
+          requires special treatment when loading <i>timeout.js</i>
+          (see <a href="https://github.com/keymanapp/keyman/blob/a570108f8565b0110d726f1f40ffd5b6daf6f6d5/web/src/tools/testing/test-server/index.cjs#L12">
+          web/src/tools/testing/test-server/index.cjs#L12</a>). The
+          page has to be loaded through the local test server.</p>
+        <p>Do the following:</p>
+        <ol>
+          <li>Open a terminal and navigate to the Keyman source root directory</li>
+          <li>Start the test server with <code>web/build.sh start</code></li>
+          <li>Open <a href="http://localhost:3000/src/test/manual/web/keyboard-errors/index.html">http://localhost:3000/src/test/manual/web/keyboard-errors/index.html</a> in a browser</li>
+        </ol>
+        `;
+      }
+    </script>
+
+  </body>
+
+  <!--
+    *** DEVELOPER NOTE -- FIREFOX CONFIGURATION FOR TESTING ***
+    *
+    * If the URL bar starts with <b>file://</b>, Firefox may not load the font used
+    * to display the special characters used in the On-Screen Keyboard.
+    *
+    * To work around this Firefox bug, navigate to <b>about:config</b>
+    * and set <b>security.fileuri.strict_origin_policy</b> to <b>false</b>
+    * while testing.
+    *
+    * Firefox resolves website-based CSS URI references correctly without needing
+    * any configuration change, so this change should only be made for file-based testing.
+    *
+    ***
+  -->
+</html>

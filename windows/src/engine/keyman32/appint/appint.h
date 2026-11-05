@@ -1,18 +1,18 @@
 /*
   Name:             appint
   Copyright:        Copyright (C) SIL International.
-  Documentation:    
-  Description:      
+  Documentation:
+  Description:
   Create Date:      14 Sep 2006
 
   Modified Date:    23 Feb 2016
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
-  Bugs:             
-  Todo:             
-  Notes:            
+  Bugs:
+  Todo:
+  Notes:
   History:          14 Sep 2006 - mcdurdin - Remove NoSetShift flag
                     27 Jan 2009 - mcdurdin - I1797 - Add fallback for AIWin2000 app integration
                     11 Dec 2009 - mcdurdin - I934 - x64 - Initial version
@@ -34,28 +34,14 @@ typedef struct
 // QueueAction ItemTypes
 #define QIT_VKEYDOWN	0
 #define QIT_VKEYUP		1
-#define QIT_VSHIFTDOWN	2
-#define QIT_VSHIFTUP	3
+//#define QIT_VSHIFTDOWN	2  // deprecated see #11925
+//#define QIT_VSHIFTUP	3    // deprecated see #11925
 #define QIT_CHAR		4
 #define QIT_DEADKEY		5
 #define QIT_BELL		6
 #define QIT_BACK		7
-
-// QueueDebugInformation ItemTypes
-#define QID_BEGIN_UNICODE		0
-#define QID_BEGIN_ANSI			1
-#define QID_GROUP_ENTER			2
-#define QID_GROUP_EXIT			3
-#define QID_RULE_ENTER			4
-#define QID_RULE_EXIT			5
-#define QID_MATCH_ENTER			6
-#define QID_MATCH_EXIT			7
-#define QID_NOMATCH_ENTER		8
-#define QID_NOMATCH_EXIT		9
-#define QID_END					10
-
-#define QID_FLAG_RECURSIVE_OVERFLOW	0x0001
-#define QID_FLAG_NOMATCH			0x0002
+#define QIT_CAPSLOCK 8
+#define QIT_INVALIDATECONTEXT 9
 
 #define QVK_EXTENDED 0x00010000 // Flag for QIT_VKEYDOWN to indicate an extended key
 #define QVK_KEYMASK  0x0000FFFF
@@ -74,37 +60,9 @@ public:
 	AppActionQueue();
 	virtual void ResetQueue();
 	virtual BOOL QueueAction(int ItemType, DWORD dwData);
-  
+
   BOOL IsQueueEmpty() { return QueueSize == 0; }
-};
-
-class AppContext
-{
-private:
-	WCHAR CurContext[MAXCONTEXT];
-	int pos;
-
-public:
-	AppContext();
-  void CopyFrom(AppContext *source);
-	void Add(WCHAR ch);
-	void Delete();
-	void Reset();
-	void Get(WCHAR *buf, int bufsize);
-	void Set(const WCHAR *buf);
-	WCHAR *BufMax(int n);
-	WCHAR *Buf(int n);
-	BOOL CharIsDeadkey();
-  BOOL CharIsSurrogatePair();
-};
-
-class AppContextWithStores : public AppContext   // I4978
-{
-public:
-  AppContextWithStores(int nKeyboardOptions);
-  ~AppContextWithStores();
-  DWORD nKeyboardOptions;
-  LPINTKEYBOARDOPTIONS KeyboardOptions;
+  int GetQueueSize() { return QueueSize; }
 };
 
 class AppIntegration:public AppActionQueue
@@ -118,28 +76,26 @@ public:
 	//BOOL NoSetShift;
 
 	/* Information functions */
-	
+
 	virtual BOOL CanHandleWindow(HWND ahwnd) = 0;
 	virtual BOOL IsWindowHandled(HWND ahwnd) = 0;
 	virtual BOOL HandleWindow(HWND ahwnd) = 0;
 	virtual BOOL IsUnicode() = 0;
 
 	/* Context functions */
-	
-	virtual void ReadContext() = 0;
+  /**
+    * Reads the current application context upto MAXCONTEXT length into the supplied buffer.
+    * @param  buf      The data buffer to copy current application context
+    */
+	virtual BOOL ReadContext(PWSTR buf) = 0;
 	virtual void ResetContext() = 0;
-  virtual void AddContext(WCHAR ch) = 0;  //I2436
-	virtual WCHAR *ContextBuf(int n) = 0;
-	virtual WCHAR *ContextBufMax(int n) = 0;
-	
+
 	/* Queue and sending functions */
-	
-	virtual BOOL QueueDebugInformation(int ItemType, LPGROUP Group, LPKEY Rule, PWSTR fcontext, PWSTR foutput, DWORD_PTR dwExtraFlags) = 0;
+
 	void SetCurrentShiftState(int ShiftFlags) { FShiftFlags = ShiftFlags; }
 	virtual BOOL SendActions() = 0;   // I4196
 };
 
 extern const LPSTR ItemTypes[];
-	
-#endif
 
+#endif

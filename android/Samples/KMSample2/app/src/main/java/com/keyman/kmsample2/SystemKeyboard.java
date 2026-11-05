@@ -1,9 +1,10 @@
 package com.keyman.kmsample2;
 
-import com.tavultesoft.kmea.KMManager;
-import com.tavultesoft.kmea.KMManager.KeyboardType;
-import com.tavultesoft.kmea.KMHardwareKeyboardInterpreter;
-import com.tavultesoft.kmea.KeyboardEventHandler.OnKeyboardEventListener;
+import com.keyman.engine.data.Keyboard;
+import com.keyman.engine.KMManager;
+import com.keyman.engine.KMManager.KeyboardType;
+import com.keyman.engine.KMHardwareKeyboardInterpreter;
+import com.keyman.engine.KeyboardEventHandler.OnKeyboardEventListener;
 
 import android.content.Context;
 import android.content.res.Configuration;
@@ -13,11 +14,13 @@ import java.util.HashMap;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
 import android.view.inputmethod.InputConnection;
+import android.widget.FrameLayout;
 
 public class SystemKeyboard extends InputMethodService implements OnKeyboardEventListener {
 
@@ -37,16 +40,34 @@ public class SystemKeyboard extends InputMethodService implements OnKeyboardEven
     interpreter = new KMHardwareKeyboardInterpreter(getApplicationContext(), KeyboardType.KEYBOARD_TYPE_SYSTEM);
 
     // Add a custom keyboard
-    HashMap<String, String> kbInfo = new HashMap<String, String>();
-    kbInfo.put(KMManager.KMKey_PackageID, "cloud");
-    kbInfo.put(KMManager.KMKey_KeyboardID, "tamil99m");
-    kbInfo.put(KMManager.KMKey_LanguageID, "ta");
-    kbInfo.put(KMManager.KMKey_KeyboardName, "Tamil 99M");
-    kbInfo.put(KMManager.KMKey_LanguageName, "Tamil");
-    kbInfo.put(KMManager.KMKey_KeyboardVersion, "1.1");
-    kbInfo.put(KMManager.KMKey_Font, "aava1.ttf");
-    //kbInfo.put(KMManager.KMKey_Font, KMManager.KMDefault_KeyboardFont); // Use the default font
+    Keyboard kbInfo = new Keyboard(
+      "basic_kbdtam99", // Package ID - filename of the .kmp file
+      "basic_kbdtam99", // Keyboard ID
+      "Tamil 99 Basic", // Keyboard Name
+      "ta",             // Language ID
+      "Tamil",          // Language Name
+      "1.0",            // Keyboard Version
+      null,             // URL to help documentation if available
+      "",               // URL to latest .kmp file
+      true,             // Boolean to show this is a new keyboard in the keyboard picker
+
+      // Font information of the .ttf font to use in KMSample2 (for example "aava1.ttf").
+      // basic_kbdtam99 doesn't include a font. Can set blank "" or KMManager.KMDefault_KeyboardFont
+      // KMEA will use the font for the OSK, but the Android device determines the system font used for keyboard output
+      KMManager.KMDefault_KeyboardFont,  // Font for KMSample2
+      KMManager.KMDefault_KeyboardFont); // Font for OSK
     KMManager.addKeyboard(this, kbInfo);
+    KMManager.setDefaultKeyboard(kbInfo); // Workaround for #16215
+
+    // Add a dictionary
+    HashMap<String, String>lexicalModelInfo = new HashMap<String, String>();
+    lexicalModelInfo.put(KMManager.KMKey_PackageID, "example.ta.wordlist");
+    lexicalModelInfo.put(KMManager.KMKey_LanguageID, "ta");
+    lexicalModelInfo.put(KMManager.KMKey_LanguageName, "Tamil");
+    lexicalModelInfo.put(KMManager.KMKey_LexicalModelID, "example.ta.wordlist");
+    lexicalModelInfo.put(KMManager.KMKey_LexicalModelVersion, "1.0");
+    KMManager.addLexicalModel(this, lexicalModelInfo);
+    KMManager.registerAssociatedLexicalModel("ta");
   }
 
   @Override
@@ -110,6 +131,11 @@ public class SystemKeyboard extends InputMethodService implements OnKeyboardEven
     super.onStartInput(attribute, restarting);
     KMManager.onStartInput(attribute, restarting);
     KMManager.resetContext(KeyboardType.KEYBOARD_TYPE_SYSTEM);
+
+    // Determine special handling for ENTER key
+    int inputType = attribute.inputType;
+    KMManager.setEnterMode(attribute.imeOptions, inputType);
+
     // User switched to a new input field so we should extract the text from input field
     // and pass it to Keyman Engine together with selection range
     InputConnection ic = getCurrentInputConnection();
@@ -127,6 +153,7 @@ public class SystemKeyboard extends InputMethodService implements OnKeyboardEven
   @Override
   public void onStartInputView(EditorInfo attribute, boolean restarting) {
     super.onStartInputView(attribute, restarting);
+    setInputView(onCreateInputView());
   }
 
   @Override
@@ -141,20 +168,32 @@ public class SystemKeyboard extends InputMethodService implements OnKeyboardEven
   }
 
   @Override
+  public void onConfigureWindow(Window win, boolean isFullscreen, boolean isCandidatesOnly) {
+    super.onConfigureWindow(win, isFullscreen, isCandidatesOnly);
+
+    // We don't currently use isFullscreen or isCandidatesOnly; we always want to MATCH_PARENT,
+    // unlike the default for height which is WRAP_CONTENT. We then adjust the touchable area
+    // in `onCalculateInsets`
+    win.setLayout(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
+  }
+
+  @Override
   public void onComputeInsets(InputMethodService.Insets outInsets) {
     super.onComputeInsets(outInsets);
 
     // We should extend the touchable region so that Keyman sub keys menu can receive touch events outside the keyboard frame
-    WindowManager wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
-    Point size = new Point(0, 0);
-    wm.getDefaultDisplay().getSize(size);
+    Point size = KMManager.getWindowSize(getApplicationContext());
 
     int inputViewHeight = 0;
-    if (inputView != null)
+    if (inputView != null) {
       inputViewHeight = inputView.getHeight();
+    }
 
+    int navigationHeight = KMManager.getNavigationBarHeight(this, KeyboardType.KEYBOARD_TYPE_SYSTEM);
+    int bannerHeight = KMManager.getBannerHeight(this);
     int kbHeight = KMManager.getKeyboardHeight(this);
-    outInsets.contentTopInsets = inputViewHeight - kbHeight;
+    outInsets.contentTopInsets = inputViewHeight - bannerHeight - kbHeight - navigationHeight;
+    outInsets.visibleTopInsets = outInsets.contentTopInsets;
     outInsets.touchableInsets = InputMethodService.Insets.TOUCHABLE_INSETS_REGION;
     outInsets.touchableRegion.set(0, outInsets.contentTopInsets, size.x, size.y);
   }
@@ -162,9 +201,6 @@ public class SystemKeyboard extends InputMethodService implements OnKeyboardEven
   @Override
   public void onKeyboardLoaded(KeyboardType keyboardType) {
     // Handle Keyman keyboard loaded event here if needed
-    // We can set our custom keyboard here
-    int kbIndex = KMManager.getKeyboardIndex(this, "tamil99m", "ta");
-    KMManager.setKeyboard(this, kbIndex);
   }
 
   @Override
@@ -183,7 +219,33 @@ public class SystemKeyboard extends InputMethodService implements OnKeyboardEven
   }
 
   @Override
+  public boolean onEvaluateInputViewShown() {
+    // On Android API 36+, the OSK defaults to not appearing when a physical keyboard is connected.
+    // If the default implementation returns true, recommend honoring it
+    // Reference: https://android.googlesource.com/platform/frameworks/base/+/7b739a8%5E%21/
+    if (super.onEvaluateInputViewShown()) {
+      return true;
+    };
+
+    // TODO: Implement IME setting similar to Gboard "Show on-screen keyboard" with physical keyboard
+    // (default false)
+    return true;
+  }
+
+  @Override
   public boolean onKeyDown(int keyCode, KeyEvent event) {
+    if (event.getAction() == KeyEvent.ACTION_DOWN) {
+      switch (keyCode) {
+        case KeyEvent.KEYCODE_BACK:
+          // Dismiss the keyboard if currently shown
+          if (isInputViewShown()) {
+            KMManager.hideSystemKeyboard();
+            return true;
+          }
+          break;
+      }
+    }
+
     return interpreter.onKeyDown(keyCode, event);  // if false, will revert to default handling.
   }
 

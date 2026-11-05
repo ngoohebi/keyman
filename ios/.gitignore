@@ -6,12 +6,38 @@ xcuserdata
 build
 keyman/Keyman/KeymanEngine.framework
 samples/KMSample1/KeymanEngine.framework
+samples/KMSample1/KeymanEngine.xcframework
 samples/KMSample1/build
 samples/KMSample2/KeymanEngine.framework
+samples/KMSample2/KeymanEngine.xcframework
 samples/KMSample2/build
 engine/KMEI/KeymanEngine/resources/Keyman.bundle/Contents/Resources/keymanios.js
 engine/KMEI/KeymanEngine/resources/Keyman.bundle/Contents/Resources/keymanweb-osk.ttf
+engine/KMEI/KeymanEngine/resources/Keyman.bundle/Contents/Resources/globe-hint.css
 engine/KMEI/KeymanEngine/resources/Keyman.bundle/Contents/Resources/kmwosk.css
 engine/KMEI/KeymanEngine/resources/Keyman.bundle/Contents/Resources/keyman.js.map
+engine/KMEI/KeymanEngine/resources/Keyman.bundle/Contents/Resources/keymanweb-webview.js
+engine/KMEI/KeymanEngine/resources/Keyman.bundle/Contents/Resources/keymanweb-webview.js.map
+engine/KMEI/KeymanEngine/resources/Keyman.bundle/Contents/Resources/keyman-sentry.js
+engine/KMEI/KeymanEngine/resources/Keyman.bundle/Contents/Resources/sentry.min.js
 Keyman 2*
 Carthage
+
+# Path for build artifact upload preparation
+upload
+
+# Default resource packages (which may be downloaded automatically via build-script
+engine/KMEI/KeymanEngine/resources/Keyman.bundle/Contents/Resources/*.kmp
+
+# Generated offline help
+keyman/Keyman/Keyman/resources/OfflineHelp.bundle/Contents/Resources
+
+# older location of offline help
+keyman/Keyman/resources/OfflineHelp.bundle/Contents/Resources
+
+# Explicitly ignores just the SWKeyboard scheme; testing against different
+# targets makes a lot of noise.
+**/SWKeyboard.scheme
+
+# Ignores exported localization files.
+en.xcloc

@@ -1,0 +1,24 @@
+/* message displayed to alert user to grant accessibility permission in Preferences, pre-Ventura */
+"privacy-alert-text" = "To function properly, Keyman requires accessibility features.\n\nGrant access in System Preferences, Security & Privacy.";
+
+/* message displayed to alert user to grant accessibility permission in Settings, for macOS Ventura and later */
+"privacy-alert-text-ventura" = "To function properly, Keyman requires accessibility features.\n\nGrant access in System Settings, Privacy & Security.";
+
+/* Text of menu item in Input Menu when no Keyboards are configured -- include parentheses  */
+"no-keyboard-configured-menu-placeholder" = "(No Keyboard Configured)";
+
+/* title of alert for configuration app not found */
+"alert-title-config-app-not-found" = "Keyman Configuration not found";
+
+/* text of alert for configuration app not found */
+"alert-text-config-app-not-found" = "Keyman Configuration could not be found in your Applications folder or elsewhere on your Mac.";
+
+/* OK button label */
+"ok-button-label" = "OK";
+
+/* Show OSK menu text, displayed when OSK is not visible */
+"show-osk-menu-text" = "Show On-screen Keyboard";
+
+/* Hide OSK menu text, displayed when OSK is visible */
+"hide-osk-menu-text" = "Hide On-screen Keyboard";
+

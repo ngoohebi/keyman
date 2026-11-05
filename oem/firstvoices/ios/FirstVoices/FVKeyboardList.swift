@@ -165,19 +165,6 @@ class FVRegionStorage {
     sharedData.removeObject(forKey: FVConstants.legacy_kKeyboardsFileLastModDateKey)
   }
 
-  /// Loads the list of keyboards that the user has selected; in theory we could
-  /// collect these from Keyman Engine but at present there is no API to iterate
-  /// over the installed keyboards.
-  class func loadKeyboardListFromUserDefaults() -> [String] {
-    let sharedData: UserDefaults = FVShared.userDefaults()
-    let keyboards = sharedData.array(forKey: FVConstants.kFVLoadedKeyboardList)
-    if keyboards != nil {
-      return keyboards as! [String]
-    } else {
-      return []
-    }
-  }
-
   /// Saves the list of keyboards to shared data
   class func saveKeyboardListToUserDefaults(loadedKeyboards: [String]) {
     let sharedData: UserDefaults = FVShared.userDefaults()
@@ -185,8 +172,11 @@ class FVRegionStorage {
     sharedData.synchronize()
   }
 
-  /// Updates Keyman Engine with the list of installed keyboards. Removes all
-  /// the keyboards and reinstalls them to maintain a clean configuration.
+  /*
+   * Mostly deprecated, used only for legacy data conversion
+   * Updates Keyman Engine with the list of installed keyboards.
+   * Removes all the keyboards and reinstalls them to maintain a clean configuration.
+   */
   class func updateActiveKeyboardsList(keyboardList: FVRegionList, loadedKeyboards: [String]) {
 
     // Remove all installed keyboards first -- we'll re-add them below
@@ -194,52 +184,50 @@ class FVRegionStorage {
     while Manager.shared.removeKeyboard(at: 0) {
     }
 
-    // Iterate through the available keyboards
+    // Load the primary keyboards package so that we can install keyboards from it.
+    let keyboardPackagePath: String = Bundle.main.path(forResource: FVConstants.keyboardsPackage,
+                                                       ofType: FVConstants.keyboardsPackageExt,
+                                                       inDirectory: FVConstants.keyboardsPath)!
+    let pathUrl = URL(fileURLWithPath: keyboardPackagePath)
+    let keyboardsPackage: KeyboardKeymanPackage
+    do {
+      let package = try ResourceFileManager.shared.prepareKMPInstall(from: pathUrl)
+      guard package as? KeyboardKeymanPackage != nil else {
+        print("Failed to load \(FVConstants.keyboardsPackage).\(FVConstants.keyboardsPackageExt)")
+        return
+      }
 
+      keyboardsPackage = (package as? KeyboardKeymanPackage)!
+    } catch {
+      print("Failed to load \(FVConstants.keyboardsPackage).\(FVConstants.keyboardsPackageExt)")
+      return
+    }
+
+    // Iterate through the available keyboards
     for region in keyboardList {
       let keyboards = region.keyboards
       for kb in keyboards {
         if loadedKeyboards.contains(kb.id) {
-
-          // Load the .keyboard_info file and find its first language code
-
-          var keyboardInfo: KeyboardInfo
+          // Install the keyboard from its package.
           do {
-            let kbinfoFilename: String = Bundle.main.path(forResource: kb.id, ofType: FVConstants.keyboardInfoType, inDirectory: FVConstants.keyboardsPath)!
-            keyboardInfo = try KeyboardInfoParser.decode(file: kbinfoFilename)
-          } catch {
-            print("Failed to load keyboard info for " + kb.id+": " + error.localizedDescription)
+            // Find the matching keyboard entry from the package.
+            // We currently rely on the package to track each keyboard's available language tags.
+            if let packageKbId = keyboardsPackage.installables.first(where: { entry in
+              // Each entry in the returned array corresponds to one supported language for the keyboard.
+              entry.contains { $0.id == kb.id }
+              // We only install the first available language.  Easy to change, though.
+            }).map({ $0[0] })?.fullID { // then
+              try ResourceFileManager.shared.install(resourceWithID: packageKbId, from: keyboardsPackage)
+            } else {
+              print("Keyboard "+kb.id+" not found in primary keyboards package")
             continue
-          }
-
-          // Preload the keyboard
-
-          do {
-            let kbPath: String = Bundle.main.path(forResource: kb.id,
-                                                  ofType: FVConstants.keyboardType,
-                                                  inDirectory: FVConstants.keyboardsPath)!
-            let pathUrl = URL(fileURLWithPath: kbPath)
-            try Manager.shared.preloadFiles(forKeyboardID: kb.id, at: [pathUrl], shouldOverwrite: true)
+            }
           } catch {
             print("Failed to load preload "+kb.id+": " + error.localizedDescription)
             continue
           }
-
-          // Install the keyboard into Keyman Engine
-
-          let keyboard: InstallableKeyboard = InstallableKeyboard.init(id: kb.id,
-                                                                       name: kb.name,
-                                                                       languageID: keyboardInfo.languages.keys[keyboardInfo.languages.startIndex],
-                                                                       languageName: kb.name,
-                                                                       version: keyboardInfo.version,
-                                                                       isRTL: false,
-                                                                       font: nil,
-                                                                       oskFont: nil,
-                                                                       isCustom: true)
-          Manager.shared.addKeyboard(keyboard)
         }
       }
     }
   }
-
 }

@@ -1,18 +1,18 @@
 (*
   Name:             utilkmshell
   Copyright:        Copyright (C) SIL International.
-  Documentation:    
-  Description:      
+  Documentation:
+  Description:
   Create Date:      20 Jun 2006
 
   Modified Date:    1 May 2014
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
-  Bugs:             
-  Todo:             
-  Notes:            
+  Bugs:
+  Todo:
+  Notes:
   History:          20 Jun 2006 - mcdurdin - Initial version
                     01 Aug 2006 - mcdurdin - Remove old util functions
                     30 May 2007 - mcdurdin - Refactor OS checks for newer versions
@@ -33,8 +33,8 @@ unit utilkmshell;  // I3306   // I4181
 interface
 
 uses
-  System.UITypes,
-  Dialogs, Windows, ComObj, shlobj, controls, sysutils, classes, exceptionw;
+  System.UITypes, System.IOUtils, System.Types,
+  Dialogs, Windows, ComObj, shlobj, controls, sysutils, classes;
 
 const
   CRLF = #13#10;
@@ -71,7 +71,6 @@ function IsKeyboardPackage(const FileName: string): Boolean;
 function IsKeyboardFile(const FileName: string): Boolean;
 function IsKeyboardSourceFile(const FileName: string): Boolean;
 function IsKeyboardPackageSourceFile(const FileName: string): Boolean;
-function IsKeymanAddinFile(const FileName: string): Boolean;
 function IsKeymanVisualKeyboard(const FileName: string): Boolean;
 function MAKELCID(wLanguageID, wSortID: WORD): DWORD;
 
@@ -96,8 +95,7 @@ procedure SplitString(const instr: string; var outstr1, outstr2: string; const s
 function ValidDirectory(const dir: string): string;
 
 function GetLongFile(APath:String):String;
-
-function RunReboot(const msg, failuremsg: WideString): Boolean;
+procedure GetFileNamesInDirectory(const directoryPath: string; var fileNames: TStringDynArray);
 
 function TSFInstalled: Boolean;
 
@@ -105,11 +103,22 @@ function GetLongFileName(const fname: string): string;
 
 function WaitForElevatedConfiguration(WindowHandle: THandle; const Parameters: WideString; FWait: Boolean = True): Cardinal;
 function RunConfiguration(WindowHandle: THandle; const Parameters: WideString): Boolean;
+function DefaultServersXMLTags: string;
+function DefaultVersionXMLTags: string;
 
 implementation
 
-uses ShellApi, KLog, Forms, ActiveX, getosversion, ErrorControlledRegistry,
-  utilexecute;
+uses
+  ShellApi,
+  KLog,
+  Forms,
+  ActiveX,
+  getosversion,
+  ErrorControlledRegistry,
+  KeymanVersion,
+  utilexecute,
+  Upload_Settings,
+  utilxml;
 
 function IsKeyboardPackage(const FileName: string): Boolean;
 begin
@@ -127,12 +136,6 @@ function IsKeymanVisualKeyboard(const FileName: string): Boolean;
 begin
     if Length(FileName) < 5 then Result := False
     else Result := LowerCase(Copy(FileName, Length(FileName)-3, 4)) = '.kvk';
-end;
-
-function IsKeymanAddinFile(const FileName: string): Boolean;
-begin
-    if Length(FileName) < 5 then Result := False
-    else Result := LowerCase(Copy(FileName, Length(FileName)-3, 4)) = '.kma';
 end;
 
 function IsKeyboardSourceFile(const FileName: string): Boolean;
@@ -497,61 +500,6 @@ begin
   while (s <> '') and CharInSet(s[1], [' ', #9, #13, #10]) do Delete(s,1,1);  // I3310
 end;
 
-function RunReboot(const msg, failuremsg: WideString): Boolean;
-var
-  hToken: THandle;
-  tkp: TTokenPrivileges;
-  len: DWord;
-begin
-  Result := False;
-  KL.Log('RunReboot - enter');
-  if (msg <> '') and (MessageDlg(msg, mtWarning, mbOkCancel, 0) = mrCancel) then
-  begin
-    KL.Log('RunReboot - cancelled');
-    Exit;
-  end;
-
-  // Get a token for this process.
-  if not OpenProcessToken(GetCurrentProcess, TOKEN_ADJUST_PRIVILEGES or TOKEN_QUERY, hToken) then
-  begin
-    KL.Log('RunReboot - failed to OpenProcessToken');
-    ShowMessage(failuremsg);
-    Exit;
-  end;
-
-  // Get the LUID for the shutdown privilege.
-
-  LookupPrivilegeValue(nil, PCHAR('SeShutdownPrivilege') {SE_SHUTDOWN_NAME}, tkp.Privileges[0].Luid);
-
-  tkp.PrivilegeCount := 1;  // one privilege to set
-  tkp.Privileges[0].Attributes := SE_PRIVILEGE_ENABLED;
-
-  // Get the shutdown privilege for this process.
-
-  AdjustTokenPrivileges(hToken, False, tkp, 0, nil, len);
-
-  // Cannot test the return value of AdjustTokenPrivileges.
-
-  if GetLastError() <> ERROR_SUCCESS then
-  begin
-    KL.Log('RunReboot - failed to AdjustTokenPrivileges');
-    ShowMessage(failuremsg);
-    Exit;
-  end;
-
-  // Shut down the system
-  if not ExitWindowsEx(EWX_REBOOT, 0) then
-  begin
-    KL.Log('RunReboot - failed to ExitWindowsEx');
-    ShowMessage(failuremsg);
-    Exit;
-  end;
-
-  KL.Log('RunReboot - restarting now');
-
-  Result := True;
-end;
-
 function GetLongFile(APath:String):String;
 var
   i : Integer;
@@ -585,6 +533,19 @@ begin
     Delete(APath,1,i);
   until Length(APath)=0;
 end; {Peter Haas}
+
+procedure GetFileNamesInDirectory(const directoryPath: string; var fileNames: TStringDynArray);
+
+begin
+  // Check if the directory exists
+  if TDirectory.Exists(directoryPath) then
+  begin
+    // Retrieve file names within the directory
+    fileNames := TDirectory.GetFiles(directoryPath);
+  end
+  else
+    KL.Log('Directory does not exist.');
+end;
 
 { TString }
 
@@ -664,6 +625,24 @@ begin
   end
   else
     ShowMessage(SysErrorMessage(GetLastError));
+end;
+
+function DefaultServersXMLTags: string;
+begin
+  Result := Format('<keyman-com>%s</keyman-com><api-keyman-com>%s</api-keyman-com>', [
+    XMLEncode(KeymanCom_Protocol_Server),
+    XMLEncode(MakeAPIURL(''))
+  ]);
+end;
+
+function DefaultVersionXMLTags: string;
+begin
+  with CKeymanVersionInfo do
+    Result := Format(
+      '<version-info version="%s" versionWin="%s" versionRelease="%s" versionMajor="%d" versionMinor="%d" '+
+        'versionPatch="%d" tier="%s" tag="%s" versionWithTag="%s" environment="%s" />',
+    [Version, VersionWin, VersionRelease, VersionMajor, VersionMinor,
+    VersionPatch, Tier, Tag, VersionWithTag, Environment]);
 end;
 
 end.

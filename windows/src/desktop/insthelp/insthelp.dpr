@@ -2,23 +2,16 @@ program insthelp;
 
 uses
   main in 'main.pas',
-  ActiveX,
-  comobj,
-  klog in '..\..\global\delphi\general\klog.pas',
-  utilfiletypes in '..\..\global\delphi\general\utilfiletypes.pas',
-  RegistryKeys in '..\..\global\delphi\general\RegistryKeys.pas',
-  GetOsVersion in '..\..\global\delphi\general\GetOsVersion.pas',
-  VersionInfo in '..\..\global\delphi\general\VersionInfo.pas',
-  ErrorControlledRegistry in '..\..\global\delphi\vcl\ErrorControlledRegistry.pas',
-  utilexecute in '..\..\global\delphi\general\utilexecute.pas',
-  Unicode in '..\..\global\delphi\general\Unicode.pas',
-  KeymanVersion in '..\..\global\delphi\general\KeymanVersion.pas',
-  KeymanPaths in '..\..\global\delphi\general\KeymanPaths.pas',
-  DebugPaths in '..\..\global\delphi\general\DebugPaths.pas',
-  StockFileNames in '..\..\global\delphi\cust\StockFileNames.pas';
+  Winapi.ActiveX,
+  klog in '..\..\..\..\common\windows\delphi\general\klog.pas',
+  RegistryKeys in '..\..\..\..\common\windows\delphi\general\RegistryKeys.pas',
+  KeymanVersion in '..\..\..\..\common\windows\delphi\general\KeymanVersion.pas',
+  Keyman.System.InstHelp.KeymanStartTaskUninstall in 'Keyman.System.InstHelp.KeymanStartTaskUninstall.pas',
+  TaskScheduler_TLB in '..\..\global\delphi\winapi\TaskScheduler_TLB.pas',
+  UserMessages in '..\..\..\..\common\windows\delphi\general\UserMessages.pas';
 
 {$R version.res}
-{-R manifest.res}
+{$R manifest.res}
 
 begin
   CoInitializeEx(nil, COINIT_APARTMENTTHREADED);

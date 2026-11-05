@@ -1,18 +1,18 @@
 (*
   Name:             keymankeyboardsinstalled
   Copyright:        Copyright (C) SIL International.
-  Documentation:    
-  Description:      
+  Documentation:
+  Description:
   Create Date:      20 Jun 2006
 
   Modified Date:    25 Oct 2016
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
-  Bugs:             
-  Todo:             
-  Notes:            
+  Bugs:
+  Todo:
+  Notes:
   History:          20 Jun 2006 - mcdurdin - Initial version
                     01 Aug 2006 - mcdurdin - Add AutoApplyKeyman call
                     04 Dec 2006 - mcdurdin - Fix IKeymanKeyboardsInstalled function
@@ -37,9 +37,11 @@ uses
   keymanerrorcodes, keymankeyboardinstalled, keymankeyboard, internalinterfaces;
 
 type
-  TKeymanKeyboardsInstalled = class(TKeymanAutoCollectionObject, IKeymanKeyboardsInstalled, IIntKeymanKeyboardsInstalled)   // I4376
+  TKeymanKeyboardsInstalled = class(TKeymanAutoCollectionObject, IKeymanKeyboardsInstalled,
+  IKeymanKeyboardsInstalled2, IIntKeymanKeyboardsInstalled, IKeymanKeyboardsInstalled3)   // I4376
   private
     FKeyboards: TKeyboardList;
+    procedure TriggerWindowsLanguageSync;
   protected
     procedure DoRefresh; override;
 
@@ -53,10 +55,11 @@ type
       safecall;
     procedure Install(const Filename: WideString; Force: WordBool); safecall;
     procedure Apply; safecall;
+    function Install2(const Filename: WideString; Force: WordBool): IKeymanKeyboardInstalled; safecall;
+    function Install3(const Filename: WideString; Force: WordBool; BaseKeyboardID: Integer): IKeymanKeyboardInstalled; safecall;
+    procedure RefreshInstalledKeyboards; safecall;
 
     { IIntKeymanKeyboardsInstalled }
-    procedure StartKeyboards;   // I4381
-    procedure StopKeyboards;   // I4381
   public
     constructor Create(AContext: TKeymanContext);
     destructor Destroy; override;
@@ -69,14 +72,17 @@ uses
   System.Variants,
   Winapi.msctf,
   custinterfaces,
+  DebugPaths,
   keymankeyboardfile,
   keymanpackageinstalled,
   keymanpackagesinstalled,
+  KeymanPaths,
   KLog,
   kpinstallkeyboard,
   keyman_msctf,
-  OnlineConstants,
   regkeyboards,
+  RegistryKeys,
+  utilexecute,
   utilfiletypes;
 
 constructor TKeymanKeyboardsInstalled.Create(AContext: TKeymanContext);
@@ -97,39 +103,53 @@ procedure TKeymanKeyboardsInstalled.Install(const Filename: WideString; Force: W
 begin
   with TKPInstallKeyboard.Create(Context) do
   try
-    Execute(FileName, '', [], nil, Force);
+    Execute(FileName, '', [ikLegacyRegisterAndInstallProfiles], nil, Force, 0);
   finally
     Free;
   end;
 end;
 
-procedure TKeymanKeyboardsInstalled.StartKeyboards;   // I4381
-var
-  i: Integer;
-  pInputProcessorProfiles: ITfInputProcessorProfiles;
+function TKeymanKeyboardsInstalled.Install2(const Filename: WideString;
+  Force: WordBool): IKeymanKeyboardInstalled;
 begin
-  OleCheck(CoCreateInstance(CLASS_TF_InputProcessorProfiles, nil, CLSCTX_INPROC_SERVER,
-                          IID_ITfInputProcessorProfiles, pInputProcessorProfiles));
-  for i := 0 to FKeyboards.Count - 1 do
-  begin
-    (FKeyboards[i] as IIntKeymanKeyboardInstalled).ApplyEnabled(
-      pInputProcessorProfiles,
-      (FKeyboards[i] as IKeymanKeyboardInstalled).Loaded);
+  with TKPInstallKeyboard.Create(Context) do
+  try
+    Execute(FileName, '', [], nil, Force, 0);
+  finally
+    Free;
   end;
+
+  DoRefresh;
+  Result := Get_Items(FileName);
 end;
 
-procedure TKeymanKeyboardsInstalled.StopKeyboards;   // I4381
-var
-  i: Integer;
-  pInputProcessorProfiles: ITfInputProcessorProfiles;
+function TKeymanKeyboardsInstalled.Install3(const Filename: WideString;
+  Force: WordBool; BaseKeyboardID: Integer): IKeymanKeyboardInstalled;
 begin
-  OleCheck(CoCreateInstance(CLASS_TF_InputProcessorProfiles, nil, CLSCTX_INPROC_SERVER,
-                          IID_ITfInputProcessorProfiles, pInputProcessorProfiles));
-  for i := 0 to FKeyboards.Count - 1 do
+  with TKPInstallKeyboard.Create(Context) do
+  try
+    Execute(FileName, '', [], nil, Force, BaseKeyboardID);
+  finally
+    Free;
+  end;
+
+  DoRefresh;
+  Result := Get_Items(FileName);
+end;
+
+/// <summary>Updates installed keyboards to Keyman 14+ registration pattern</summary>
+/// <remarks>This refreshes all the registered profiles for keyboards and registers
+/// transient profiles for keyboards. This function is idempotent. This function
+/// requires elevation to succeed.</remarks>
+procedure TKeymanKeyboardsInstalled.RefreshInstalledKeyboards;
+var
+  I: Integer;
+  k: IKeymanKeyboardInstalled;
+begin
+  for I := 0 to Get_Count - 1 do
   begin
-    (FKeyboards[i] as IIntKeymanKeyboardInstalled).ApplyEnabled(
-      pInputProcessorProfiles,
-      False);
+    k := Get_Items(i);
+    (k as IIntKeymanKeyboardInstalled).RefreshInstallation;
   end;
 end;
 
@@ -162,28 +182,66 @@ end;
 procedure TKeymanKeyboardsInstalled.Apply;
 var
   i, n: Integer;
-  pInputProcessorProfiles: ITfInputProcessorProfiles;
 begin
-  OleCheck(CoCreateInstance(CLASS_TF_InputProcessorProfiles, nil, CLSCTX_INPROC_SERVER,
-                          IID_ITfInputProcessorProfiles, pInputProcessorProfiles));
   with TRegKeyboardList.Create do
   try
     Load(True);
+
     for i := 0 to FKeyboards.Count - 1 do
     begin
       n := IndexOfName((FKeyboards[i] as IKeymanKeyboard).ID);
       if n >= 0 then
       begin
         Items[n].ApplySettings((FKeyboards[i] as IIntKeymanKeyboardInstalled).RegKeyboard);
-        if Context.Control.IsKeymanRunning then
-          (FKeyboards[i] as IIntKeymanKeyboardInstalled).ApplyEnabled(pInputProcessorProfiles, Items[n].Enabled);   // I4376
       end;
     end;
+
     Save;
   finally
     Free;
   end;
+
   Context.Control.AutoApplyKeyman;
+
+  TriggerWindowsLanguageSync;
+end;
+
+// This triggers a synchronisation of the language settings to the
+// cloud, which avoids an issue where language setting changes are
+// overwritten on a subsequent reboot of the system.
+//
+// See #4447 and kmrefresh.cpp for additional detail.
+//
+// Although the sync function is not supported on Windows 7, 8.1,
+// we'll call kmrefresh.exe anyway, as we cannot be sure which version
+// of Windows we are running on -- the calling process may be lied to
+// if it does not have an appropriate manifest. kmrefresh.exe is safe
+// to run as it will simply exit if it does not find the appropriate
+// endpoint to call.
+//
+// On x64 systems, we must call the x64 version of the process, as the
+// x86 version does not appear to work.
+procedure TKeymanKeyboardsInstalled.TriggerWindowsLanguageSync;
+var
+  processName: string;
+  FWow64: LongBool;
+begin
+  if not Reg_GetDebugFlag(SRegValue_Flag_SyncLanguagesToCloud, True) then
+    Exit;
+
+{$IFDEF WIN64}
+  processName := 'kmrefresh.x64.exe';
+{$ELSE}
+  if IsWow64Process(GetCurrentProcess, FWow64) and FWow64
+    then processName := 'kmrefresh.x64.exe'
+    else processName := 'kmrefresh.x86.exe';
+{$ENDIF}
+
+  TUtilExecute.Execute(
+    TKeymanPaths.KeymanEngineInstallPath(processName),
+    ExtractFileDir(ParamStr(0)),
+    SW_HIDE
+  );
 end;
 
 procedure TKeymanKeyboardsInstalled.DoRefresh;

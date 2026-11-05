@@ -1,0 +1,27 @@
+# source $HOME/.cargo/env
+#echo 'export PATH="/usr/local/opt/openjdk@8/bin:$PATH"' >> ~/.zshrc
+#echo 'export PATH="/usr/local/opt/openjdk@8/bin:$PATH"' >> ~/.bashrc
+export ANT_HOME=/usr/local/opt/ant
+export MAVEN_HOME=/usr/local/opt/maven
+export GRADLE_HOME=/usr/local/opt/gradle
+export ANDROID_HOME=~/.android
+
+export PATH=$ANT_HOME/bin:$PATH
+export PATH=$MAVEN_HOME/bin:$PATH
+export PATH=$GRADLE_HOME/bin:$PATH
+export PATH=$ANDROID_HOME/tools:$PATH
+export PATH=$ANDROID_HOME/tools/bin:$PATH
+export PATH=$ANDROID_HOME/platform-tools:$PATH
+export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH
+export PATH=$ANDROID_HOME/build-tools/30.0.3:$PATH
+
+if [ -z "${HOMEBREW_PREFIX+x}" ]; then
+  HOMEBREW_PREFIX=`brew --prefix`
+fi
+
+export PATH="$HOMEBREW_PREFIX/opt/coreutils/libexec/gnubin:$PATH"
+export PATH="$HOMEBREW_PREFIX/opt/openjdk@21/bin:$PATH"
+export JAVA_HOME="$HOMEBREW_PREFIX/opt/openjdk@21"
+
+# Python 2.7
+eval "$(pyenv init --path)"

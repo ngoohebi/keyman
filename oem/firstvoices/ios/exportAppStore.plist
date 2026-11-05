@@ -7,9 +7,9 @@
     <key>teamID</key>
     <string>D7TR486TEH</string>
     <key>signingCertificate</key>
-    <string>7763825382B847E9787532932A32003D0481E530</string>
+    <string>D2FEB39A439B44ACC1E5A710D20C17587EEE29E1</string>
     <key>installerSigningCertificate</key>
-    <string>7763825382B847E9787532932A32003D0481E530</string>
+    <string>D2FEB39A439B44ACC1E5A710D20C17587EEE29E1</string>
     <key>provisioningProfiles</key>
     <dict>
         <key>com.firstvoices.keyboards</key>
@@ -19,6 +19,7 @@
     </dict>
     <key>signingStyle</key>
     <string>manual</string>
-
+    <key>manageAppVersionAndBuildNumber</key>
+    <false/>
 </dict>
 </plist>

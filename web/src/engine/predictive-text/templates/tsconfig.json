@@ -1,0 +1,20 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "strict": true,
+    "outDir": "build/obj",
+    "tsBuildInfoFile": "build/obj/tsconfig.tsbuildinfo",
+    "rootDir": "./src",
+  },
+  "references": [
+    { "path": "../../../../../common/web/types" },
+    { "path": "../../../common/web-utils" },
+    { "path": "../wordbreakers" },
+  ],
+  "include": [
+	"src/**/*.ts"
+  ],
+  "exclude": [
+	"tests"
+  ]
+}

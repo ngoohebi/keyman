@@ -1,18 +1,18 @@
 (*
   Name:             RegKeyboards
   Copyright:        Copyright (C) SIL International.
-  Documentation:    
-  Description:      
+  Documentation:
+  Description:
   Create Date:      14 Sep 2006
 
   Modified Date:    28 May 2014
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
-  Bugs:             
-  Todo:             
-  Notes:            
+  Bugs:
+  Todo:
+  Notes:
   History:          14 Sep 2006 - mcdurdin - Add Icon property, remove Bitmap property
                     04 Dec 2006 - mcdurdin - Add menmonic layout
                     12 Dec 2006 - mcdurdin - Fix keyboard not activating when installed with a language
@@ -79,7 +79,6 @@ type
     FCopyright: WideString;
     FMessage: WideString;
     FVisualKeyboardFileName: string;
-    FProductID: Integer;
     FIcon: TIcon;
     FMnemonicLayout: Boolean;
     //FNewlyInstalled: Boolean;
@@ -88,6 +87,7 @@ type
     FIconFileName: string;   // I3581
     FKeyboardVersion: string;
     FISO6393Languages: WideString;   // I4136
+    FCanEnable: Boolean;
 
 //    procedure InstallLanguage;
 
@@ -124,12 +124,13 @@ type
     property Copyright: WideString read FCopyright;
     property Message: WideString read FMessage;
     property Icon: TIcon read FIcon;
-    property ProductID: Integer read FProductID;
     property MnemonicLayout: Boolean read FMnemonicLayout;
     property WindowsLanguages: WideString read FWindowsLanguages;
     property ISO6393Languages: WideString read FISO6393Languages;
     property KeyboardLanguageID: Cardinal read FKeyboardLanguageID;
     property KeyboardVersion: string read FKeyboardVersion;   // I4136
+
+    property CanEnable: Boolean read FCanEnable;
 
     { Modifiable settings -- Active Keyboards }
     property Enabled: Boolean read FEnabled write FEnabled;
@@ -157,7 +158,6 @@ uses
   isadmin,
   KLog,
   kmxfileusedchars,
-  OnlineConstants,
   ErrorControlledRegistry,
   RegistryKeys,
   utilolepicture,
@@ -309,6 +309,7 @@ procedure TRegKeyboard.Load(FLoadKeyboard: Boolean);
 var
   ki: TKeyboardInfo;
 begin
+  FCanEnable := True;
   FDefaultHotkey := 0;
   FKeymanFile := '';
   Legacy_FKeyboardID := 0;   // I3613
@@ -323,7 +324,6 @@ begin
   FMessage := '';
   FCopyright := '';
   FKeyboardVersion := '';   // I4136
-  FProductID := OnlineProductID_KeymanDesktop_100;  // I3377
 
   with TRegistryErrorControlled.Create do  // I2890
   try
@@ -385,6 +385,7 @@ begin
       begin
         { I1105 - Fix crash when keyboard file is invalid - just mark keyboard as in list but not loaded }
         FEnabled := False;
+        FCanEnable := False;
         FKeyboardName := GetShortKeyboardName(FName);
         FIsRegistered := True;
         FMessage := 'This keyboard could not be loaded.  It may be corrupt or missing: '+E.Message;
@@ -395,6 +396,7 @@ begin
       begin
         { I1675 - Fix crash when KMX file is corrupt - mark keyboard as in list but not loaded }
         FEnabled := False;
+        FCanEnable := False;
         FKeyboardName := GetShortKeyboardName(FName);
         FIsRegistered := True;
         FMessage := 'This keyboard could not be loaded.  It may be corrupt or missing: '+E.Message;
@@ -402,7 +404,11 @@ begin
         Exit;
       end;
     end;
-    FKeyboardName := ki.KeyboardName;
+
+    if ki.KeyboardName = ''
+      then FKeyboardName := GetShortKeyboardName(FName)
+      else FKeyboardName := ki.KeyboardName;
+
     FEncodings := ki.Encodings;
     FIsRegistered := ki.IsRegistered;
     FMessage := ki.MessageString;
@@ -430,7 +436,6 @@ begin
       //FIcon.LoadFromResourceName(HInstance, 'kbd_noicon');
     end;
 
-    FProductID := ki.ProductID;
     FMnemonicLayout := ki.MnemonicLayout;
   except
     on E:Exception do

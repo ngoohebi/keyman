@@ -4,22 +4,10 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context=".MainActivity">
 
-    <item android:id="@+id/action_share"
-        app:showAsAction="always"
-        android:title="@string/action_share"
-        android:icon="@drawable/ic_light_action_share" />
-    
     <item
-        android:id="@+id/action_web"
-        app:showAsAction="always"
-        android:title="@string/action_web"
-        android:icon="@drawable/ic_light_action_web" />
-
-    <!-- Set showAsAction="never" for overflow -->
-    <item
-        android:id="@+id/action_overflow"
-        app:showAsAction="ifRoom"
-        android:title="@string/action_overflow"
-        app:actionLayout="@layout/update_count_view" />
+        android:id="@+id/action_sidebar"
+        android:icon="@drawable/ic_action_overflow_mode_small"
+        android:title="@string/menu_title"
+        app:showAsAction="always" />
 
 </menu>

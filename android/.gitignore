@@ -7,9 +7,13 @@
 # Local configuration file (sdk path, etc)
 **/local.properties
 
+# Sentry configuration file
+sentry.properties
+
 # User-specific stuff:
 **/.idea/libraries/
 **/.idea/dictionaries
+**/.idea/shelf/
 **/.idea/**/*.xml
 **/*.iml
 
@@ -28,8 +32,31 @@ gradle_models.ser
 **/keyman-engine.aar
 
 # keymanweb dependencies
-KMEA/app/src/main/assets/
-KMAPro/assets/keyman.js
+KMEA/**/assets/ajax-loader.gif
+KMEA/**/assets/keymanandroid.js
+KMEA/**/assets/keyman.js.map
+KMEA/**/assets/keymanweb-webview.js
+KMEA/**/assets/keymanweb-webview.js.map
+KMEA/**/assets/sentry.min.js
+KMEA/**/assets/keyman-sentry.js
+KMEA/**/assets/kmwosk.css
+KMEA/**/assets/globe-hint.css
+KMEA/**/assets/resources
+
+# keymanweb OSK font
+KMEA/**/assets/keymanweb-osk.*
+
+# KMAPRo generated offline help
+KMAPro/**/assets/info/
+
+# KMAPRo default packages
+KMAPro/**/assets/*.kmp
+
+# Play Store release notes (copied from whatsnew.md)
+KMAPro/kMAPro/src/main/play/release-notes/**/*.txt
+
+# Release artifacts
+upload/
 
 # Eclipse files
 .project

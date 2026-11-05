@@ -1,0 +1,10 @@
+LIBRARY
+
+EXPORTS
+	DF
+	KeymanIMInit
+	KeymanIMDestroy
+	KeymanIMActivate
+	KeymanIMDeactivate
+	KeymanIMConfigure
+  KeymanIMReloadConfig

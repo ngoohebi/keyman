@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:descendantFocusability="blocksDescendants"
@@ -7,23 +8,28 @@
 
     <LinearLayout
         android:id="@+id/linearLayout1"
+        android:background="@android:color/transparent"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentLeft="true"
+        android:layout_marginStart="16dp"
+        android:layout_toStartOf="@id/imageButton1"
+        android:layout_alignParentStart="true"
         android:layout_centerVertical="true"
-        android:layout_marginLeft="16dp"
         android:orientation="vertical" >
 
         <TextView
             android:id="@+id/text1"
+            android:background="@android:color/transparent"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="5dp"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            android:ellipsize="end"
+            android:singleLine="true"
+            android:textSize="16sp" />
 
         <TextView
             android:id="@+id/text2"
+            android:background="@android:color/transparent"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="5dp"
@@ -35,11 +41,11 @@
         style="?android:attr/actionButtonStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
         android:layout_centerVertical="true"
-        android:layout_marginRight="8dp"
+        android:layout_marginEnd="8dp"
         android:contentDescription="@string/image_button"
-        android:tint="@android:color/darker_gray"
-        android:src="@drawable/ic_light_action_info" />
+        android:src="@drawable/ic_light_action_info"
+        app:tint="@android:color/black" />
 
 </RelativeLayout>

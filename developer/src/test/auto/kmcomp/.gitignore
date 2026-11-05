@@ -1,0 +1,4 @@
+*.kmp
+*.js
+*.kmx
+!test_194_filename_case.embed.js

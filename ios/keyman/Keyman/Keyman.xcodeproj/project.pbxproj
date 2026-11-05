@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 46;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -14,10 +14,11 @@
 		162E2C9F2092D36800F40769 /* UIDevice+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 162E2C9E2092D36800F40769 /* UIDevice+Extensions.swift */; };
 		165EB39A2097165B00040A69 /* UIColor+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 165EB3992097165B00040A69 /* UIColor+Extensions.swift */; };
 		165EB39C2097181D00040A69 /* KMView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 165EB39B2097181D00040A69 /* KMView.swift */; };
-		1687ACD41FD8DE8000926D69 /* ObjcExceptionBridging.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1687ACD11FD8DE7600926D69 /* ObjcExceptionBridging.framework */; };
-		1687ACD61FD8DE8000926D69 /* XCGLogger.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1687ACD01FD8DE7600926D69 /* XCGLogger.framework */; };
+		296EF2C42AFA267500E3E384 /* ZIPFoundation.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 296EF2C32AFA267500E3E384 /* ZIPFoundation.xcframework */; };
+		296EF2C52AFA267500E3E384 /* ZIPFoundation.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 296EF2C32AFA267500E3E384 /* ZIPFoundation.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		29B30C212B56325D00C342A4 /* KeymanLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29CA9A612B4F9B0B00EAB099 /* KeymanLogger.swift */; };
+		29CA9A622B4F9B0B00EAB099 /* KeymanLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29CA9A612B4F9B0B00EAB099 /* KeymanLogger.swift */; };
 		981AFA8F19EF44DE006706BF /* 724-info@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 9815725518E4F0930014DF0C /* 724-info@2x.png */; };
-		981AFA9019EF44DE006706BF /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 98ABADBC176935E400B62590 /* InfoPlist.strings */; };
 		981AFA9619EF44DE006706BF /* MainViewController_iPhone.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98ABADCE176935E500B62590 /* MainViewController_iPhone.xib */; };
 		981AFA9819EF44DE006706BF /* 724-info.png in Resources */ = {isa = PBXBuildFile; fileRef = 9815725418E4F0930014DF0C /* 724-info.png */; };
 		981AFA9919EF44DE006706BF /* MainViewController_iPad.xib in Resources */ = {isa = PBXBuildFile; fileRef = 98ABADD1176935E500B62590 /* MainViewController_iPad.xib */; };
@@ -117,10 +118,6 @@
 		C055F0B11F60E8D400140735 /* GetStartedViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C055F0B01F60E8D400140735 /* GetStartedViewController.swift */; };
 		C055F0B31F60F7A400140735 /* DropDownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C055F0B21F60F7A400140735 /* DropDownView.swift */; };
 		C055F0B51F610FB200140735 /* DropDownListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C055F0B41F610FB200140735 /* DropDownListView.swift */; };
-		C059FCB91FD925AF00BD1A64 /* ObjcExceptionBridging.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1687ACD11FD8DE7600926D69 /* ObjcExceptionBridging.framework */; };
-		C059FCBA1FD925AF00BD1A64 /* XCGLogger.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1687ACD01FD8DE7600926D69 /* XCGLogger.framework */; };
-		C059FCBB1FD925AF00BD1A64 /* Zip.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 165C8B8F1FD8221800D4A78D /* Zip.framework */; };
-		C059FCC01FD927EF00BD1A64 /* Log.swift in Sources */ = {isa = PBXBuildFile; fileRef = C059FCBF1FD927EF00BD1A64 /* Log.swift */; };
 		C0A1A6311F5E4F4300EAF822 /* InfoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A1A6301F5E4F4300EAF822 /* InfoViewController.swift */; };
 		C0A1A6331F5E749000EAF822 /* SetUpViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A1A6321F5E749000EAF822 /* SetUpViewController.swift */; };
 		C0A1A6351F5E786A00EAF822 /* BookmarksViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A1A6341F5E786A00EAF822 /* BookmarksViewController.swift */; };
@@ -131,9 +128,7 @@
 		C0FF769B1F5D368C00BD23C3 /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FF769A1F5D368C00BD23C3 /* KeyboardViewController.swift */; };
 		C0FF769E1F5D4ECB00BD23C3 /* ActivityItemProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FF769D1F5D4ECB00BD23C3 /* ActivityItemProvider.swift */; };
 		CE1F5ECE23331DA400141F3E /* OfflineHelp.bundle in Resources */ = {isa = PBXBuildFile; fileRef = CE1F5ECD23331DA400141F3E /* OfflineHelp.bundle */; };
-		CE2B1E4C21B6112B007D092E /* DeviceKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CE2B1E4B21B6112B007D092E /* DeviceKit.framework */; };
-		CE6138011FB99538009D0EF2 /* KeymanEngine.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = CE6137FF1FB99538009D0EF2 /* KeymanEngine.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		CE6138021FB999C8009D0EF2 /* KeymanEngine.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CE6138031FB999C8009D0EF2 /* KeymanEngine.framework */; };
+		CE4C654624D0020900070856 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = CE4C654424D0020900070856 /* Localizable.strings */; };
 		CE76FF8023EBB5CB005648A8 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 98C893F119F0811A000B9AC8 /* Images.xcassets */; };
 		CE79B23C23C6E8E6007E72AE /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0FF769A1F5D368C00BD23C3 /* KeyboardViewController.swift */; };
 		CE79B23D23C6ECB2007E72AE /* banner-Landscape-568h@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 985EA9D419E64A580006C017 /* banner-Landscape-568h@2x.png */; };
@@ -150,6 +145,15 @@
 		CE79CDB52370111200010C06 /* Themes+Colors.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CE79CDB42370111200010C06 /* Themes+Colors.xcassets */; };
 		CE7C1AE2236925D800100C2C /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = CE7C1AE1236925D800100C2C /* LaunchScreen.storyboard */; };
 		CE7FF1F0239A0293007859D9 /* PackageBrowserViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE7FF1EF239A0293007859D9 /* PackageBrowserViewController.swift */; };
+		CE80AD33257F2B4A008D2150 /* KeymanEngine.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CE80AD32257F2B4A008D2150 /* KeymanEngine.framework */; };
+		CE80AD34257F2B4B008D2150 /* KeymanEngine.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = CE80AD32257F2B4A008D2150 /* KeymanEngine.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		CEBD34322654FE3500EB2EA8 /* KeymanEngine.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CE80AD32257F2B4A008D2150 /* KeymanEngine.framework */; };
+		CEBD343B2654FEB400EB2EA8 /* DeviceKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = CEBD34352654FEB400EB2EA8 /* DeviceKit.xcframework */; };
+		CEBD343C2654FEB400EB2EA8 /* DeviceKit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = CEBD34352654FEB400EB2EA8 /* DeviceKit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		CEBD343F2654FEB400EB2EA8 /* Reachability.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = CEBD34372654FEB400EB2EA8 /* Reachability.xcframework */; };
+		CEBD34402654FEB400EB2EA8 /* Reachability.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = CEBD34372654FEB400EB2EA8 /* Reachability.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		CEBD34412654FEB400EB2EA8 /* Sentry.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = CEBD34382654FEB400EB2EA8 /* Sentry.xcframework */; };
+		CEBD34422654FEB400EB2EA8 /* Sentry.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = CEBD34382654FEB400EB2EA8 /* Sentry.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		CEF4E55623E95B7B0065B9C7 /* ImageBanner.xib in Resources */ = {isa = PBXBuildFile; fileRef = CEF4E55523E95B7B0065B9C7 /* ImageBanner.xib */; };
 		CEF4E55723E95B7B0065B9C7 /* ImageBanner.xib in Resources */ = {isa = PBXBuildFile; fileRef = CEF4E55523E95B7B0065B9C7 /* ImageBanner.xib */; };
 		CEF4E55923E967140065B9C7 /* ImageBannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEF4E55823E967140065B9C7 /* ImageBannerViewController.swift */; };
@@ -174,7 +178,11 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				CE6138011FB99538009D0EF2 /* KeymanEngine.framework in Embed Frameworks */,
+				CEBD34402654FEB400EB2EA8 /* Reachability.xcframework in Embed Frameworks */,
+				296EF2C52AFA267500E3E384 /* ZIPFoundation.xcframework in Embed Frameworks */,
+				CEBD343C2654FEB400EB2EA8 /* DeviceKit.xcframework in Embed Frameworks */,
+				CEBD34422654FEB400EB2EA8 /* Sentry.xcframework in Embed Frameworks */,
+				CE80AD34257F2B4B008D2150 /* KeymanEngine.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -187,12 +195,22 @@
 		162E2C9A20926C9B00F40769 /* KMNavigationBarBackgroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KMNavigationBarBackgroundView.swift; sourceTree = "<group>"; };
 		162E2C9C2092BFE400F40769 /* KMUnderscoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KMUnderscoreView.swift; sourceTree = "<group>"; };
 		162E2C9E2092D36800F40769 /* UIDevice+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIDevice+Extensions.swift"; sourceTree = "<group>"; };
-		165C8B8F1FD8221800D4A78D /* Zip.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Zip.framework; path = ../../Carthage/Build/iOS/Zip.framework; sourceTree = "<group>"; };
 		165EB3992097165B00040A69 /* UIColor+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIColor+Extensions.swift"; sourceTree = "<group>"; };
 		165EB39B2097181D00040A69 /* KMView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KMView.swift; sourceTree = "<group>"; };
-		1687ACD01FD8DE7600926D69 /* XCGLogger.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCGLogger.framework; path = ../../Carthage/Build/iOS/XCGLogger.framework; sourceTree = "<group>"; };
-		1687ACD11FD8DE7600926D69 /* ObjcExceptionBridging.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ObjcExceptionBridging.framework; path = ../../Carthage/Build/iOS/ObjcExceptionBridging.framework; sourceTree = "<group>"; };
-		16A9229D20325253003CC98E /* Keyman-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "Keyman-Info.plist"; sourceTree = SOURCE_ROOT; };
+		16A9229D20325253003CC98E /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = Keyman/Info.plist; sourceTree = SOURCE_ROOT; };
+		293EA3E027059C6900545EED /* ha */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ha; path = ha.lproj/Localizable.strings; sourceTree = "<group>"; };
+		294914742738DF7700400732 /* ff-NG */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "ff-NG"; path = "ff-NG.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		296EF2C32AFA267500E3E384 /* ZIPFoundation.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = ZIPFoundation.xcframework; path = ../../Carthage/Build/ZIPFoundation.xcframework; sourceTree = "<group>"; };
+		297810FD297FA818007C886D /* kn */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = kn; path = kn.lproj/Localizable.strings; sourceTree = "<group>"; };
+		298566B829802828004ACA95 /* cs */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = cs; path = cs.lproj/Localizable.strings; sourceTree = "<group>"; };
+		298566C42980C493004ACA95 /* sv */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = sv; path = sv.lproj/Localizable.strings; sourceTree = "<group>"; };
+		298566D02980D354004ACA95 /* uk */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = uk; path = uk.lproj/Localizable.strings; sourceTree = "<group>"; };
+		298566DC2980E416004ACA95 /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ru; path = ru.lproj/Localizable.strings; sourceTree = "<group>"; };
+		29B27FEE29062BBC0036917E /* nl */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = nl; path = nl.lproj/Localizable.strings; sourceTree = "<group>"; };
+		29BFA75D282931F8009FCCC3 /* it */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = it; path = it.lproj/Localizable.strings; sourceTree = "<group>"; };
+		29BFA769282946EC009FCCC3 /* pl */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = pl; path = pl.lproj/Localizable.strings; sourceTree = "<group>"; };
+		29C1E17028001EC200759EDE /* pt-PT */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "pt-PT"; path = "pt-PT.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		29CA9A612B4F9B0B00EAB099 /* KeymanLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeymanLogger.swift; sourceTree = "<group>"; };
 		37378F4222C9AA610043F22B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainViewController_iPad.xib; sourceTree = "<group>"; };
 		37378F4322C9AA630043F22B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainViewController_iPhone.xib; sourceTree = "<group>"; };
 		9815725018E4F0930014DF0C /* 702-share.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "702-share.png"; path = "Keyman Icons/702-share.png"; sourceTree = "<group>"; };
@@ -267,7 +285,7 @@
 		9845A8CA1A439F1000544E2E /* UIButtonBarRefresh@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "UIButtonBarRefresh@2x.png"; sourceTree = "<group>"; };
 		9845A8CB1A439F1000544E2E /* UIButtonBarStop@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "UIButtonBarStop@2x.png"; sourceTree = "<group>"; };
 		9845A8DC1A439FB200544E2E /* BookmarksViewController.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = BookmarksViewController.xib; sourceTree = "<group>"; };
-		984FA1E21974B06C0037EE5D /* Keyman.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = Keyman.entitlements; sourceTree = "<group>"; };
+		984FA1E21974B06C0037EE5D /* Keyman.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Keyman.entitlements; sourceTree = "<group>"; };
 		985EA9D419E64A580006C017 /* banner-Landscape-568h@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "banner-Landscape-568h@2x.png"; sourceTree = "<group>"; };
 		985EA9D519E64A580006C017 /* banner-Landscape-568h@3x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "banner-Landscape-568h@3x.png"; sourceTree = "<group>"; };
 		985EA9D619E64A580006C017 /* banner-Landscape.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "banner-Landscape.png"; sourceTree = "<group>"; };
@@ -284,9 +302,6 @@
 		987F3E9B19417F3D00209D4F /* textsize_selected.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = textsize_selected.png; path = "Keyman Icons/textsize_selected.png"; sourceTree = "<group>"; };
 		987F3E9C19417F3D00209D4F /* textsize_selected@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "textsize_selected@2x.png"; path = "Keyman Icons/textsize_selected@2x.png"; sourceTree = "<group>"; };
 		989E4DBA1B1EB85200A345FB /* Settings.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; path = Settings.bundle; sourceTree = "<group>"; };
-		98ABADBB176935E400B62590 /* Keyman-Free-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Keyman-Free-Info.plist"; sourceTree = "<group>"; };
-		98ABADBD176935E400B62590 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
-		98ABADC1176935E400B62590 /* Keyman-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Keyman-Prefix.pch"; sourceTree = "<group>"; };
 		98AD861219B56AAE00D25C26 /* 887-notepad-selected.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "887-notepad-selected.png"; path = "Keyman Icons/887-notepad-selected.png"; sourceTree = "<group>"; };
 		98AD861319B56AAE00D25C26 /* 887-notepad-selected@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "887-notepad-selected@2x.png"; path = "Keyman Icons/887-notepad-selected@2x.png"; sourceTree = "<group>"; };
 		98C893F119F0811A000B9AC8 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
@@ -297,11 +312,9 @@
 		98D55ED718480B6800104956 /* textsize_down@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "textsize_down@2x.png"; path = "Keyman Icons/textsize_down@2x.png"; sourceTree = "<group>"; };
 		98D55EDC18480B6800104956 /* textsize_up.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = textsize_up.png; path = "Keyman Icons/textsize_up.png"; sourceTree = "<group>"; };
 		98D55EDD18480B6800104956 /* textsize_up@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "textsize_up@2x.png"; path = "Keyman Icons/textsize_up@2x.png"; sourceTree = "<group>"; };
-		9A0FC9FF22D7C21F00D33F86 /* Reachability.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Reachability.framework; path = ../../Carthage/Build/iOS/Reachability.framework; sourceTree = "<group>"; };
 		C055F0B01F60E8D400140735 /* GetStartedViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 2; lastKnownFileType = sourcecode.swift; path = GetStartedViewController.swift; sourceTree = "<group>"; tabWidth = 2; };
 		C055F0B21F60F7A400140735 /* DropDownView.swift */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 2; lastKnownFileType = sourcecode.swift; path = DropDownView.swift; sourceTree = "<group>"; tabWidth = 2; };
 		C055F0B41F610FB200140735 /* DropDownListView.swift */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 2; lastKnownFileType = sourcecode.swift; path = DropDownListView.swift; sourceTree = "<group>"; tabWidth = 2; };
-		C059FCBF1FD927EF00BD1A64 /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
 		C0A1A6301F5E4F4300EAF822 /* InfoViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 2; lastKnownFileType = sourcecode.swift; path = InfoViewController.swift; sourceTree = "<group>"; tabWidth = 2; };
 		C0A1A6321F5E749000EAF822 /* SetUpViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 2; lastKnownFileType = sourcecode.swift; path = SetUpViewController.swift; sourceTree = "<group>"; tabWidth = 2; };
 		C0A1A6341F5E786A00EAF822 /* BookmarksViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 2; lastKnownFileType = sourcecode.swift; path = BookmarksViewController.swift; sourceTree = "<group>"; tabWidth = 2; };
@@ -310,18 +323,28 @@
 		C0E943F91F6124E100E7D98C /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 2; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; tabWidth = 2; };
 		C0E943FD1F61377900E7D98C /* MainViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 2; lastKnownFileType = sourcecode.swift; path = MainViewController.swift; sourceTree = "<group>"; tabWidth = 2; };
 		C0FF769A1F5D368C00BD23C3 /* KeyboardViewController.swift */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 2; lastKnownFileType = sourcecode.swift; path = KeyboardViewController.swift; sourceTree = "<group>"; tabWidth = 2; };
-		C0FF769C1F5D4ECA00BD23C3 /* Keyman-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Keyman-Bridging-Header.h"; sourceTree = "<group>"; };
 		C0FF769D1F5D4ECB00BD23C3 /* ActivityItemProvider.swift */ = {isa = PBXFileReference; fileEncoding = 4; indentWidth = 2; lastKnownFileType = sourcecode.swift; path = ActivityItemProvider.swift; sourceTree = "<group>"; tabWidth = 2; };
 		CE1F5ECD23331DA400141F3E /* OfflineHelp.bundle */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.plug-in"; path = OfflineHelp.bundle; sourceTree = "<group>"; };
-		CE2B1E4B21B6112B007D092E /* DeviceKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DeviceKit.framework; path = ../../Carthage/Build/iOS/DeviceKit.framework; sourceTree = "<group>"; };
-		CE6137FF1FB99538009D0EF2 /* KeymanEngine.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = KeymanEngine.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		CE6138031FB999C8009D0EF2 /* KeymanEngine.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = KeymanEngine.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		CE4C654524D0020900070856 /* en */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		CE72B3D62643ABB7006821CE /* az */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = az; path = az.lproj/Localizable.strings; sourceTree = "<group>"; };
 		CE79CDB42370111200010C06 /* Themes+Colors.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Themes+Colors.xcassets"; sourceTree = "<group>"; };
-		CE7A26D523CEEB8D0005955C /* UIColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = UIColors.swift; path = ../../../engine/KMEI/KeymanEngine/Classes/UIColors.swift; sourceTree = "<group>"; };
 		CE7C1AE1236925D800100C2C /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		CE7FF1EF239A0293007859D9 /* PackageBrowserViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PackageBrowserViewController.swift; sourceTree = "<group>"; };
+		CE80AD32257F2B4A008D2150 /* KeymanEngine.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = KeymanEngine.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		CE98E6BD2615593300F3F2C0 /* ff */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ff; path = ff.lproj/Localizable.strings; sourceTree = "<group>"; };
+		CEAC2A272C2A50E100C99ABD /* el */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = el; path = el.lproj/Localizable.strings; sourceTree = "<group>"; };
+		CEACC90E25F07D58006EAB45 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Localizable.strings; sourceTree = "<group>"; };
+		CEACC90F25F07D5A006EAB45 /* km */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = km; path = km.lproj/Localizable.strings; sourceTree = "<group>"; };
+		CEACC91225F07D77006EAB45 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
+		CEBD34352654FEB400EB2EA8 /* DeviceKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = DeviceKit.xcframework; path = ../../Carthage/Build/DeviceKit.xcframework; sourceTree = "<absolute>"; };
+		CEBD34372654FEB400EB2EA8 /* Reachability.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = Reachability.xcframework; path = ../../Carthage/Build/Reachability.xcframework; sourceTree = "<absolute>"; };
+		CEBD34382654FEB400EB2EA8 /* Sentry.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = Sentry.xcframework; path = ../../Carthage/Build/Sentry.xcframework; sourceTree = "<absolute>"; };
+		CEBD3458265511B700EB2EA8 /* am */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = am; path = am.lproj/Localizable.strings; sourceTree = "<group>"; };
+		CEEC468226F2F7BA009A5B7D /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		CEEF81B92673019600EE6A07 /* es-419 */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "es-419"; path = "es-419.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		CEF4E55523E95B7B0065B9C7 /* ImageBanner.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = ImageBanner.xib; sourceTree = "<group>"; };
 		CEF4E55823E967140065B9C7 /* ImageBannerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageBannerViewController.swift; sourceTree = "<group>"; };
+		D88EC3FC2D785C500022CB80 /* vi */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = vi; path = vi.lproj/Localizable.strings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -329,9 +352,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CE2B1E4C21B6112B007D092E /* DeviceKit.framework in Frameworks */,
-				1687ACD41FD8DE8000926D69 /* ObjcExceptionBridging.framework in Frameworks */,
-				1687ACD61FD8DE8000926D69 /* XCGLogger.framework in Frameworks */,
+				CEBD343F2654FEB400EB2EA8 /* Reachability.xcframework in Frameworks */,
+				296EF2C42AFA267500E3E384 /* ZIPFoundation.xcframework in Frameworks */,
+				CEBD343B2654FEB400EB2EA8 /* DeviceKit.xcframework in Frameworks */,
+				CEBD34412654FEB400EB2EA8 /* Sentry.xcframework in Frameworks */,
+				CE80AD33257F2B4A008D2150 /* KeymanEngine.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -339,10 +364,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				CE6138021FB999C8009D0EF2 /* KeymanEngine.framework in Frameworks */,
-				C059FCB91FD925AF00BD1A64 /* ObjcExceptionBridging.framework in Frameworks */,
-				C059FCBA1FD925AF00BD1A64 /* XCGLogger.framework in Frameworks */,
-				C059FCBB1FD925AF00BD1A64 /* Zip.framework in Frameworks */,
+				CEBD34322654FE3500EB2EA8 /* KeymanEngine.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -352,49 +374,48 @@
 		162E2C9420926C8600F40769 /* Classes */ = {
 			isa = PBXGroup;
 			children = (
-				162E2C9520926C8600F40769 /* Controller */,
+				9845A7B71A4398B200544E2E /* DropDownList */,
 				162E2C9620926C8600F40769 /* Extensions */,
-				162E2C9820926C8600F40769 /* View */,
+				9845A7BE1A439A9200544E2E /* GetStartedViewController */,
+				9845A7C21A439A9200544E2E /* InfoViewController */,
+				9845A79A1A43983300544E2E /* KMWebBrowser */,
+				162E2C9820926C8600F40769 /* LogoBackgroundView */,
+				CE1679C5265F3E92008D6FCE /* MainViewController */,
+				9845A7C71A439A9200544E2E /* SetUpViewController */,
 			);
 			path = Classes;
-			sourceTree = "<group>";
-		};
-		162E2C9520926C8600F40769 /* Controller */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Controller;
 			sourceTree = "<group>";
 		};
 		162E2C9620926C8600F40769 /* Extensions */ = {
 			isa = PBXGroup;
 			children = (
-				162E2C9720926C8600F40769 /* UIView+Extensions.swift */,
-				162E2C9E2092D36800F40769 /* UIDevice+Extensions.swift */,
 				165EB3992097165B00040A69 /* UIColor+Extensions.swift */,
+				162E2C9E2092D36800F40769 /* UIDevice+Extensions.swift */,
+				C0E943F71F61234C00E7D98C /* UIImage+Helpers.swift */,
+				162E2C9720926C8600F40769 /* UIView+Extensions.swift */,
 			);
 			path = Extensions;
 			sourceTree = "<group>";
 		};
-		162E2C9820926C8600F40769 /* View */ = {
+		162E2C9820926C8600F40769 /* LogoBackgroundView */ = {
 			isa = PBXGroup;
 			children = (
 				162E2C9A20926C9B00F40769 /* KMNavigationBarBackgroundView.swift */,
 				162E2C9C2092BFE400F40769 /* KMUnderscoreView.swift */,
 				165EB39B2097181D00040A69 /* KMView.swift */,
 			);
-			path = View;
+			path = LogoBackgroundView;
 			sourceTree = "<group>";
 		};
 		9845A79A1A43983300544E2E /* KMWebBrowser */ = {
 			isa = PBXGroup;
 			children = (
-				9845A8DC1A439FB200544E2E /* BookmarksViewController.xib */,
-				9845A79D1A43983300544E2E /* WebBrowserViewController.xib */,
-				C0A1A6341F5E786A00EAF822 /* BookmarksViewController.swift */,
-				C0A1A6361F5E8C9100EAF822 /* WebBrowserViewController.swift */,
 				9845A8BD1A439F1000544E2E /* Icons */,
 				9845A79E1A43983300544E2E /* NavBar */,
+				C0A1A6341F5E786A00EAF822 /* BookmarksViewController.swift */,
+				9845A8DC1A439FB200544E2E /* BookmarksViewController.xib */,
+				C0A1A6361F5E8C9100EAF822 /* WebBrowserViewController.swift */,
+				9845A79D1A43983300544E2E /* WebBrowserViewController.xib */,
 			);
 			path = KMWebBrowser;
 			sourceTree = "<group>";
@@ -429,8 +450,8 @@
 		9845A7BE1A439A9200544E2E /* GetStartedViewController */ = {
 			isa = PBXGroup;
 			children = (
-				9845A7C11A439A9200544E2E /* GetStartedViewController.xib */,
 				C055F0B01F60E8D400140735 /* GetStartedViewController.swift */,
+				9845A7C11A439A9200544E2E /* GetStartedViewController.xib */,
 			);
 			path = GetStartedViewController;
 			sourceTree = "<group>";
@@ -448,8 +469,8 @@
 		9845A7C71A439A9200544E2E /* SetUpViewController */ = {
 			isa = PBXGroup;
 			children = (
-				9845A7CA1A439A9200544E2E /* SetUpViewController.xib */,
 				C0A1A6321F5E749000EAF822 /* SetUpViewController.swift */,
+				9845A7CA1A439A9200544E2E /* SetUpViewController.xib */,
 			);
 			path = SetUpViewController;
 			sourceTree = "<group>";
@@ -497,15 +518,10 @@
 			isa = PBXGroup;
 			children = (
 				CE7C1AE1236925D800100C2C /* LaunchScreen.storyboard */,
-				9A0FC9FF22D7C21F00D33F86 /* Reachability.framework */,
-				CE2B1E4B21B6112B007D092E /* DeviceKit.framework */,
-				CE6137FF1FB99538009D0EF2 /* KeymanEngine.framework */,
-				989E4DBA1B1EB85200A345FB /* Settings.bundle */,
-				CE1F5ECC23331C1C00141F3E /* resources */,
-				98ABADB2176935E400B62590 /* Frameworks */,
 				98ABADB9176935E400B62590 /* Keyman */,
-				98ABADB1176935E400B62590 /* Products */,
 				98CD125D19CA85710089385F /* SWKeyboard */,
+				98ABADB2176935E400B62590 /* Frameworks */,
+				98ABADB1176935E400B62590 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
@@ -521,10 +537,11 @@
 		98ABADB2176935E400B62590 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				1687ACD11FD8DE7600926D69 /* ObjcExceptionBridging.framework */,
-				1687ACD01FD8DE7600926D69 /* XCGLogger.framework */,
-				165C8B8F1FD8221800D4A78D /* Zip.framework */,
-				CE6138031FB999C8009D0EF2 /* KeymanEngine.framework */,
+				296EF2C32AFA267500E3E384 /* ZIPFoundation.xcframework */,
+				CEBD34352654FEB400EB2EA8 /* DeviceKit.xcframework */,
+				CEBD34372654FEB400EB2EA8 /* Reachability.xcframework */,
+				CEBD34382654FEB400EB2EA8 /* Sentry.xcframework */,
+				CE80AD32257F2B4A008D2150 /* KeymanEngine.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -532,27 +549,18 @@
 		98ABADB9176935E400B62590 /* Keyman */ = {
 			isa = PBXGroup;
 			children = (
-				162E2C9420926C8600F40769 /* Classes */,
-				9845A7BE1A439A9200544E2E /* GetStartedViewController */,
+				CE1F5ECC23331C1C00141F3E /* resources */,
+				984FA1E21974B06C0037EE5D /* Keyman.entitlements */,
+				CE4C654424D0020900070856 /* Localizable.strings */,
+				989E4DBA1B1EB85200A345FB /* Settings.bundle */,
 				98C893F119F0811A000B9AC8 /* Images.xcassets */,
 				CE79CDB42370111200010C06 /* Themes+Colors.xcassets */,
-				CE7A26D523CEEB8D0005955C /* UIColors.swift */,
-				9845A7C21A439A9200544E2E /* InfoViewController */,
-				984FA1E21974B06C0037EE5D /* Keyman.entitlements */,
-				9845A7B71A4398B200544E2E /* DropDownList */,
-				9845A79A1A43983300544E2E /* KMWebBrowser */,
-				9822CB671A3A77D200D73CAA /* MainViewController_.xib */,
-				98ABADD1176935E500B62590 /* MainViewController_iPad.xib */,
-				98ABADCE176935E500B62590 /* MainViewController_iPhone.xib */,
-				9845A7C71A439A9200544E2E /* SetUpViewController */,
 				98ABADBA176935E400B62590 /* Supporting Files */,
-				C0FF769D1F5D4ECB00BD23C3 /* ActivityItemProvider.swift */,
-				CE7FF1EF239A0293007859D9 /* PackageBrowserViewController.swift */,
-				C0FF769C1F5D4ECA00BD23C3 /* Keyman-Bridging-Header.h */,
-				C0E943F71F61234C00E7D98C /* UIImage+Helpers.swift */,
+				16A9229D20325253003CC98E /* Info.plist */,
+				162E2C9420926C8600F40769 /* Classes */,
 				C0E943F91F6124E100E7D98C /* AppDelegate.swift */,
-				C0E943FD1F61377900E7D98C /* MainViewController.swift */,
-				C059FCBF1FD927EF00BD1A64 /* Log.swift */,
+				CE7FF1EF239A0293007859D9 /* PackageBrowserViewController.swift */,
+				29CA9A612B4F9B0B00EAB099 /* KeymanLogger.swift */,
 			);
 			path = Keyman;
 			sourceTree = "<group>";
@@ -560,12 +568,8 @@
 		98ABADBA176935E400B62590 /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
-				16A9229D20325253003CC98E /* Keyman-Info.plist */,
-				98ABADBC176935E400B62590 /* InfoPlist.strings */,
 				98AFAEDB17FE2ACF00178C0A /* Keyman Icons */,
 				98AFAEDC17FE2B6A00178C0A /* Keyman Navbar */,
-				98ABADBB176935E400B62590 /* Keyman-Free-Info.plist */,
-				98ABADC1176935E400B62590 /* Keyman-Prefix.pch */,
 			);
 			name = "Supporting Files";
 			sourceTree = "<group>";
@@ -655,6 +659,18 @@
 			name = "Supporting Files";
 			sourceTree = "<group>";
 		};
+		CE1679C5265F3E92008D6FCE /* MainViewController */ = {
+			isa = PBXGroup;
+			children = (
+				C0FF769D1F5D4ECB00BD23C3 /* ActivityItemProvider.swift */,
+				9822CB671A3A77D200D73CAA /* MainViewController_.xib */,
+				98ABADD1176935E500B62590 /* MainViewController_iPad.xib */,
+				98ABADCE176935E500B62590 /* MainViewController_iPhone.xib */,
+				C0E943FD1F61377900E7D98C /* MainViewController.swift */,
+			);
+			path = MainViewController;
+			sourceTree = "<group>";
+		};
 		CE1F5ECC23331C1C00141F3E /* resources */ = {
 			isa = PBXGroup;
 			children = (
@@ -688,13 +704,14 @@
 			buildConfigurationList = 981AFADE19EF44DE006706BF /* Build configuration list for PBXNativeTarget "Keyman" */;
 			buildPhases = (
 				981AFA7A19EF44DE006706BF /* Sources */,
-				1687ACCB1FD826D000926D69 /* Run Script */,
 				981AFA8319EF44DE006706BF /* Frameworks */,
 				981AFA8E19EF44DE006706BF /* Resources */,
-				989E4DB91B1EB5C200A345FB /* Run Script */,
 				981AFADC19EF44DE006706BF /* Embed App Extensions */,
 				37BC8FF91DE83B40006AEBFF /* Headers */,
 				C01AB5981F8343F7009B37D3 /* Embed Frameworks */,
+				CE7E13D8240E285800252C00 /* Run Script - set versions */,
+				989E4DB91B1EB5C200A345FB /* Run Script - update plists and lint */,
+				CE002CB32408B372002026CE /* Run Script - upload dsyms to sentry */,
 			);
 			buildRules = (
 			);
@@ -713,6 +730,7 @@
 				98CD125819CA85710089385F /* Sources */,
 				98CD125919CA85710089385F /* Frameworks */,
 				98CD125A19CA85710089385F /* Resources */,
+				CED3CFDA240E49DF001540A1 /* ShellScript */,
 				37BC8FFD1DE83BBD006AEBFF /* Headers */,
 			);
 			buildRules = (
@@ -758,6 +776,27 @@
 			knownRegions = (
 				en,
 				Base,
+				km,
+				fr,
+				de,
+				ff,
+				az,
+				am,
+				"es-419",
+				"zh-Hans",
+				ha,
+				"ff-NG",
+				"pt-PT",
+				it,
+				pl,
+				nl,
+				cs,
+				kn,
+				sv,
+				uk,
+				ru,
+				el,
+				vi,
 			);
 			mainGroup = 98ABADA7176935E400B62590;
 			productRefGroup = 98ABADB1176935E400B62590 /* Products */;
@@ -780,7 +819,6 @@
 				9845A8D41A439F1000544E2E /* 786-browser@3x.png in Resources */,
 				9845A7D31A439A9200544E2E /* InfoViewController_iPhone.xib in Resources */,
 				9845A8B51A439D3000544E2E /* Images.xcassets in Resources */,
-				981AFA9019EF44DE006706BF /* InfoPlist.strings in Resources */,
 				9845A8D71A439F1000544E2E /* UIButtonBarArrowRight@2x.png in Resources */,
 				981AFA9619EF44DE006706BF /* MainViewController_iPhone.xib in Resources */,
 				981AFA9819EF44DE006706BF /* 724-info.png in Resources */,
@@ -861,6 +899,7 @@
 				981AFACE19EF44DE006706BF /* 702-share@2x.png in Resources */,
 				9845A7AC1A43983300544E2E /* kmwb-navbar-Landscape-568h@2x.png in Resources */,
 				9845A8D91A439F1000544E2E /* UIButtonBarStop@2x.png in Resources */,
+				CE4C654624D0020900070856 /* Localizable.strings in Resources */,
 				9845A8D31A439F1000544E2E /* 786-browser@2x.png in Resources */,
 				981AFACF19EF44DE006706BF /* textsize_selected@2x.png in Resources */,
 				CE79CDB52370111200010C06 /* Themes+Colors.xcassets in Resources */,
@@ -903,45 +942,39 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		1687ACCB1FD826D000926D69 /* Run Script */ = {
+		989E4DB91B1EB5C200A345FB /* Run Script - update plists and lint */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputPaths = (
-				"$(SRCROOT)/../../Carthage/Build/iOS/Zip.framework",
-				"$(SRCROOT)/../../Carthage/Build/iOS/ObjcExceptionBridging.framework",
-				"$(SRCROOT)/../../Carthage/Build/iOS/XCGLogger.framework",
-				"$(SRCROOT)/../../Carthage/Build/iOS/DeviceKit.framework",
-				"$(SRCROOT)/../../Carthage/Build/iOS/Reachability.framework",
 			);
-			name = "Run Script";
+			name = "Run Script - update plists and lint";
 			outputPaths = (
-				"$(BUILT_PRODUCTS_DIR)/$(FRAMEWORKS_FOLDER_PATH)/Zip.framework",
-				"$(BUILT_PRODUCTS_DIR)/$(FRAMEWORKS_FOLDER_PATH)/ObjcExceptionBridging.framework",
-				"$(BUILT_PRODUCTS_DIR)/$(FRAMEWORKS_FOLDER_PATH)/XCGLogger.framework",
-				"$(BUILT_PRODUCTS_DIR)/$(FRAMEWORKS_FOLDER_PATH)/DeviceKit.framework",
-				"$(BUILT_PRODUCTS_DIR)/$(FRAMEWORKS_FOLDER_PATH)/Reachability.framework",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "echo \"-- Copying Frameworks --\"\n/usr/local/bin/carthage copy-frameworks\n\n\n";
+			shellPath = "/usr/bin/env bash";
+			shellScript = "#verstr1=$(/usr/libexec/PlistBuddy -c \"Print CFBundleShortVersionString\" \"$SRCROOT/Keyman-Info.plist\")\n#verstr2=$(/usr/libexec/PlistBuddy -c \"Print CFBundleVersion\" \"$SRCROOT/Keyman-Info.plist\")\n#/usr/libexec/PlistBuddy \"$SRCROOT/Settings.bundle/Root.plist\" -c \"set PreferenceSpecifiers:0:DefaultValue $verstr1 (build $verstr2)\"\n\nif which swiftlint >/dev/null; then\n    swiftlint --config ../../.swiftlint.yml\nelse\n    echo \"warning: SwiftLint not installed, download from https://github.com/realm/SwiftLint\"\nfi\n";
 			showEnvVarsInLog = 0;
 		};
-		989E4DB91B1EB5C200A345FB /* Run Script */ = {
+		CE002CB32408B372002026CE /* Run Script - upload dsyms to sentry */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
-			inputPaths = (
+			inputFileListPaths = (
 			);
-			name = "Run Script";
+			inputPaths = (
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${TARGET_NAME}",
+			);
+			name = "Run Script - upload dsyms to sentry";
+			outputFileListPaths = (
+			);
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "verstr1=$(/usr/libexec/PlistBuddy -c \"Print CFBundleShortVersionString\" \"$SRCROOT/Keyman-Info.plist\")\nverstr2=$(/usr/libexec/PlistBuddy -c \"Print CFBundleVersion\" \"$SRCROOT/Keyman-Info.plist\")\n/usr/libexec/PlistBuddy \"$SRCROOT/Settings.bundle/Root.plist\" -c \"set PreferenceSpecifiers:0:DefaultValue $verstr1 (build $verstr2)\"\n\nif which swiftlint >/dev/null; then\n    swiftlint --config ../../.swiftlint.yml\nelse\n    echo \"warning: SwiftLint not installed, download from https://github.com/realm/SwiftLint\"\nfi\n";
-			showEnvVarsInLog = 0;
+			shellPath = "/usr/bin/env bash";
+			shellScript = ". \"$KEYMAN_ROOT/resources/build/mac/xcode-utils.inc.sh\"\n\nif [ ${UPLOAD_SENTRY:-false} = true ]; then\n  # Calls resource script to perform the dSYM upload\n  \"$KEYMAN_ROOT/resources/build/mac/xcode-wrap.sh\" \"$KEYMAN_ROOT/resources/build/mac/sentry-dsym-upload.sh\"\nfi\n";
 		};
 		CE06AA671F161422006D91C3 /* Run Script */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -954,8 +987,45 @@
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
+			shellPath = "/usr/bin/env bash";
 			shellScript = "if which swiftlint >/dev/null; then\n    swiftlint --config ../../.swiftlint.yml\nelse\n    echo \"warning: SwiftLint not installed, download from https://github.com/realm/SwiftLint\"\nfi\n";
+		};
+		CE7E13D8240E285800252C00 /* Run Script - set versions */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Run Script - set versions";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = "/usr/bin/env bash";
+			shellScript = "\"$KEYMAN_ROOT/resources/build/mac/xcode-wrap.sh\" \"$KEYMAN_ROOT/resources/build/mac/set-bundle-versions-and-settings-tagged.sh\"\necho \"script - set version complete\"\n";
+			showEnvVarsInLog = 0;
+		};
+		CED3CFDA240E49DF001540A1 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = "/usr/bin/env bash";
+			shellScript = "\"$KEYMAN_ROOT/resources/build/mac/xcode-wrap.sh\" \"$KEYMAN_ROOT/resources/build/mac/set-bundle-versions-untagged.sh\"\n";
+			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -965,9 +1035,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				165EB39C2097181D00040A69 /* KMView.swift in Sources */,
+				29CA9A622B4F9B0B00EAB099 /* KeymanLogger.swift in Sources */,
 				C055F0B11F60E8D400140735 /* GetStartedViewController.swift in Sources */,
 				C055F0B51F610FB200140735 /* DropDownListView.swift in Sources */,
-				C059FCC01FD927EF00BD1A64 /* Log.swift in Sources */,
 				CE7FF1F0239A0293007859D9 /* PackageBrowserViewController.swift in Sources */,
 				C0E943F81F61234C00E7D98C /* UIImage+Helpers.swift in Sources */,
 				C0E943FE1F61377900E7D98C /* MainViewController.swift in Sources */,
@@ -993,6 +1063,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CEF4E55A23E967140065B9C7 /* ImageBannerViewController.swift in Sources */,
+				29B30C212B56325D00C342A4 /* KeymanLogger.swift in Sources */,
 				C0FF769B1F5D368C00BD23C3 /* KeyboardViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1000,14 +1071,6 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXVariantGroup section */
-		98ABADBC176935E400B62590 /* InfoPlist.strings */ = {
-			isa = PBXVariantGroup;
-			children = (
-				98ABADBD176935E400B62590 /* en */,
-			);
-			name = InfoPlist.strings;
-			sourceTree = "<group>";
-		};
 		98ABADCE176935E500B62590 /* MainViewController_iPhone.xib */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -1022,6 +1085,35 @@
 				37378F4222C9AA610043F22B /* Base */,
 			);
 			name = MainViewController_iPad.xib;
+			sourceTree = "<group>";
+		};
+		CE4C654424D0020900070856 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				CE4C654524D0020900070856 /* en */,
+				CEACC90E25F07D58006EAB45 /* fr */,
+				CEACC90F25F07D5A006EAB45 /* km */,
+				CEACC91225F07D77006EAB45 /* de */,
+				CE98E6BD2615593300F3F2C0 /* ff */,
+				CE72B3D62643ABB7006821CE /* az */,
+				CEBD3458265511B700EB2EA8 /* am */,
+				CEEF81B92673019600EE6A07 /* es-419 */,
+				CEEC468226F2F7BA009A5B7D /* zh-Hans */,
+				293EA3E027059C6900545EED /* ha */,
+				294914742738DF7700400732 /* ff-NG */,
+				29C1E17028001EC200759EDE /* pt-PT */,
+				29BFA75D282931F8009FCCC3 /* it */,
+				29BFA769282946EC009FCCC3 /* pl */,
+				29B27FEE29062BBC0036917E /* nl */,
+				298566B829802828004ACA95 /* cs */,
+				297810FD297FA818007C886D /* kn */,
+				298566C42980C493004ACA95 /* sv */,
+				298566D02980D354004ACA95 /* uk */,
+				298566DC2980E416004ACA95 /* ru */,
+				CEAC2A272C2A50E100C99ABD /* el */,
+				D88EC3FC2D785C500022CB80 /* vi */,
+			);
+			name = Localizable.strings;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
@@ -1041,9 +1133,12 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "Keyman/Keyman-Prefix.pch";
 				GCC_PREPROCESSOR_DEFINITIONS = "$(inherited)";
-				INFOPLIST_FILE = "Keyman-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				INFOPLIST_FILE = Keyman/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_LDFLAGS = "";
@@ -1073,16 +1168,18 @@
 				DEVELOPMENT_TEAM = 3YE4W86L3G;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "Keyman/Keyman-Prefix.pch";
-				INFOPLIST_FILE = "Keyman-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				INFOPLIST_FILE = Keyman/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_LDFLAGS = "";
 				PRODUCT_BUNDLE_IDENTIFIER = "Tavultesoft.${PRODUCT_NAME:rfc1034identifier}";
 				PRODUCT_NAME = Keyman;
 				PROVISIONING_PROFILE = "";
-				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
 				PROVISIONING_PROFILE_SPECIFIER = "Keyman Distribution";
 				SWIFT_OBJC_BRIDGING_HEADER = "";
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
@@ -1125,13 +1222,12 @@
 				ENABLE_TESTABILITY = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(PROJECT_DIR)",
-					"$(SRCROOT)/../../Carthage/Build/iOS/",
+					"$(SRCROOT)/../../Carthage/Build/",
 				);
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
-				GCC_PREPROCESSOR_DEFINITIONS = "DEBUG=1";
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
@@ -1139,13 +1235,12 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
-				ONLY_ACTIVE_ARCH = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				KEYMAN_ROOT = "$(SRCROOT)/../../..";
+				ONLY_ACTIVE_ARCH = NO;
 				OTHER_LDFLAGS = "";
-				"OTHER_SWIFT_FLAGS[arch=*]" = "-D DEBUG";
-				PROVISIONING_PROFILE = "";
-				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
 				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG NO_SENTRY";
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -1182,7 +1277,7 @@
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(PROJECT_DIR)",
-					"$(SRCROOT)/../../Carthage/Build/iOS/",
+					"$(SRCROOT)/../../Carthage/Build/",
 				);
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -1192,13 +1287,14 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				KEYMAN_ROOT = "$(SRCROOT)/../../..";
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
 				OTHER_LDFLAGS = "";
-				PROVISIONING_PROFILE = "";
 				SDKROOT = iphoneos;
-				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
 			};
@@ -1226,8 +1322,12 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				INFOPLIST_FILE = SWKeyboard/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = NO;
@@ -1265,8 +1365,12 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				INFOPLIST_FILE = SWKeyboard/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
 				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				MTL_ENABLE_DEBUG_INFO = NO;
 				ONLY_ACTIVE_ARCH = NO;
@@ -1284,6 +1388,145 @@
 			};
 			name = Release;
 		};
+		CE7E13C7240DFC4500252C00 /* Debug + Sentry */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				ENABLE_BITCODE = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(PROJECT_DIR)",
+					"$(SRCROOT)/../../Carthage/Build/",
+				);
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				KEYMAN_ROOT = "$(SRCROOT)/../../..";
+				ONLY_ACTIVE_ARCH = NO;
+				OTHER_LDFLAGS = "";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Debug + Sentry";
+		};
+		CE7E13C8240DFC4500252C00 /* Debug + Sentry */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Keyman/Keyman.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Manual;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = 3YE4W86L3G;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "Keyman/Keyman-Prefix.pch";
+				GCC_PREPROCESSOR_DEFINITIONS = "$(inherited)";
+				INFOPLIST_FILE = Keyman/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
+				ONLY_ACTIVE_ARCH = NO;
+				OTHER_LDFLAGS = "";
+				PRODUCT_BUNDLE_IDENTIFIER = "Tavultesoft.${PRODUCT_NAME:rfc1034identifier}";
+				PRODUCT_NAME = Keyman;
+				PROVISIONING_PROFILE = "";
+				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
+				PROVISIONING_PROFILE_SPECIFIER = "Keyman Development";
+				SWIFT_OBJC_BRIDGING_HEADER = "";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				WRAPPER_EXTENSION = app;
+			};
+			name = "Debug + Sentry";
+		};
+		CE7E13C9240DFC4500252C00 /* Debug + Sentry */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CODE_SIGN_ENTITLEMENTS = SWKeyboard/SWKeyboard.entitlements;
+				CODE_SIGN_STYLE = Manual;
+				DEVELOPMENT_TEAM = 3YE4W86L3G;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				INFOPLIST_FILE = SWKeyboard/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = NO;
+				OTHER_LDFLAGS = "";
+				PRODUCT_BUNDLE_IDENTIFIER = Tavultesoft.Keyman.SWKeyboard;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE = "";
+				PROVISIONING_PROFILE_SPECIFIER = "Keyman Development SWKeyboard";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
+				SWIFT_OBJC_BRIDGING_HEADER = "";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Debug + Sentry";
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1291,6 +1534,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				981AFADF19EF44DE006706BF /* Debug */,
+				CE7E13C8240DFC4500252C00 /* Debug + Sentry */,
 				981AFAE019EF44DE006706BF /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1300,6 +1544,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				98ABADD4176935E500B62590 /* Debug */,
+				CE7E13C7240DFC4500252C00 /* Debug + Sentry */,
 				98ABADD5176935E500B62590 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1309,6 +1554,7 @@
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				98CD126919CA85710089385F /* Debug */,
+				CE7E13C9240DFC4500252C00 /* Debug + Sentry */,
 				98CD126A19CA85710089385F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;

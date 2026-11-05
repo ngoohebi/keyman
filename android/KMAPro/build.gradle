@@ -2,23 +2,20 @@
 buildscript {
     repositories {
         google()
-        jcenter()
-        maven {
-            url 'https://maven.fabric.io/public'
-        }
+        mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.5.2'
-        classpath 'com.google.gms:google-services:4.3.2'
-        classpath 'io.fabric.tools:gradle:1.31.2'
-        classpath 'name.remal:gradle-plugins:1.0.157'
+        classpath 'com.android.tools.build:gradle:8.9.2'
+        // sentry-android-gradle-plugin 2.1.5+ requires AGP 7.0
+        classpath 'io.sentry:sentry-android-gradle-plugin:5.9.0'
+        classpath 'name.remal:gradle-plugins:1.9.2'
     }
 }
 
 allprojects {
     repositories {
+        maven { url uri("${projectDir}/libs") }
         google()
-        jcenter()
         mavenCentral()
         maven { url "https://jitpack.io" }
     }

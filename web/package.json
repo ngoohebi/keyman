@@ -1,7 +1,91 @@
 {
   "name": "keyman",
-  "version": "11.0.0",
   "description": "Facilitates text input in any language.",
+  "exports": {
+    "./app/browser": {
+      "es6-bundling": "./src/app/browser/src/index.ts",
+      "types": "./build/app/browser/obj/index.d.ts",
+      "import": "./build/app/browser/obj/index.js"
+    },
+    "./common/web-utils": {
+      "es6-bundling": "./src/common/web-utils/src/index.ts",
+      "types": "./build/common/web-utils/obj/index.d.ts",
+      "import": "./build/common/web-utils/obj/index.js"
+    },
+    "./engine/attachment": {
+      "es6-bundling": "./src/engine/src/attachment/index.ts",
+      "types": "./build/engine/obj/attachment/index.d.ts",
+      "import": "./build/engine/obj/attachment/index.js"
+    },
+    "./engine/dom-utils": {
+      "es6-bundling": "./src/engine/src/dom-utils/index.ts",
+      "types": "./build/engine/obj/dom-utils/index.d.ts",
+      "import": "./build/engine/obj/dom-utils/index.js"
+    },
+    "./engine/element-text-stores": {
+      "es6-bundling": "./src/engine/src/element-text-stores/index.ts",
+      "types": "./build/engine/obj/element-text-stores/index.d.ts",
+      "import": "./build/engine/obj/element-text-stores/index.js"
+    },
+    "./engine/events": {
+      "es6-bundling": "./src/engine/src/events/index.ts",
+      "types": "./build/engine/obj/events/index.d.ts",
+      "import": "./build/engine/obj/events/index.js"
+    },
+    "./engine/gesture-processor": {
+      "es6-bundling": "./src/engine/src/gesture-processor/index.ts",
+      "types": "./build/engine/obj/gesture-processor/index.d.ts",
+      "import": "./build/engine/obj/gesture-processor/index.js"
+    },
+    "./engine/interfaces": {
+      "es6-bundling": "./src/engine/src/interfaces/index.ts",
+      "types": "./build/engine/obj/interfaces/index.d.ts",
+      "import": "./build/engine/obj/interfaces/index.js"
+    },
+    "./engine/js-processor": {
+      "es6-bundling": "./src/engine/src/js-processor/index.ts",
+      "types": "./build/engine/obj/js-processor/index.d.ts",
+      "import": "./build/engine/obj/js-processor/index.js"
+    },
+    "./engine/keyboard": {
+      "es6-bundling": "./src/engine/src/keyboard/index.ts",
+      "types": "./build/engine/obj/keyboard/index.d.ts",
+      "import": "./build/engine/obj/keyboard/index.js"
+    },
+    "./engine/keyboard-storage": {
+      "es6-bundling": "./src/engine/src/keyboard-storage/index.ts",
+      "types": "./build/engine/obj/keyboard-storage/index.d.ts",
+      "import": "./build/engine/obj/keyboard-storage/index.js",
+      "require": "./build/engine/obj/keyboard-storage/index.js"
+    },
+    "./engine/main": {
+      "es6-bundling": "./src/engine/src/main/index.ts",
+      "types": "./build/engine/obj/main/index.d.ts",
+      "import": "./build/engine/obj/main/index.js"
+    },
+    "./engine/osk": {
+      "es6-bundling": "./src/engine/src/osk/index.ts",
+      "types": "./build/engine/obj/osk/index.d.ts",
+      "import": "./build/engine/obj/osk/index.js"
+    },
+    "./tools/testing/test-utils": {
+      "types": "./build/tools/testing/test-utils/obj/index.d.ts",
+      "import": "./build/tools/testing/test-utils/obj/index.js"
+    },
+    "./test/resources": {
+      "types": "./src/test/auto/resources/build/index.d.ts",
+      "import": "./src/test/auto/resources/build/index.js"
+    },
+    "./test/headless-resources": {
+      "types": "./src/test/auto/headless-resources/build/index.d.ts",
+      "import": "./src/test/auto/headless-resources/build/index.js"
+    }
+  },
+  "imports": {
+    "#gesture-tools": "./build/tools/testing/gesture-processor/unit-test-resources/obj/index.js",
+    "#recorder": "./build/tools/testing/recorder/obj/index.js",
+    "#test-resources/*.js": "./build/test/resources/*.js"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/keymanapp/keyman.git"
@@ -18,36 +102,27 @@
   },
   "homepage": "https://github.com/keymanapp/keyman#readme",
   "devDependencies": {
-    "chai": "^4.2.0",
-    "google-closure-compiler": "^20171203.0.0",
-    "html2canvas": "^1.0.0-alpha.12",
-    "karma": "^4.2.0",
-    "karma-browserstack-launcher": "^1.5.1",
-    "karma-chai": "^0.1.0",
-    "karma-chrome-launcher": "^2.2.0",
-    "karma-edge-launcher": "^0.4.2",
-    "karma-firefox-launcher": "^1.1.0",
-    "karma-fixture": "^0.2.6",
-    "karma-html2js-preprocessor": "^1.1.0",
-    "karma-ie-launcher": "^1.0.0",
-    "karma-json-fixtures-preprocessor": "0.0.6",
-    "karma-mocha": "^1.3.0",
-    "karma-mocha-reporter": "^2.2.5",
-    "karma-safari-launcher": "^1.0.0",
-    "karma-teamcity-reporter": "^1.1.0",
-    "mocha": "^5.2.0",
-    "modernizr": "^3.7.1",
-    "typescript": "^3.7.2"
+    "@keymanapp/resources-gosh": "*",
+    "@playwright/test": "1.46.1",
+    "@sentry/cli": "^2.31.0",
+    "@zip.js/zip.js": "^2.7.32",
+    "c8": "^7.12.0",
+    "express": "^5.2.1",
+    "jsdom": "^23.0.1",
+    "promise-status-async": "^1.2.10",
+    "tsx": "^4.19.0"
   },
   "scripts": {
-    "tsc": "tsc",
-    "test": "bash ./unit_tests/test.sh",
-    "karma": "karma",
-    "modernizr": "modernizr"
+    "test": "gosh ./test.sh"
   },
   "dependencies": {
-    "@types/node": "^11.9.4",
-    "es6-shim": "^0.35.5",
-    "ts-node": "^8.0.2"
-  }
+    "@keymanapp/common-types": "*",
+    "@keymanapp/keyman-version": "*",
+    "@keymanapp/lexical-model-layer": "*",
+    "@keymanapp/recorder-core": "*",
+    "core-js": "^3.34.0",
+    "eventemitter3": "^5.0.0",
+    "tslib": "^2.5.2"
+  },
+  "type": "module"
 }

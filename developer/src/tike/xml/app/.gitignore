@@ -1,0 +1,5 @@
+lib/monaco
+node_modules/
+.vs/
+.vscode/
+lib/sentry/init.js

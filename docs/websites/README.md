@@ -1,0 +1,213 @@
+# How to Set Up a Local Web Server for the Keyman Web Pages
+
+Currently, most of the Keyman websites (*.keyman.com, *.keyman-staging.com) are running PHP 7.4 via Apache.
+
+## Pre-requisite Installs
+* [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+
+On Windows, Docker will need either:
+* Hyper-V or
+* WSL 2.0 - Install with this guide:
+https://learn.microsoft.com/en-us/windows/wsl/tutorials/wsl-containers
+    * WSL will then need a Linux image (e.g. Ubuntu app) from the Microsoft Store
+
+#### Other Docker Notes
+Docker tends to throttle Docker image downloads, so some developer offices may want to set up a proxy server. If the proxy server is set up, carefully edit the JSON file per in Docker Settings -> Docker Engine https://docs.docker.com/registry/recipes/mirror/#configure-the-docker-daemon and click 'Apply & Restart'. Note the example (lingnet) is for running inside the Linguistics Institute (Chiang Mai)
+
+```json
+ "registry-mirrors": ["https://docker.io.registry.lingnet/"],
+  "insecure-registries" : [
+    "docker.io.registry.lingnet",
+    "registry.lingnet"
+  ]
+```
+
+### Using Website-Local-Proxy
+Rather than remembering localhost port values below, you can clone and run [website-local-proxy](https://github.com/keymanapp/website-local-proxy).
+
+Refer to the [port lookup table](#port-lookup-table) to access the local websites at
+http://*keyman.com.localhost
+
+## Builder BASH Script Actions
+
+#### Stop the Docker container
+1. Run `./build.sh stop`
+
+This stops the Docker container for the site.
+
+#### Build the Docker image
+1. Run `./build.sh build`
+
+This downloads and builds the Docker images needed for the site.
+
+#### Configure
+1. Run `./build.sh configure`
+
+This step typically downloads _common/ website files from [shared-sites](https://github.com/keymanapp/shared-sites/tree/main/_common).
+
+#### Start the Docker container
+1. Run `./build.sh start --debug`
+
+This maps the local directory to the the Docker image.
+
+The `--debug` flag will, among other things:
+* Skip generation of CDN assets (so changes appear without a rebuild) (Some sites have assets in `/cdn/dev/` used to generate CDN in `/dev/deploy/`.)
+* Cause any PHP errors to be displayed to the user (rather than logging them back-end)
+
+For sites that use Composer dependencies, this step also creates a link in the Docker image from /var/www/vendor/ to /var/www/html/vendor.
+The link file also appears locally.
+
+##### Port lookup table
+After this, you can access the website at the following ports:
+
+| Website            |          URL          |  with website-local-proxy running          | Docker Container Name  |
+|--------------------|-----------------------|--------------------------------------------|------------------------|
+| keyman.com         | http://localhost:8053 | http://keyman.com.localhost                | keyman-website         |
+| s.keyman.com       | http://localhost:8054 | http://s.keyman.com.localhost              | s-keyman-website       |
+| help.keyman        | http://localhost:8055 | http://help.keyman.com.localhost           | help-keyman-website    |
+| keymanweb.com      | http://localhost:8057 | http://keymanweb.com.localhost             | web-keyman-website     |
+|                    |                       | http://web.keyman.com.localhost            |                        |
+| api.keyman.com     | http://localhost:8058 | http://api.keyman.com.localhost            | api-keyman-com-website |
+| status.keyman.com* | http://localhost:8060 | http://status-backend.keyman.com.localhost | status-keyman-website  |
+|                    | http://localhost:8061 | http://status.keyman.com.localhost         | status-keyman-public   |
+
+\* Note that status.keyman.com runs in two containers in development to allow for live reload and separation of logs for backend and frontend.
+In production, only port 8060 is used.
+
+#### Remove the Docker container and image
+1. Run `./build.sh clean`.
+
+#### Running tests
+You might need to install the broken-link-checker first
+
+`npm install broken-link-checker`
+
+Checks for broken links
+1. Run `./build.sh test`
+
+#### Troubleshooting Errors
+
+You can access PHP errors with
+
+```bash
+docker logs -f {Docker Container Name}
+```
+
+Refer to **Port lookup table** above for Docker container names
+
+---------
+
+## How to run composer updates
+
+The Docker containers are setup with multi-stage images, so you will need to
+target the composer-builder stage if you want to execute composer commands such
+as `composer update` or `composer audit`. The following scripts show how to do
+this; here the same id is used for the image tag and the container name for simplicity:
+
+On macOS, Linux:
+
+```bash
+COMPOSER_ID=composer-temp
+# setup
+docker build -f Dockerfile --target composer-builder --tag $COMPOSER_ID .
+docker run -v "$(pwd):/var/www/html/" --name $COMPOSER_ID --user root --rm -d $COMPOSER_ID
+# run commands with `docker exec`, e.g.:
+#  docker exec $COMPOSER_ID    composer audit
+#  docker exec $COMPOSER_ID    composer update
+#  docker exec $COMPOSER_ID    composer update --lock
+# copy modified files to mounted volume:
+docker exec $COMPOSER_ID    cp composer.lock /var/www/html/
+docker exec $COMPOSER_ID    cp composer.json /var/www/html/
+# cleanup
+docker stop $COMPOSER_ID
+docker rmi $COMPOSER_ID
+```
+
+On git bash for Windows, paths must start with `//`, e.g. `//$(pwd)`, `//var/www/html/`:
+
+```bash
+COMPOSER_ID=composer-temp
+# setup
+docker build -f Dockerfile --target composer-builder --tag $COMPOSER_ID .
+docker run -v "//$(pwd):/var/www/html/" --name $COMPOSER_ID --user root --rm -d $COMPOSER_ID
+# run commands with `docker exec`, e.g.:
+#  docker exec $COMPOSER_ID    composer audit
+#  docker exec $COMPOSER_ID    composer update
+#  docker exec $COMPOSER_ID    composer update --lock
+# copy modified files to mounted volume:
+docker exec $COMPOSER_ID    cp composer.lock //var/www/html/
+docker exec $COMPOSER_ID    cp composer.json //var/www/html/
+# cleanup
+docker stop $COMPOSER_ID
+docker rmi $COMPOSER_ID
+```
+
+
+
+---------
+
+## Website Dependencies
+
+The table below shows server-side dependencies for each website
+
+| Website              | Depends On                             |
+|----------------------|----------------------------------------|
+| s.keyman.com         | <br><br>                               |
+| downloads.keyman.com | <br><br>                               |
+| api.keyman.com       | downloads.keyman.com<br>s.keyman.com   |
+| keymanweb.com        | api.keyman.com                         |
+| keyman.com           | api.keyman.com<br>downloads.keyman.com |
+| help.keyman.com      | api.keyman.com<br>downloads.keyman.com |
+| status.keyman.com    | api.keyman.com<br>downloads.keyman.com |
+
+---------
+
+## Kubernetes Deployment
+For production, the websites are deployed with Kubernetes.
+
+Note: the following section is outdated as it's replaced with Rancher/Fleet.
+
+### How to run help.keyman.com locally with Docker Desktop's Kubernetes singlenode cluster
+
+For testing Kubernetes deployment, there are yaml files under the corresponding website's repo: `/resources/kubectl`, that cover local developer testing.
+
+### Pre-requisites
+On the host machine, install [Docker](https://docs.docker.com/get-docker/), then enable Kubernetes in the settings. Ensure you have built a help-keyman-app Docker image, and either tag it `docker.dallas.languagetechnology.org/keyman/help-keyman-app` or modify the `app-php` containers `image:` value to match you local copy's name.
+
+### Deploying to a desktop cluster
+To deploy the dev version to the cluster do the following:
+1. Ensure your `kubectl` context is set to `docker-desktop`, though the Docker Desktop systray icon or by running:
+```bash
+$> kubectl config use-context docker-desktop
+```
+2. Create a keyman namespace if it does not already exist:
+```bash
+$> kubectl create ns keyman
+```
+3. Apply the configs for the resources and start the pod:
+```bash
+$> kubectl --namespace keyman apply \
+       -f resources/kubectl/help-kubectl-dev.yaml \
+       -f resources/kubectl/help-kubectl.yaml
+```
+### Testing the site and `/api/deploy` webhook endpoint
+The site can be reached on http://localhost:30080/ via web browser, and the deploy api is on http://localhost:30900/api/deploy, and can be activated like so:
+```bash
+$> curl -v --request POST \
+    -H "Content-Type: application/json" \
+    -H "X-Hub-Signature-256: sha256=49af8531106a369bfee369f91dadec597e8ea3992ec2802bbe655be0ece17f15" \
+    --data '{"action":"push","ref":"refs/heads/staging"}' \
+    http://localhost:30900/api/deploy
+```
+This simulates enough of a GitHub webhook push event to pass validation on the responder.
+
+### Clean up after testing
+
+To remove the k8s pod and resources, and delete everything do:
+```bash
+$> kubectl --namespace=keyman delete {pod,cm,svc,secret,pvc}/help-keyman-com
+```
+Or just delete the pod and keep the resources for further testing:
+```bash
+$> kubectl --namespace=keyman delete pod/help-keyman-com
+```

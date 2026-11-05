@@ -1,18 +1,28 @@
-apply plugin: 'com.android.application'
+plugins {
+    id 'com.android.application'
+}
 
 ext.rootPath = '../../../'
 apply from: "$rootPath/version.gradle"
 
 android {
-    compileSdkVersion 29
+    compileSdk 36
+    namespace="com.keyman.android.tests.keycode"
+
+    buildFeatures {
+        // needed for custom BuildConfigField values in defaultConfig
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId "com.keyman.android.tests.keycode"
-        minSdkVersion 16
-        targetSdkVersion 29
+        minSdkVersion 21
+        targetSdkVersion 36
 
-        // VERSION_CODE and VERSION_NAME from version.gradle
-        versionCode VERSION_CODE as Integer
-        versionName VERSION_NAME
+        // KEYMAN_VERSION_CODE and KEYMAN_VERSION_NAME from version.gradle
+        versionCode KEYMAN_VERSION_CODE as Integer
+        versionName KEYMAN_VERSION_NAME
+        buildConfigField "String", "KEYMAN_VERSION_ENVIRONMENT", "\""+KEYMAN_VERSION_ENVIRONMENT+"\""
     }
     buildTypes {
         release {
@@ -24,9 +34,10 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'androidx.appcompat:appcompat:1.2.0-alpha02'
-    implementation 'com.google.android.material:material:1.0.0'
-    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
-    testImplementation 'androidx.test:core:1.1.0'
-    testImplementation 'androidx.test.ext:junit:1.1.0'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+    implementation 'com.google.android.material:material:1.12.0'
+    testImplementation 'androidx.test.ext:junit:1.2.1'
+    testImplementation 'org.robolectric:robolectric:4.14.1'
+    testImplementation 'androidx.test:core:1.6.1'
 }

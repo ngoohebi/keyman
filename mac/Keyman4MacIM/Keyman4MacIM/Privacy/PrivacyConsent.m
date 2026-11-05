@@ -1,0 +1,308 @@
+/*
+ * Keyman is copyright (C) SIL International. MIT License.
+ * 
+ * PrivacyConsent.m
+ * Keyman4MacIM
+ * 
+ * Created by Shawn Schantz on 2022-09-22.
+ * 
+ * Used to determine if the user has provided consent to the services it needs
+ * and, if not, to request that consent. For versions of macOS prior to 11.0,
+ * Keyman requires Accessibility access. For 11.0 and later, Keyman requires
+ * PostEvent access. Both are presented to the user as a need for Accessibility
+ * when prompted by the system and are listed under Accessibility in the Privacy
+ * tab in System Preferences, Security & Privacy. Both Accessibility and
+ * PostEvent encapsulate ListenEvent (or Keyboard Monitoring) permission, so
+ * that access is not explicitly needed as long as one of the others is provided
+ * first.
+ *
+ * Note that Apple's documentation states that the PostEvent access APIs are
+ * available with macOS 10.15 (Catalina) but testing showed that it was only
+ * available with macOS 11.0 (Big Sur). This is documented with issue #12295.
+ *
+ * To access this functionality, used the shared instance. Call
+ * requestPrivacyAccess which will check whether access has been granted. If
+ * not, then a dialog will be presented to the user to inform them that
+ * Accessibility is required. Dismissing this dialog will trigger the API call
+ * to prompt the user for permission. However, the prompt from the system will
+ * only happen once. If the user was prompted earlier and did not grant access,
+ * they can still go to System Preferences and enable it there. So it is useful
+ * to prompt with a dialog from Keyman at startup. Without Accessibility, the
+ * shift layer and the OSK do not work.
+ */
+
+#import "PrivacyConsent.h"
+#import "KMLogs.h"
+
+// command strings passed from Keyman Configuration
+NSString *kMigrateCommand = @"migrate";
+NSString *kAccessCommand = @"access";
+NSString *kCheckCommand = @"check";
+NSString *kMigrateAndCheckCommand = @"migrateandcheck";
+
+// notification messages sent to Keyman Configuration
+NSString *kAcessibilityPermissionGrantedMessage = @"granted";
+NSString *kAcessibilityPermissionNotGrantedMessage = @"not-granted";
+
+/**
+ * Make a request to the system to add Accessibility permissions for the Keyman input method.
+ * Executed as requested by the Keyman Configuration app.
+ */
+int requestAccessibility(void) {
+  os_log_info([KMLogs startupLog], "requestAccessibility executed");
+  [PrivacyConsent.shared requestPrivacyAccessForKeyman19:^void (void){
+    os_log_info([KMLogs startupLog], "requestAccessibility completion handler: requestPrivacyAccessForKeyman19 completed");
+  }];
+  return 0;
+}
+
+/**
+ * Check whether Accessibility permissions have been granted by the user for the Keyman input method.
+ * Executed as requested by the Keyman Configuration app.
+ */
+int checkAccessibility(void) {
+  BOOL hasAccess = NO;
+  NSString *message = kAcessibilityPermissionNotGrantedMessage;
+  
+  hasAccess = [PrivacyConsent.shared checkPostEventAccess];
+  os_log_info([KMLogs startupLog], "checkAccessibility hasAccess: %{public}@", hasAccess?@"YES":@"NO");
+  
+  if (hasAccess) {
+    message = kAcessibilityPermissionGrantedMessage;
+  }
+
+  [[NSDistributedNotificationCenter defaultCenter] postNotificationName:@"com.keyman.accessibility.state" object:message userInfo:nil deliverImmediately:YES];
+
+  return hasAccess;
+}
+
+@implementation PrivacyConsent
+
++ (PrivacyConsent *)shared
+{
+  static PrivacyConsent *shared = nil;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    shared = [[PrivacyConsent alloc] init];
+  });
+  return shared;
+}
+
+/**
+ * For macOS earlier than 11.0: check for Accessibility access.
+ */
+- (BOOL)checkAccessibility
+{
+  BOOL hasAccessibility = NO;
+  
+  hasAccessibility = AXIsProcessTrusted();
+  os_log([KMLogs privacyLog], "  hasAccessibility: %@",hasAccessibility ? @"YES" : @"NO" );
+  return hasAccessibility;
+}
+
+/**
+ * Principal method to set privacy checks in motion. May cause multiple dialogs to
+ * be presented to the user.
+ *
+ * The completionHandler is provided to continue with work that the client
+ * must execute after privacy is requested.
+ */
+- (void)requestPrivacyAccess:(void (^)(void))withCompletionHandler
+{
+  BOOL hasAccessibility = NO;
+  
+  // check if we already have accessibility
+  if (@available(macOS 11.0, *)) {
+    hasAccessibility = [self checkPostEventAccess];
+  } else {
+    hasAccessibility = [self checkAccessibility];
+  }
+  
+  if (hasAccessibility) {
+    os_log([KMLogs privacyLog], "already has Accessibility: no need to make request.");
+    // call completionHandler immediately -> privacyDialog will not be presented
+    withCompletionHandler();
+  } else {
+    // set completionHandler to be called after privacyDialog is dismissed
+    _completionHandler = withCompletionHandler;
+    os_log([KMLogs privacyLog], "does not have Accessibility, present Privacy Dialog");
+    [self showPrivacyDialog];
+  }
+}
+
+/**
+ * Designed to be called from main.m when Keyman is invoked from Keyman Configuration
+ * Does not pose privacy dialog
+ * No need to support OS version prior to 11.0
+ */
+- (void)requestPrivacyAccessForKeyman19:(void (^)(void))withCompletionHandler
+{
+  BOOL hasAccessibility = NO;
+  
+  // check if we already have accessibility
+  hasAccessibility = [self checkPostEventAccess];
+  
+  if (hasAccessibility) {
+    os_log([KMLogs privacyLog], "already has Accessibility: no need to make request.");
+    // call completionHandler immediately
+    withCompletionHandler();
+  } else {
+    os_log([KMLogs privacyLog], "does not have Accessibility, calling requestPostEventAccess");
+    [self requestPostEventAccess];
+    withCompletionHandler();
+  }
+}
+
+
+/**
+ * For macOS earlier than 11.0: request Accessibility access.
+ */
+- (void)requestAccessibility
+{
+  NSDictionary *options = @{(id)CFBridgingRelease(kAXTrustedCheckOptionPrompt): @YES};
+  BOOL hasAccessibility = AXIsProcessTrustedWithOptions((CFDictionaryRef)options);
+  os_log([KMLogs privacyLog], "hasAccessibility: %@",hasAccessibility ? @"YES" : @"NO, requesting...");
+}
+
+/**
+ * getter for privacyDialog -- does lazy load of controller as privacyDialog is not
+ * needed when consent has already been provided by user.
+ */
+- (NSWindowController *)privacyDialog {
+  if (!_privacyDialog) {
+    _privacyDialog = [[PrivacyWindowController alloc] initWithWindowNibName:@"PrivacyWindowController"];
+    os_log([KMLogs privacyLog], "privacyDialog created");
+    [self configureDialogForOsVersion];
+  }
+  
+  return _privacyDialog;
+}
+
+/**
+ * Initialize privacy alert appropriately as determined by macOS version.
+ */
+- (void)configureDialogForOsVersion {
+  
+  if (@available(macOS 11.0, *)) {
+    [self configureDialogForBigSurAndLater];
+  } else {
+    [self configureDialogForPreBigSur];
+  }
+}
+
+/**
+ * Initialize privacy dialog for macOS versions prior to Big Sur (11.0).
+ * In this case, request Accessibility access, not PostEvent.
+ */
+- (void)configureDialogForPreBigSur {
+  void (^consentPrompt)(void) = ^(void) {
+    [self requestAccessibility];
+    
+    if (self.completionHandler) {
+      self.completionHandler();
+    }
+  };
+  [_privacyDialog setCompletionHandler:consentPrompt];
+}
+
+/**
+ * Initialize privacy dialog for macOS versions of Big Sur (11.0) or later.
+ * In this case, request PostEvent access, not Accessibility.
+ */
+- (void)configureDialogForBigSurAndLater {
+  void (^consentPrompt)(void) = ^(void) {
+    [self requestPostEventAccess];
+    
+    if (self.completionHandler) {
+      self.completionHandler();
+    }
+  };
+  [_privacyDialog setCompletionHandler:consentPrompt];
+}
+
+/**
+ * Present the PrivacyDialog alert to the user.
+ */
+- (void)showPrivacyDialog {
+  [[self.privacyDialog window] setLevel:NSModalPanelWindowLevel];
+  [[self.privacyDialog window] makeKeyAndOrderFront:nil];
+}
+
+/**
+ * Check whether the user has allowed ListenEvent access.
+ * Only available with macOS Big Sur (11.0) or later.
+ *
+ * If user has granted Accessibility or PostEvent access, then
+ * ListenEvent access is also granted.
+ */
+- (BOOL)checkListenEventAccess
+{
+  BOOL hasAccess = NO;
+  
+  // below checks for ListenEvent access
+  if (@available(macOS 11.0, *)) {
+    hasAccess = CGPreflightListenEventAccess();
+    os_log([KMLogs privacyLog], "CGPreflightListenEventAccess() returned %@", hasAccess ? @"YES" : @"NO");
+  } else {
+    os_log([KMLogs privacyLog], "CGPreflightListenEventAccess not available before macOS version 11.0");
+  }
+  return hasAccess;
+}
+
+/**
+ * Check whether the user has allowed PostEvent access.
+ * Only available with macOS Big Sur (11.0) or later.
+ *
+ * If user has granted Accessibility, then PostEvent access is also granted.
+ */
+- (BOOL)checkPostEventAccess
+{
+  BOOL hasAccess = NO;
+  
+  // below checks for PostEvent access
+  if (@available(macOS 11.0, *)) {
+    hasAccess = CGPreflightPostEventAccess();
+    
+    os_log([KMLogs privacyLog], "CGPreflightPostEventAccess() returned %@", hasAccess ? @"YES" : @"NO");
+  } else {
+    os_log([KMLogs privacyLog], "CGPreflightPostEventAccess not available before macOS version 11.0");
+  }
+  return hasAccess;
+}
+
+/**
+ * Request ListenEvent access.
+ * Only available with macOS Big Sur (11.0) or later.
+ */
+- (BOOL)requestListenEventAccess
+{
+  BOOL granted = NO;
+  
+  if (@available(macOS 11.0, *)) {
+    granted = CGRequestListenEventAccess();
+    os_log([KMLogs privacyLog], "CGRequestListenEventAccess() returned %@", granted ? @"YES" : @"NO");
+  } else {
+    os_log([KMLogs privacyLog], "CGRequestListenEventAccess not available before macOS version 11.0");
+  }
+  return granted;
+}
+
+/**
+ * Request PostEvent access.
+ * Only available with macOS Big Sur (11.0) or later.
+ */
+- (BOOL)requestPostEventAccess
+{
+  BOOL granted = NO;
+  
+  if (@available(macOS 11.0, *)) {
+    granted = CGRequestPostEventAccess();
+    os_log([KMLogs privacyLog], "CGRequestPostEventAccess() returned %@", granted ? @"YES" : @"NO");
+  } else {
+    os_log([KMLogs privacyLog], "CGRequestPostEventAccess not available before macOS version 11.0");
+  }
+  return granted;
+}
+
+
+@end

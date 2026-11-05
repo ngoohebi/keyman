@@ -3,6 +3,7 @@
 #include "security.h"
 #include "kbd.h"
 
+// This file is used only in keyman32.dll; implements the serial key event server
 #ifndef _WIN64
 
 /*
@@ -11,21 +12,21 @@
   due to restricted permissions, all SendInput must be done from this thread, which runs
   in the Keyman main process.
 
-  NOTE: Postponing writing architecture technical note because of change to architecture 
+  NOTE: Postponing writing architecture technical note because of change to architecture
   below...
 
-  TODO: For simplicity of proof-of-concept data sharing, we ran two copies of the key event 
-  sender thread: one in the 32 bit space, and one in the 64 bit space. This means that we 
+  TODO: For simplicity of proof-of-concept data sharing, we ran two copies of the key event
+  sender thread: one in the 32 bit space, and one in the 64 bit space. This means that we
   can still have a race condition because we lose serialization guarantees. Input is first
   processed in the Low Level Keyboard Hook which runs in the keyman.exe 32 bit space. This
   then gets forwarded to the target application with the necessary flags on the message to
-  tell Keyman to not reprocess it. However, after keystroke processing, the target 
-  application fills the shared data structure and signals the key event sender thread in its 
-  own bitness space (32 or 64 bit). The key event sender thread then takes the final shared 
-  data and sends it to the target app. And that breaks the serialization guarantee because 
+  tell Keyman to not reprocess it. However, after keystroke processing, the target
+  application fills the shared data structure and signals the key event sender thread in its
+  own bitness space (32 or 64 bit). The key event sender thread then takes the final shared
+  data and sends it to the target app. And that breaks the serialization guarantee because
   the 64 bit apps are not serialized with the original 32 bit captured input.
 
-  The fix is to redesign the shared data to use a memory mapped file, which can be shared 
+  The fix is to redesign the shared data to use a memory mapped file, which can be shared
   across the 32-64 boundary. Must tweak the permissions on this file, of course.
 
   TODO: Console apps still not working
@@ -34,7 +35,7 @@
 
 //
 // Server application functionality
-// This runs only in the host applications keyman.exe and keymanx64.exe
+// This runs only in the host applications keyman.exe, keymanhp.x64.exe and keymanhp.arm64.exe
 //
 
 // TODO: refactor this into the SerialKeyEventServer class and provide getters for them
@@ -61,7 +62,19 @@ private:
 public:
 
   SerialKeyEventServer() {
-    // We create the file mapping and global data on the main thread but release it on the 
+    m_idThread = 0;
+    m_hThread = NULL;
+    m_hThreadExitEvent = NULL;
+    memset(m_ModifierKeyboardState, 0, 256);
+    m_hKeyEvent = NULL;
+    m_hKeyMutex = NULL;
+    m_hMMF = NULL;
+    m_hwnd = NULL;
+    m_nInputs = 0;
+    m_pInputs = NULL;
+    m_pSharedData = NULL;
+
+    // We create the file mapping and global data on the main thread but release it on the
     // local thread. This ensures that these objects are available for other processes to
     // open even if we haven't completed startup of the local thread.
     if (!InitSharedData()) {
@@ -102,6 +115,10 @@ public:
         DebugLastError("CloseHandle(m_hThreadExitEvent)");
       }
     }
+
+    // Normally, this is cleaned up by thread termination, but this
+    // handles error conditions better
+    CloseSharedData();
   }
 
   virtual HWND GetWindow() const {
@@ -170,21 +187,25 @@ private:
       DebugLastError("CloseHandle(m_hKeyMutex)");
       bRet = FALSE;
     }
+    m_hKeyMutex = NULL;
 
     if (m_hKeyEvent != NULL && !CloseHandle(m_hKeyEvent)) {
       DebugLastError("CloseHandle(m_hKeyEvent)");
       bRet = FALSE;
     }
+    m_hKeyEvent = NULL;
 
     if (m_pSharedData != NULL && !UnmapViewOfFile((LPCVOID)m_pSharedData)) {
       DebugLastError("CloseHandle(m_pSharedData)");
       bRet = FALSE;
     }
+    m_pSharedData = NULL;
 
     if (m_hMMF != NULL && !CloseHandle(m_hMMF)) {
       DebugLastError("CloseHandle(m_hMMF)");
       bRet = FALSE;
     }
+    m_hMMF = NULL;
 
     return bRet;
   }
@@ -268,13 +289,14 @@ private:
     }
 
     if (m_pInputs != NULL) {
-      delete m_pInputs;
+      delete[] m_pInputs;
+      m_pInputs = NULL;
     }
   }
 
   /**
     Main message loop for thread. Terminates on error or when
-    m_hThreadExitEvent is signaled. Sleeps until either a 
+    m_hThreadExitEvent is signaled. Sleeps until either a
     window message is received or a key event is signaled from
     a client app.
   */
@@ -306,12 +328,12 @@ private:
     focused window with the SendInput API.
   */
   BOOL ProcessQueuedKeyEvents() {
-    SendDebugMessage(0, sdmDebug, 0, "Processing queued key events");
+    SendDebugMessage("Processing queued key events");
 
     HANDLE handles[2] = { m_hThreadExitEvent, m_hKeyMutex };
 
     //
-    // Wait for access to the shared data (must also watch out for 
+    // Wait for access to the shared data (must also watch out for
     // shutdown event so we don't stall forever here)
     //
     switch (WaitForMultipleObjects(2, handles, FALSE, INFINITE)) {
@@ -356,7 +378,7 @@ private:
   }
 
   /**
-    Add modifier state adjustment events and then copy the new input 
+    Add modifier state adjustment events and then copy the new input
     events from the shared buffer
   */
   void PrepareInjectedInput() {
@@ -385,7 +407,7 @@ private:
     if (server == NULL) {
       return DefWindowProc(hwnd, msg, wParam, lParam);
     }
-      
+
     return server->WndProc(hwnd, msg, wParam, lParam);
   }
 
@@ -415,15 +437,20 @@ private:
       You can disable this flag with flag_ShouldSerializeInput.
     */
 
-    if (msg == wm_keyman_keyevent && flag_ShouldSerializeInput  /*&& _td->lpActiveKeyboard*/) {
+    if ((msg == WM_KEYMAN_KEY_EVENT || msg == WM_KEYMAN_MODIFIER_EVENT) && flag_ShouldSerializeInput  /*&& _td->lpActiveKeyboard*/) {
+
+      SendDebugMessageFormat("hwnd=%x msg=%s wParam=%x lParam=%x m_ModifierKeyboardState=[LS:%x LC:%x LA:%x RS:%x RC:%x RA:%x]",
+        hwnd, msg == WM_KEYMAN_KEY_EVENT ? "WM_KEYMAN_KEY_EVENT" : "WM_KEYMAN_MODIFIER_EVENT", wParam, lParam,
+        m_ModifierKeyboardState[VK_LSHIFT], m_ModifierKeyboardState[VK_LCONTROL], m_ModifierKeyboardState[VK_LMENU],
+        m_ModifierKeyboardState[VK_RSHIFT], m_ModifierKeyboardState[VK_RCONTROL], m_ModifierKeyboardState[VK_RMENU]);
 
       if (wParam == VK_RMENU && (lParam & (KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP)) == (KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP) && GetKeyState(VK_LCONTROL) < 0) {
-        /* 
-          When Windows has a European layout that uses AltGr installed, it can emit an additional LCtrl down via software 
+        /*
+          When Windows has a European layout that uses AltGr installed, it can emit an additional LCtrl down via software
           when RAlt is pressed. However, the corresponding LCtrl up is never received, seemingly because when Keyman
           re-emits the LCtrl+RAlt, there are subtle differences in the event flags which we cannot duplicate -- specifically
-          the flag that emits WM_SYSKEYDOWN for the VK_LCONTROL, even though it is received before the VK_RALT event. It 
-          appears that Windows figures this out by giving this VK_LCONTROL the scan code 0x21D instead of 0x1D. But we 
+          the flag that emits WM_SYSKEYDOWN for the VK_LCONTROL, even though it is received before the VK_RALT event. It
+          appears that Windows figures this out by giving this VK_LCONTROL the scan code 0x21D instead of 0x1D. But we
           are unable to emit that scan code: Windows truncates the scan code sent through SendInput so that we can only
           send 0x1D.
 
@@ -448,6 +475,10 @@ private:
 
           There is a possibility that some apps may try and sniff that 0x21D scan code and get confused because Keyman
           doesn't emit it. Hopefully this is rare.
+
+          See also:
+          * PostVisualKeyboardModifierEvent in k32_visualkeyboardinterface.cpp
+          * TfrmOSKOnScreenKeyboard.OskModifierEvent in UfrmOSKOnScreenKeyboard.cpp
         */
         INPUT input[2];
         input[0].type = INPUT_KEYBOARD;
@@ -464,9 +495,15 @@ private:
         input[1].ki.dwExtraInfo = EXTRAINFO_FLAG_SERIALIZED_USER_KEY_EVENT;
         input[1].ki.dwFlags = lParam & 0xFFFF;
 
-        if (!SendInput(2, input, sizeof(INPUT))) {
-          DebugLastError("SendInput");
+        if (msg == WM_KEYMAN_KEY_EVENT) {
+          // We track changes to modifiers with WM_KEYMAN_MODIFIER_EVENT, but only ever
+          // pass them on to the app when we receive them with the WM_KEYMAN_KEY_EVENT
+          // message.
+          if (!SendInput(2, input, sizeof(INPUT))) {
+            DebugLastError("SendInput");
+          }
         }
+
 
         UpdateLocalModifierState(
           (BYTE)input[0].ki.wVk,
@@ -489,8 +526,10 @@ private:
         input.ki.dwExtraInfo = EXTRAINFO_FLAG_SERIALIZED_USER_KEY_EVENT;
         input.ki.dwFlags = lParam & 0xFFFF;
 
-        if (!SendInput(1, &input, sizeof(INPUT))) {
-          DebugLastError("SendInput");
+        if (msg == WM_KEYMAN_KEY_EVENT){
+          if (!SendInput(1, &input, sizeof(INPUT))) {
+            DebugLastError("SendInput");
+          }
         }
 
         UpdateLocalModifierState(
@@ -506,10 +545,10 @@ private:
   }
 
   /**
-   When a physical key event is received by the serializer, we know that this will 
-   reflect the key state that the app sees at the time that the input is sent. 
+   When a physical key event is received by the serializer, we know that this will
+   reflect the key state that the app sees at the time that the input is sent.
    We maintain a local modifier state here rather than using GetKeyState because that
-   ensures that we are keeping the keyboard state consistent with our version of 
+   ensures that we are keeping the keyboard state consistent with our version of
    reality.
   */
   void UpdateLocalModifierState(BYTE bVk, BOOL fIsExtendedKey, BYTE bScan, BOOL fIsUp) {

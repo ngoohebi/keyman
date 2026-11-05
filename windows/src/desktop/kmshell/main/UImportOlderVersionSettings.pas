@@ -1,18 +1,18 @@
 (*
   Name:             UImportOlderVersionSettings
   Copyright:        Copyright (C) 2003-2017 SIL International.
-  Documentation:    
-  Description:      
+  Documentation:
+  Description:
   Create Date:      22 Feb 2011
 
   Modified Date:    3 Jun 2014
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
-  Bugs:             
-  Todo:             
-  Notes:            
+  Bugs:
+  Todo:
+  Notes:
   History:          22 Feb 2011 - mcdurdin - I2651 - Install does not set desired default options
                     22 Feb 2011 - mcdurdin - I2753 - Firstrun crashes because start with windows and auto update check options are set in Engine instead of Desktop
                     03 May 2011 - mcdurdin - I2890 - Record diagnostic data when encountering registry errors
@@ -24,7 +24,7 @@ unit UImportOlderVersionSettings;
 
 interface
 
-function FirstRunInstallDefaults(DoDefaults,DoStartWithWindows,DoCheckForUpdates: Boolean; FDisablePackages: string): Boolean;  // I2753
+function FirstRunInstallDefaults(DoDefaults,DoStartWithWindows,DoCheckForUpdates: Boolean; FDisablePackages, FDefaultUILanguage: string; DoAutomaticallyReportUsage: Boolean): Boolean;  // I2753
 
 implementation
 
@@ -34,29 +34,45 @@ uses
 
   Hints,
   InterfaceHotkeys,
+  Keyman.Configuration.System.KeymanUILanguageManager,
   Keyman.System.UpgradeRegistryKeys,
   KeymanVersion,
   kmint,
   keymanapi_TLB,
   ErrorControlledRegistry,
   RegistryKeys,
+  Keyman.System.UpdateStateMachine,
   UImportOlderKeyboardUtils;
 
-function FirstRunInstallDefaults(DoDefaults,DoStartWithWindows,DoCheckForUpdates: Boolean; FDisablePackages: string): Boolean;  // I2753
+function FirstRunInstallDefaults(DoDefaults,DoStartWithWindows,DoCheckForUpdates: Boolean; FDisablePackages, FDefaultUILanguage: string; DoAutomaticallyReportUsage: Boolean): Boolean;  // I2753
 var
   n, I: Integer;
   v: Integer;
   p: string;
+  UpdateSM : TUpdateStateMachine;
 begin
+  // send event to statemachine (should result in setting state to idle)
+  UpdateSM := TUpdateStateMachine.Create(False);
+  try
+    UpdateSM.HandleFirstRun;
+  finally
+    UpdateSM.Free;
+  end;
+
   { Copy over all the user settings and set defaults for version 8.0: http://blog.tavultesoft.com/2011/02/keyman-desktop-80-default-options.html }
 
   if DoDefaults then  // I2753
   begin
+    TKeymanUILanguageManager.Execute;
+    if FDefaultUILanguage <> '' then
+    begin
+       kmint.KeymanCustomisation.CustMessages.LanguageCode := FDefaultUILanguage;
+    end;
+
     { General }
     kmcom.Options['koKeyboardHotkeysAreToggle'].Value := True;
     kmcom.Options['koAltGrCtrlAlt'].Value := False;
     kmcom.Options['koShowHints'].Value := True;
-    kmcom.Options['koSwitchLanguageForAllApplications'].Value := True;
 
     { Startup }
     kmcom.Options['koShowStartup'].Value := True;
@@ -65,7 +81,6 @@ begin
     { OSK }
     kmcom.Options['koReleaseShiftKeysAfterKeyPress'].Value := False;
     kmcom.Options['koAutoOpenOSK'].Value := False;
-    kmcom.Options['koAutoSwitchOSKPages'].Value := True;
     //// TODO: kmcom.Options['koShowOSKOnStartup'] := True;
 
     { Advanced }   // I3629
@@ -92,7 +107,6 @@ begin
         kmcom.Options['koTestKeymanFunctioning'].Value := not ValueExists(SRegValue_TestKeymanFunctioning) or ReadBool(SRegValue_TestKeymanFunctioning);
 
         kmcom.Options['koReleaseShiftKeysAfterKeyPress'].Value := ValueExists(SRegValue_ReleaseShiftKeysAfterKeyPress) and ReadBool(SRegValue_ReleaseShiftKeysAfterKeyPress);
-        kmcom.Options['koAutoSwitchOSKPages'].Value := not ValueExists(SRegValue_AutoSwitchOSKPages) or ReadBool(SRegValue_AutoSwitchOSKPages);
 
         if OpenKeyReadOnly(SRegKey_UpgradeBackupPath_CU + SRegKey_KeymanEngine70_CU+'\hotkeys\1') or OpenKeyReadOnly(SRegKey_UpgradeBackupPath_CU + SRegKey_KeymanEngine70_CU+'\hotkeys\8') then
         begin
@@ -127,8 +141,9 @@ begin
       ResetAllHints;
   end;
 
-  if DoStartWithWindows then kmcom.Options['koStartWithWindows'].Value := True; // I2753
-  if DoCheckForUpdates then kmcom.Options['koCheckForUpdates'].Value := True;  // I2753
+  kmcom.Options['koStartWithWindows'].Value := DoStartWithWindows; // I2753
+  kmcom.Options['koCheckForUpdates'].Value := DoCheckForUpdates;  // I2753
+  kmcom.Options['koAutomaticallyReportUsage'].Value := DoAutomaticallyReportUsage;
 
   if DoDefaults then
   begin
@@ -179,9 +194,9 @@ begin
             SameText(kmcom.Keyboards[i].OwnerPackage.ID, p) then
           kmcom.Keyboards[i].Loaded := False;
     end;
-    kmcom.Apply;
   end;
 
+  kmcom.Apply;
   Result := True;
 end;
 

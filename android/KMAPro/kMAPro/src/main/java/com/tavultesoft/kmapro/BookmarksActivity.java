@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -38,8 +37,11 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 
-public class BookmarksActivity extends AppCompatActivity {
+import com.keyman.engine.BaseActivity;
+import com.keyman.engine.util.KMLog;
 
+public class BookmarksActivity extends BaseActivity {
+  private static final String TAG = "BookmarksActivity";
   private static ListView listView;
   private static ArrayList<HashMap<String, String>> list = null;
   private static String bookmarksFilename = "bookmarks.dat";
@@ -171,6 +173,7 @@ public class BookmarksActivity extends AppCompatActivity {
 
   @Override
   public void onBackPressed() {
+    super.onBackPressed();
     finish();
     overridePendingTransition(0, android.R.anim.fade_out);
   }
@@ -186,7 +189,7 @@ public class BookmarksActivity extends AppCompatActivity {
         list = (ArrayList<HashMap<String, String>>) inputStream.readObject();
         inputStream.close();
       } catch (Exception e) {
-        Log.e("KMAPro", "Failed to read bookmarks list: " + e.getMessage());
+        KMLog.LogException(TAG, "Failed to read bookmarks list: ", e);
         list = null;
       }
     } else {
@@ -206,7 +209,7 @@ public class BookmarksActivity extends AppCompatActivity {
       outputStream.close();
       result = true;
     } catch (Exception e) {
-      Log.e("KMAPro", "Failed to save bookmarks list: " + e.getMessage());
+      KMLog.LogException(TAG, "Failed to save bookmarks list: ", e);
       result = false;
     }
 

@@ -1,0 +1,13 @@
+# Editor configuration, see https://editorconfig.org
+[*.py]
+indent_style = space
+indent_size = 4
+
+[*.sharedmimeinfo]
+indent_style = tab
+
+[Makefile]
+indent_style = tab
+
+[*.sh]
+indent_size = 2

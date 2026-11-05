@@ -8,9 +8,10 @@ class SharedBufferManager: public ISharedBufferManager {
 private:
   HANDLE m_hMMF;
   SharedBuffer *m_pSharedData;
-  
+
 public:
   SharedBufferManager() {
+    m_pSharedData = NULL;
     m_hMMF = OpenFileMapping(FILE_MAP_READ, FALSE, GLOBAL_SHAREDBUFFER_FILE_MAPPING_NAME);
     if (!m_hMMF) {
       DebugLastError("OpenFileMapping");
@@ -36,7 +37,7 @@ public:
 
   virtual BOOL ReadSelectKeyboardBuffer(DWORD dwIdentity, SelectKeyboardBuffer *skb) {
     if (dwIdentity >= MAX_SELECTKEYBOARDTSF_CIRCULARBUFFER_SIZE) {
-      SendDebugMessageFormat(0, sdmGlobal, 0, "dwIdentity too large: %d", dwIdentity);
+      SendDebugMessageFormat("dwIdentity too large: %d", dwIdentity);
       return FALSE;
     }
     *skb = m_pSharedData->SelectKeyboardBuffer[dwIdentity];

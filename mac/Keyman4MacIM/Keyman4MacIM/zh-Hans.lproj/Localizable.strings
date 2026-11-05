@@ -1,0 +1,2 @@
+/* message displayed to alert user to need grant accessibility permission */
+"privacy-alert-text" = "Keyman 需要以下辅助功能以正常工作：\n\n在系统首选项、安全和隐私中授予访问权限。\n重新启动系统。";

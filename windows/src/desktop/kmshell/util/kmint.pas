@@ -1,18 +1,18 @@
 (*
   Name:             kmint
   Copyright:        Copyright (C) SIL International.
-  Documentation:    
-  Description:      
+  Documentation:
+  Description:
   Create Date:      1 Aug 2006
 
   Modified Date:    26 Jun 2012
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
-  Bugs:             
-  Todo:             
-  Notes:            
+  Bugs:
+  Todo:
+  Notes:
   History:          01 Aug 2006 - mcdurdin - Remove old Keyman 6 integration
                     01 Aug 2006 - mcdurdin - Look for pxx file in startup folder to determine product to start
                     05 Nov 2007 - mcdurdin - I937, I1128 - Repair COM object if it fails at startup
@@ -43,6 +43,7 @@ function LoadKMCOM: Boolean;
 
 const
   KEYMAN_LAYOUT_CUSTOM = $000005FE;
+  KR_SETTINGS_CHANGED = 3;
 
 const
   KMC_REFRESH = 4;
@@ -134,7 +135,7 @@ begin
 end;
 
 procedure CoFreeUnusedLibrariesEx(dwUnloadDelay, dwReserved: DWORD); stdcall; external 'ole32.dll';
- 
+
 function LoadKMCOM: Boolean;
 var
   msg: string;

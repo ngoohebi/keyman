@@ -1,0 +1,5 @@
+/* message displayed to alert user to need grant accessibility permission */
+"privacy-alert-text" = "Τὸ Keyman, γιὰ νὰ λειτουργήσει σωστά, ἀπαιτεῖ ὁρισμένες δυνατότητες προσπέλασης:\n\nἘπιτρέψτε τὴν πρόσβαση στὶς Προτιμήσεις Συστήματος, τὴν Ἀσφάλεια & Ἰδιωτικότητα.\nἘπανεκκινῆστε τὸ σύστημά σας.";
+
+/* Text of menu item in Input Menu when no Keyboards are configured -- include parentheses  */
+"no-keyboard-configured-menu-placeholder" = "(Δὲν ἔχει ἐγκατασταθεῖ πληκτρολόγιο)";

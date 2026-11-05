@@ -1,64 +1,79 @@
+/**
+ * Copyright (C) SIL International. All rights reserved.
+ */
 package com.tavultesoft.kmapro;
 
 import android.annotation.SuppressLint;
-import androidx.appcompat.widget.Toolbar;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AlertDialog;
+import androidx.fragment.app.Fragment;
+
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.os.Bundle;
-import android.view.Gravity;
 import android.view.View;
-import android.view.View.OnClickListener;
-import android.view.ViewGroup;
-import android.webkit.WebChromeClient;
-import android.webkit.WebSettings;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
-import android.widget.Button;
-import android.widget.TextView;
 
-import android.util.Log;
 import android.widget.Toast;
 
-import com.tavultesoft.kmea.KMManager;
-import com.tavultesoft.kmea.KeyboardEventHandler;
-import com.tavultesoft.kmea.packages.PackageProcessor;
-import com.tavultesoft.kmea.packages.LexicalModelPackageProcessor;
-import com.tavultesoft.kmea.util.FileUtils;
+import com.stepstone.stepper.StepperLayout;
+import com.stepstone.stepper.VerificationError;
+import com.keyman.engine.BaseActivity;
+import com.keyman.engine.KMManager;
+import com.keyman.engine.KeyboardEventHandler;
+import com.keyman.engine.KmpInstallMode;
+import com.keyman.engine.data.Keyboard;
+import com.keyman.engine.packages.PackageProcessor;
+import com.keyman.engine.packages.LexicalModelPackageProcessor;
+import com.keyman.engine.util.FileUtils;
+import com.keyman.engine.util.KMLog;
 
 import org.json.JSONObject;
 
 import java.io.File;
-import java.io.FileFilter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class PackageActivity extends AppCompatActivity {
-
-  private Toolbar toolbar;
-  private WebView webView;
+public class PackageActivity extends BaseActivity implements
+    StepperLayout.StepperListener, WebViewFragment.OnInstallClickedListener,
+    SelectLanguageFragment.OnLanguagesSelectedListener {
+  private final static String TAG = "PackageActivity";
   private AlertDialog alertDialog;
   private File kmpFile;
   private File tempPackagePath;
   private static ArrayList<KeyboardEventHandler.OnKeyboardDownloadEventListener> kbDownloadEventListeners = null;
   private PackageProcessor kmpProcessor;
+  private String pkgName;
+  private StepperLayout mStepperLayout;
+  private StepperAdapter mStepperAdapter;
 
   @SuppressLint({"SetJavaScriptEnabled", "InflateParams"})
   @Override
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_package_installer);
-    boolean silentInstall = false;
+    setupEdgeToEdge(R.id.package_installer_layout);
+
+    KmpInstallMode installMode = KmpInstallMode.Full;
+    String languageID = null;
+    ArrayList<String> languageList = new ArrayList<String>();
 
     final Context context = this;
     Bundle bundle = getIntent().getExtras();
-    if (bundle != null) {
-      kmpFile = new File(bundle.getString("kmpFile"));
-      silentInstall = bundle.getBoolean("silentInstall", false);
+    if (bundle == null) {
+      showErrorToast("No bundle for PackageActivity");
+      return;
+    }
+
+    kmpFile = new File(bundle.getString("kmpFile"));
+    if (!kmpFile.exists()) {
+      showErrorToast(kmpFile.getAbsolutePath() + " not found. Unable to extract");
+      return;
+    }
+    installMode = KmpInstallMode.fromString(bundle.getString("installMode"));
+    languageID = bundle.getString("language", null);
+    if (languageID != null && !languageID.isEmpty()) {
+      languageList.add(languageID);
     }
 
     File resourceRoot =  new File(context.getDir("data", Context.MODE_PRIVATE).toString() + File.separator);
@@ -70,148 +85,74 @@ public class PackageActivity extends AppCompatActivity {
       if (pkgTarget.equals(PackageProcessor.PP_TARGET_LEXICAL_MODELS)) {
         kmpProcessor = new LexicalModelPackageProcessor(resourceRoot);
       } else if (!pkgTarget.equals(PackageProcessor.PP_TARGET_KEYBOARDS)) {
-        showErrorToast(context, getString(R.string.no_targets_to_install));
+        // Not using showErrorToast to avoid cluttering Sentry with noise
+        showErrorDialog(context, pkgId, getString(R.string.no_targets_to_install));
         return;
       }
       tempPackagePath = kmpProcessor.unzipKMP(kmpFile);
 
     } catch (Exception e) {
-      showErrorToast(context, getString(R.string.failed_to_extract));
+      showErrorToast(getString(R.string.failed_to_extract), e);
       return;
     }
 
     JSONObject pkgInfo = kmpProcessor.loadPackageInfo(tempPackagePath);
     if (pkgInfo == null) {
-      showErrorToast(context, getString(R.string.invalid_metadata));
+      showErrorToast(getString(R.string.invalid_metadata));
       return;
     }
 
-    // Silent installation (skip displaying welcome.htm and user confirmation)
-    if (silentInstall) {
-      installPackage(context, pkgTarget, pkgId,true);
+    // Check minimum keyboard version to ensure current version of Keyman supports the features
+    String pkgMinimumKeyboardVersion = kmpProcessor.getPackageMinimumKeyboardVersion(pkgInfo);
+    if (FileUtils.compareVersions(pkgMinimumKeyboardVersion, KMManager.getMajorVersion()) == FileUtils.VERSION_GREATER) {
+      showErrorToast(getString(R.string.minimum_keyboard_version_not_supported));
       return;
     }
 
-    String pkgVersion = kmpProcessor.getPackageVersion(pkgInfo);
-    String pkgName = kmpProcessor.getPackageName(pkgInfo);
+    pkgName = kmpProcessor.getPackageName(pkgInfo);
+    final int keyboardCount = kmpProcessor.getKeyboardCount(pkgInfo);
 
-    toolbar = (Toolbar) findViewById(R.id.titlebar);
-    setSupportActionBar(toolbar);
-    getSupportActionBar().setTitle(null);
-    getSupportActionBar().setDisplayUseLogoEnabled(false);
-    getSupportActionBar().setDisplayShowHomeEnabled(false);
-    getSupportActionBar().setDisplayShowTitleEnabled(false);
-    getSupportActionBar().setDisplayShowCustomEnabled(true);
-    getSupportActionBar().setBackgroundDrawable(MainActivity.getActionBarDrawable(this));
+    // Number of languages associated with the first keyboard in a keyboard package.
+    // lexical-model packages will be 0
+    final int languageCount = (keyboardCount > 0) ?
+      kmpProcessor.getLanguageCount(pkgInfo, PackageProcessor.PP_KEYBOARDS_KEY, 0) : 0;
 
-    TextView packageActivityTitle = new TextView(this);
-    packageActivityTitle.setWidth((int) getResources().getDimension(R.dimen.package_label_width));
-    packageActivityTitle.setTextSize(getResources().getDimension(R.dimen.titlebar_label_textsize));
-    packageActivityTitle.setGravity(Gravity.CENTER);
-
-    String pkgTargetTitle = pkgTarget.equals(PackageProcessor.PP_TARGET_KEYBOARDS) ? 
-      getString(R.string.install_keyboard_package) : getString(R.string.install_predictive_text_package);
-    String titleStr = String.format("%s %s", pkgTargetTitle, pkgVersion);
-    packageActivityTitle.setText(titleStr);
-    getSupportActionBar().setCustomView(packageActivityTitle);
-
-    webView = (WebView) findViewById(R.id.packageWebView);
-    webView.getSettings().setLayoutAlgorithm(WebSettings.LayoutAlgorithm.NORMAL);
-    webView.getSettings().setJavaScriptEnabled(true);
-    webView.getSettings().setUseWideViewPort(true);
-    webView.getSettings().setLoadWithOverviewMode(true);
-    webView.getSettings().setBuiltInZoomControls(true);
-    webView.getSettings().setSupportZoom(true);
-    webView.getSettings().setTextZoom(200);
-    webView.setVerticalScrollBarEnabled(true);
-    webView.setHorizontalScrollBarEnabled(true);
-    webView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
-
-    webView.setWebChromeClient(new WebChromeClient() {
-    });
-    webView.setWebViewClient(new WebViewClient() {
-      @Override
-      public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+    // Sanity check for keyboard packages
+    // Not using showErrorToast to avoid cluttering Sentry with noise
+    if (pkgTarget.equals(PackageProcessor.PP_TARGET_KEYBOARDS)) {
+      if (keyboardCount == 0) {
+        showErrorDialog(context, pkgId, getString(R.string.no_new_touch_keyboards_to_install));
+        return;
+      } else if (languageCount == 0) {
+        showErrorDialog(context, pkgId, getString(R.string.no_associated_languages));
+        return;
       }
-
-      @Override
-      public boolean shouldOverrideUrlLoading(WebView view, String url) {
-        if (url != null && !url.toLowerCase().equals("about:blank"))
-          view.loadUrl(url);
-
-        return true;
-      }
-
-      @Override
-      public void onPageStarted(WebView view, String url, Bitmap favicon) {
-      }
-
-      @Override
-      public void onPageFinished(WebView view, String url) {
-      }
-    });
-
-     // Determine if ad-hoc distributed KMP contains readme.htm (case-insensitive) to display
-    FileFilter _readmeFilter = new FileFilter() {
-      @Override
-      public boolean accept(File pathname) {
-        if (pathname.isFile() && FileUtils.isReadmeFile(pathname.getName())) {
-          return true;
-        }
-        return false;
-      }
-    };
-
-    File[] files = tempPackagePath.listFiles(_readmeFilter);
-    if (files.length > 0 && files[0].exists() && files[0].length() > 0) {
-      webView.loadUrl("file:///" + files[0].getAbsolutePath());
-    } else {
-      // No welcome.htm so display minimal package information
-      String targetString = "";
-      if (pkgTarget.equals(PackageProcessor.PP_TARGET_KEYBOARDS)) {
-        targetString = pkgName != null && pkgName.toLowerCase().endsWith("keyboard")
-          ? "" : String.format(" %s", getString(R.string.title_keyboard));
-      } else if (pkgTarget.equals(PackageProcessor.PP_TARGET_LEXICAL_MODELS)) {
-        targetString = pkgName != null && pkgName.toLowerCase().endsWith("model")
-          ? "" :String.format(" %s", "model");
-      }
-      String htmlString = String.format(
-        "<body style=\"max-width:600px;\"><H1>The %s%s Package</H1></body>",
-        pkgName, targetString);
-      webView.loadData(htmlString, "text/html; charset=utf-8", "UTF-8");
     }
 
-    initializeButtons(context, pkgId, pkgTarget);
+    // For Silent or WelcomeOnly installation, skip Readme and language selection
+    if (installMode != KmpInstallMode.Full) {
+      installPackage(context, pkgTarget, pkgId, languageList, installMode);
+      return;
+    }
+
+    boolean isInstallingPackage = true;
+    mStepperLayout = (StepperLayout) findViewById(R.id.stepperLayout);
+    mStepperAdapter = new StepperAdapter(getSupportFragmentManager(), this,
+      isInstallingPackage, tempPackagePath, pkgTarget, pkgId, pkgName, null, languageID, languageCount);
+    mStepperLayout.setAdapter(mStepperAdapter);
+    mStepperLayout.setListener(this);
   }
 
-  /**
-   * Initialize buttons of package installer.
-   * @param context the context
-   * @param pkgId the keyman package id
-   * @param pkgTarget  String: PackageProcessor.PP_TARGET_KEYBOARDS or PP_TARGET_LEXICAL_MODELS
-   */
-  private void initializeButtons(final Context context, final String pkgId, final String pkgTarget) {
-    final Button installButton = (Button) findViewById(R.id.installButton);
-    final Button cancelButton = (Button) findViewById(R.id.cancelButton);
-    final Button finishButton = (Button) findViewById(R.id.finishButton);
-
-    installButton.setOnClickListener(new OnClickListener() {
-      @Override
-      public void onClick(View v) {
-        installPackage(context, pkgTarget, pkgId,false);
-      }
-    });
-
-    OnClickListener _cleanup_action = new OnClickListener() {
-      @Override
-      public void onClick(View v) {
-        cleanup();
-      }
-    };
-    cancelButton.setOnClickListener(_cleanup_action);
-    finishButton.setOnClickListener(_cleanup_action);
-
-    updateButtonState(true);
+  @Override
+  protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    super.onActivityResult(requestCode, resultCode, data);
+    // Use the result of SelectLanguageActivity and install the package
+    if (resultCode == 2 && data != null) {
+      String pkgTarget = data.getStringExtra("pkgTarget");
+      String pkgId = data.getStringExtra("packageID");
+      ArrayList<String> languageList = (ArrayList)data.getSerializableExtra("languageList");
+      installPackage(this, pkgTarget, pkgId, languageList, KmpInstallMode.Full);
+    }
   }
 
   @Override
@@ -231,9 +172,9 @@ public class PackageActivity extends AppCompatActivity {
         FileUtils.deleteDirectory(tempPackagePath);
       }
     } catch (Exception e) {
-      Log.e("PackageActivity", "cleanup() failed with error " + e);
+      KMLog.LogException(TAG, "cleanup() failed with error ", e);
     } finally {
-      finish();
+      // Don't finish() because we still need to display welcome.htm
     }
   }
 
@@ -244,95 +185,120 @@ public class PackageActivity extends AppCompatActivity {
 
   @Override
   public void onBackPressed() {
+    super.onBackPressed();
     finish();
     overridePendingTransition(0, android.R.anim.fade_out);
   }
 
-  private void showErrorToast(Context context, String message) {
-    Toast.makeText(context, message, Toast.LENGTH_LONG).show();
+  @Override
+  public void onCompleted(View completedButton) {
+    Toast.makeText(this, "onCompleted", Toast.LENGTH_SHORT).show();
+  }
+
+  @Override
+  public void onError(VerificationError verificationError) {
+    Toast.makeText(this, verificationError.getErrorMessage(), Toast.LENGTH_LONG).show();
+  }
+
+  @Override
+  public void onStepSelected(int newStepPosition) {
+
+
+  }
+
+  @Override
+  public void onReturn() {
+    finish();
+  }
+
+  @Override
+  public void onAttachFragment(Fragment fragment) {
+    if (fragment instanceof WebViewFragment) {
+      WebViewFragment webViewFragment = (WebViewFragment) fragment;
+      webViewFragment.setOnInstallClickedListener(this);
+    } else if (fragment instanceof SelectLanguageFragment) {
+      SelectLanguageFragment selectLanguageFragment = (SelectLanguageFragment) fragment;
+      selectLanguageFragment.setOnLanguagesSelectedListener(this);
+    }
+  }
+
+  @Override
+  public void onInstallClicked(String pkgTarget, String packageID) {
+    // Ignore language list and install the package
+    installPackage(this, pkgTarget, packageID, null, KmpInstallMode.Full);
+  }
+
+  @Override
+  public void onLanguagesSelected(String pkgTarget, String packageID, ArrayList<String>  languageList) {
+    // Use the result of SelectLanguageActivity and install the package
+    installPackage(this, pkgTarget, packageID, languageList, KmpInstallMode.Full);
+  }
+
+  @Override
+  public void onLanguagesSelected(ArrayList<Keyboard> addKeyboardsList) {
+  }
+
+  private void showErrorToast(String message, Exception e) {
+    if (e != null) {
+      KMLog.LogException(TAG, message, e);
+    } else {
+      KMLog.LogError(TAG, message);
+    }
     // Setting result to 1 so calling activity will finish too
     setResult(1);
     cleanup();
+    finish();
+    MainActivity.cleanupPackageInstall();
   }
 
-  /**
-   * switch button visibility for package installer.
-   * before installation show Install and Cancel
-   * after installation show OK button
-   * @param anIsStartInstaller if true - before installation, false - after installation
-   */
-  private void updateButtonState(boolean anIsStartInstaller)
-  {
-    final Button installButton = (Button) findViewById(R.id.installButton);
-    final Button cancelButton = (Button) findViewById(R.id.cancelButton);
-    final Button closeButton = (Button) findViewById(R.id.finishButton);
-    if(anIsStartInstaller)
-    {
-      installButton.setVisibility(View.VISIBLE);
-      cancelButton.setVisibility(View.VISIBLE);
-      closeButton.setVisibility(View.GONE);
-    }
-    else
-    {
-      installButton.setVisibility(View.GONE);
-      cancelButton.setVisibility(View.GONE);
-      closeButton.setVisibility(View.VISIBLE);
-    }
-    findViewById(R.id.buttonBar).requestLayout();
+  private void showErrorToast(String message) {
+    showErrorToast(message, null);
   }
 
-  /**
-   * show welcome page from installed keyboard.
-   * @param theInstalledPackages the installed keyboards or lexical models
-   * @return true if a welcomepage is available
-   */
-  private boolean loadWelcomePage(List<Map<String, String>> theInstalledPackages)
-  {
-    boolean _found=false;
-     for(Map<String,String> _keyboard:theInstalledPackages) {
-       String _customlink = _keyboard.get(KMManager.KMKey_CustomHelpLink);
-       if (_customlink != null) {
-         webView.loadUrl("file:///" + _customlink);
-         _found=true;
-         break;
-       }
-     }
-     if(!_found)
-       return false;
-
-     updateButtonState(false);
-
-      return true;
-
-  }
   /**
    * Installs the keyboard or lexical model package, and then notifies the corresponding listeners
    * @param context Context   The activity context
    * @param pkgTarget String: PackageProcessor.PP_TARGET_KEYBOARDS or PP_TARGET_LEXICAL_MODELS
    * @param pkgId String      The Keyman package ID
+   * @param preferredLanguages ArrayList<String>  The optional array of language ID's to use
+   * @param installMode       How much of the install UI to show
    */
-  private void installPackage(Context context, String pkgTarget, String pkgId, boolean anSilentInstall) {
+  private void installPackage(Context context, String pkgTarget, String pkgId,
+                              ArrayList<String> preferredLanguages, KmpInstallMode installMode) {
     try {
       if (pkgTarget.equals(PackageProcessor.PP_TARGET_KEYBOARDS)) {
         // processKMP will remove currently installed package and install
+        ArrayList<String> languageList;
+        if (preferredLanguages != null && !preferredLanguages.isEmpty()) {
+          languageList = preferredLanguages;
+        } else {
+          languageList = new ArrayList<String>();
+        }
+
         List<Map<String, String>> installedPackageKeyboards =
-          kmpProcessor.processKMP(kmpFile, tempPackagePath, PackageProcessor.PP_KEYBOARDS_KEY);
+          kmpProcessor.processKMP(kmpFile, tempPackagePath, PackageProcessor.PP_KEYBOARDS_KEY, languageList);
         // Do the notifications!
         boolean success = installedPackageKeyboards.size() != 0;
         boolean _cleanup = true;
         if (success) {
-          if(!anSilentInstall)
-            _cleanup = !loadWelcomePage(installedPackageKeyboards);
-          notifyPackageInstallListeners(KeyboardEventHandler.EventType.PACKAGE_INSTALLED,
-            installedPackageKeyboards, 1);
+          if(installMode != KmpInstallMode.Silent) {
+            String keyboardName = installedPackageKeyboards.get(0).get(KMManager.KMKey_KeyboardName);
+            Toast.makeText(context,
+              String.format(context.getString(R.string.keyboard_install_toast), keyboardName),
+              Toast.LENGTH_SHORT).show();
+          }
+          _cleanup = true;
           if (installedPackageKeyboards != null) {
             notifyPackageInstallListeners(KeyboardEventHandler.EventType.PACKAGE_INSTALLED,
               installedPackageKeyboards, 1);
           }
+          KMManager.clearKeyboardCache();
+
           if(_cleanup)
             cleanup();
         } else {
-          showErrorDialog(context, pkgId, getString(R.string.no_new_touch_keyboards_to_install));
+          // Use Toast so it will linger when PackageActivity finishes
+          showErrorToast(getString(R.string.no_new_touch_keyboards_to_install));
         }
       } else if (pkgTarget.equals(PackageProcessor.PP_TARGET_LEXICAL_MODELS)) {
         List<Map<String, String>> installedLexicalModels =
@@ -341,10 +307,12 @@ public class PackageActivity extends AppCompatActivity {
         boolean success = installedLexicalModels.size() != 0;
         boolean _cleanup = true;
         if (success) {
-          if(!anSilentInstall)
-            _cleanup = !loadWelcomePage(installedLexicalModels);
-          notifyLexicalModelInstallListeners(KeyboardEventHandler.EventType.LEXICAL_MODEL_INSTALLED,
-            installedLexicalModels, 1);
+          if(installMode != KmpInstallMode.Silent)
+            Toast.makeText(context,
+              context.getString(R.string.model_install_toast),
+              Toast.LENGTH_SHORT).show();
+
+          _cleanup = true;
           if (installedLexicalModels != null) {
             notifyLexicalModelInstallListeners(KeyboardEventHandler.EventType.LEXICAL_MODEL_INSTALLED,
               installedLexicalModels, 1);
@@ -352,20 +320,25 @@ public class PackageActivity extends AppCompatActivity {
           if(_cleanup)
             cleanup();
         } else {
-          showErrorDialog(context, pkgId, getString(R.string.no_new_predictive_text_to_install));
+          // Use Toast so it will linger when PackageActivity finishes
+          showErrorToast(getString(R.string.no_new_predictive_text_to_install));
         }
       }
+
+      if(installMode != KmpInstallMode.Full) {
+        finish();
+      }
     } catch (Exception e) {
-      Log.e("PackageActivity", "Error " + e);
-      showErrorDialog(context, pkgId, getString(R.string.no_targets_to_install));
+      // Use Toast so it will linger when PackageActivity finishes
+      String msg = getString(R.string.no_targets_to_install);
+      KMLog.LogException(TAG, msg, e);
     }
   }
 
   private void showErrorDialog(Context context, String pkgId, String message) {
     AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(context);
 
-    alertDialogBuilder.setTitle(String.format("%s %s %s",
-      getString(R.string.title_package), pkgId, getString(R.string.title_failed_to_install)));
+    alertDialogBuilder.setTitle(String.format(getString(R.string.title_package_failed_to_install), pkgId));
     alertDialogBuilder
       .setMessage(message)
       .setCancelable(false)
@@ -374,7 +347,11 @@ public class PackageActivity extends AppCompatActivity {
           if (dialog != null) {
             dialog.dismiss();
           }
+          // Setting result to 1 so calling activity will finish too
+          setResult(1);
           cleanup();
+          finish();
+          MainActivity.cleanupPackageInstall();
         }
       });
 

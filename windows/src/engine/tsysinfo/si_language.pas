@@ -26,7 +26,7 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms,
-  Dialogs, si_base, StdCtrls, OleCtrls, SHDocVw, msxml;
+  Dialogs, si_base, StdCtrls, msxml;
 
 type
   TGetLocalInfoEx = function(lpLocaleName: PWideChar; LCType: DWORD; lpLCData: PWideChar; cchData: Integer): Integer; stdcall;
@@ -145,6 +145,8 @@ begin
 
   regnode := xmlAddChild(subnode,'CurrentUser');
   AddRegistry(regnode, HKEY_CURRENT_USER, SRegKey_KeyboardLayout_CU);
+  AddRegistry(regnode, HKEY_CURRENT_USER, 'Software\Microsoft\CTF');
+  AddRegistry(regnode, HKEY_CURRENT_USER, SRegKey_ControlPanelInternationalUserProfile);
   subnode := xmlAddChild(node,'Uniscribe');
   AddFileVersion(subnode, GetFolderPath(CSIDL_SYSTEM) + 'usp10.dll');
   str := TStringList.Create;

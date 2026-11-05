@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 set -u
-gcc -framework Carbon -o textinputsource main.c
+make textinputsource

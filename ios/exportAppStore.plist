@@ -7,9 +7,9 @@
     <key>teamID</key>
     <string>3YE4W86L3G</string>
     <key>signingCertificate</key>
-    <string>74AE6232D29C25812ED15CDE3C3D17B46721DDC0</string>
+    <string>CEEA1FABBCD0CB8E47945FF6A9D8CB97FD7788C1</string>
     <key>installerSigningCertificate</key>
-    <string>74AE6232D29C25812ED15CDE3C3D17B46721DDC0</string>
+    <string>CEEA1FABBCD0CB8E47945FF6A9D8CB97FD7788C1</string>
     <key>provisioningProfiles</key>
     <dict>
         <key>Tavultesoft.Keyman</key>
@@ -19,5 +19,7 @@
     </dict>
     <key>signingStyle</key>
     <string>manual</string>
+    <key>manageAppVersionAndBuildNumber</key>
+    <false/>
 </dict>
 </plist>

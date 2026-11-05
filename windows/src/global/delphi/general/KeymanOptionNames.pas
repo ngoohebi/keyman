@@ -5,22 +5,25 @@ interface
 type
   TUtilKeymanOption = (
     // General options
-    koKeyboardHotkeysAreToggle, koAltGrCtrlAlt, koReleaseShiftKeysAfterKeyPress,
+    koKeyboardHotkeysAreToggle,
+    koAltGrCtrlAlt,
+    koRightModifierHK,
+    koReleaseShiftKeysAfterKeyPress,
     koShowHints,   // I1256
+    koCheckForUpdates,
     // Startup options
     koTestKeymanFunctioning,
     koStartWithWindows,
     koShowStartup,
-    koCheckForUpdates,
     // Windows options
     koDebugging,
-    koSwitchLanguageForAllApplications, // I1089
     koDeadkeyConversion,   // I4552
     // On Screen Keyboard Options
     koAutoOpenOSK,          // I1288
-    koAutoSwitchOSKPages,  // I1375
     koUseTouchLayout,
-    koBaseLayout
+    koBaseLayout,
+    koAutomaticallyReportErrors,
+    koAutomaticallyReportUsage
     );
 
 function KeymanOptionName(Option: TUtilKeymanOption): string;

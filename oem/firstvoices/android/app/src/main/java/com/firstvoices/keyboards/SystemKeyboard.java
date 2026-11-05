@@ -1,35 +1,60 @@
 package com.firstvoices.keyboards;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Point;
 import android.graphics.Typeface;
 import android.inputmethodservice.InputMethodService;
+import android.text.InputType;
+import android.util.Log;
 import android.view.Display;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
 import android.view.inputmethod.InputConnection;
+import android.widget.FrameLayout;
 
-import com.tavultesoft.kmea.KMHardwareKeyboardInterpreter;
-import com.tavultesoft.kmea.KMManager;
-import com.tavultesoft.kmea.KMManager.KeyboardType;
-import com.tavultesoft.kmea.KeyboardEventHandler;
+import com.firstvoices.android.BannerController;
+import com.keyman.engine.KMManager;
+import com.keyman.engine.KMManager.KeyboardType;
+import com.keyman.engine.KMHardwareKeyboardInterpreter;
+import com.keyman.engine.KeyboardEventHandler.OnKeyboardEventListener;
+import com.keyman.engine.R;
+import com.keyman.engine.data.Keyboard;
+import com.keyman.engine.util.DependencyUtil;
+import com.keyman.engine.util.DependencyUtil.LibraryType;
 
-public class SystemKeyboard extends InputMethodService implements KeyboardEventHandler.OnKeyboardEventListener {
+import io.sentry.android.core.SentryAndroid;
+import io.sentry.Sentry;
 
+public class SystemKeyboard extends InputMethodService implements OnKeyboardEventListener {
     private View inputView = null;
+    private static ExtractedText exText = null;
     private KMHardwareKeyboardInterpreter interpreter = null;
+
+    private static final String TAG = "SystemKeyboard";
 
     /** Main initialization of the input method component. Be sure to call
      * to super class. */
     @Override
     public void onCreate() {
         super.onCreate();
+
+        if (DependencyUtil.libraryExists(LibraryType.SENTRY) && !Sentry.isEnabled()) {
+            Log.d(TAG, "Initializing Sentry");
+            SentryAndroid.init(getApplicationContext(), options -> {
+                options.setEnableAutoSessionTracking(false);
+                options.setRelease(com.firstvoices.keyboards.BuildConfig.KEYMAN_VERSION_GIT_TAG);
+                options.setEnvironment(com.firstvoices.keyboards.BuildConfig.KEYMAN_VERSION_ENVIRONMENT);
+            });
+        }
+
         KMManager.setDebugMode(false); // *** TO DO: Disable/delete before publishing a new release ***
         KMManager.addKeyboardEventListener(this);
         KMManager.setCanAddNewKeyboard(false);
@@ -37,9 +62,13 @@ public class SystemKeyboard extends InputMethodService implements KeyboardEventH
         KMManager.setShouldCheckKeyboardUpdates(false);
         KMManager.setKeyboardPickerFont(Typeface.createFromAsset(getAssets(), "fonts/NotoSansCanadianAboriginal.ttf"));
         KMManager.initialize(getApplicationContext(), KeyboardType.KEYBOARD_TYPE_SYSTEM);
+        DefaultLanguageResource.install(this);
 
         interpreter = new KMHardwareKeyboardInterpreter(getApplicationContext(), KeyboardType.KEYBOARD_TYPE_SYSTEM);
         KMManager.setInputMethodService(this); // for HW interface
+
+        // Set the system keyboard HTML banner
+        BannerController.setHTMLBanner(this, KeyboardType.KEYBOARD_TYPE_SYSTEM);
     }
 
     @Override
@@ -55,7 +84,7 @@ public class SystemKeyboard extends InputMethodService implements KeyboardEventH
      * is called after creation and any configuration change. */
     @Override
     public void onInitializeInterface() {
-        super.onInitializeInterface();
+      super.onInitializeInterface();
     }
 
     /** Called by the framework when your view for creating input needs to
@@ -94,6 +123,33 @@ public class SystemKeyboard extends InputMethodService implements KeyboardEventH
         attribute.imeOptions |= EditorInfo.IME_FLAG_NO_EXTRACT_UI | EditorInfo.IME_FLAG_NO_FULLSCREEN;
         super.onStartInput(attribute, restarting);
         KMManager.onStartInput(attribute, restarting);
+        KMManager.resetContext(KeyboardType.KEYBOARD_TYPE_SYSTEM);
+
+        // Select numeric layer if applicable
+        int inputType = attribute.inputType;
+        if (((inputType & InputType.TYPE_MASK_CLASS) == InputType.TYPE_CLASS_NUMBER) ||
+                ((inputType & InputType.TYPE_MASK_CLASS) == InputType.TYPE_CLASS_PHONE)) {
+            KMManager.setNumericLayer(KeyboardType.KEYBOARD_TYPE_SYSTEM);
+        }
+
+        // Temporarily disable predictions on certain fields (e.g. hidden password field or numeric)
+        KMManager.setPredictionsSuspended(inputType, KeyboardType.KEYBOARD_TYPE_SYSTEM);
+        if (KMManager.getPredictionsSuspended(KeyboardType.KEYBOARD_TYPE_SYSTEM)) {
+            KMManager.setBannerOptions(false);
+        } else if (KMManager.isKeyboardLoaded(KeyboardType.KEYBOARD_TYPE_SYSTEM)){
+          // Check if predictions needs to be re-enabled per Settings preference
+          Context appContext = getApplicationContext();
+          Keyboard kbInfo = KMManager.getCurrentKeyboardInfo(appContext);
+          if (kbInfo != null) {
+            String langId = kbInfo.getLanguageID();
+            SharedPreferences prefs = appContext.getSharedPreferences(appContext.getString(R.string.kma_prefs_name), Context.MODE_PRIVATE);
+            boolean mayPredict = prefs.getBoolean(KMManager.getLanguagePredictionPreferenceKey(langId), true);
+            KMManager.setBannerOptions(mayPredict);
+          }
+        }
+
+        // Determine special handling for ENTER key
+        KMManager.setEnterMode(attribute.imeOptions, inputType);
 
         // User switched to a new input field so we should extract the text from input field
         // and pass it to Keyman Engine together with selection range
@@ -101,20 +157,21 @@ public class SystemKeyboard extends InputMethodService implements KeyboardEventH
         if (ic != null) {
             ExtractedText icText = ic.getExtractedText(new ExtractedTextRequest(), 0);
             if (icText != null) {
-                KMManager.updateText(KeyboardType.KEYBOARD_TYPE_SYSTEM, icText.text.toString());
+                boolean didUpdateText = KMManager.updateText(KeyboardType.KEYBOARD_TYPE_SYSTEM, icText.text.toString());
                 int selStart = icText.startOffset + icText.selectionStart;
                 int selEnd = icText.startOffset + icText.selectionEnd;
-                KMManager.updateSelectionRange(KeyboardType.KEYBOARD_TYPE_SYSTEM, selStart, selEnd);
+                boolean didUpdateSelection = KMManager.updateSelectionRange(KeyboardType.KEYBOARD_TYPE_SYSTEM, selStart, selEnd);
+                if (!didUpdateText || !didUpdateSelection) {
+                    exText = icText;
+                }
             }
         }
-
-        if (KMManager.getCurrentKeyboardIndex(this) < 0)
-            KMManager.setKeyboard(this, 0);
     }
 
     @Override
     public void onStartInputView(EditorInfo attribute, boolean restarting) {
         super.onStartInputView(attribute, restarting);
+        setInputView(onCreateInputView());
     }
 
     @Override
@@ -129,24 +186,32 @@ public class SystemKeyboard extends InputMethodService implements KeyboardEventH
     }
 
     @Override
+    public void onConfigureWindow(Window win, boolean isFullscreen, boolean isCandidatesOnly) {
+        super.onConfigureWindow(win, isFullscreen, isCandidatesOnly);
+
+        // We don't currently use isFullscreen or isCandidatesOnly; we always want to MATCH_PARENT,
+        // unlike the default for height which is WRAP_CONTENT. We then adjust the touchable area
+        // in `onCalculateInsets`
+        win.setLayout(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
+    }
+
+    @Override
     public void onComputeInsets(Insets outInsets) {
         super.onComputeInsets(outInsets);
 
         // We should extend the touchable region so that Keyman sub keys menu can receive touch events outside the keyboard frame
-        WindowManager wm = (WindowManager)getSystemService(Context.WINDOW_SERVICE);
-        if(wm == null) return;
-        Point size = new Point(0, 0);
-        Display display = wm.getDefaultDisplay();
-        if(display == null) return;
-
-        display.getSize(size);
+        Point size = KMManager.getWindowSize(getApplicationContext());
 
         int inputViewHeight = 0;
-        if (inputView != null)
+        if (inputView != null) {
             inputViewHeight = inputView.getHeight();
+        }
 
+        int navigationHeight = KMManager.getNavigationBarHeight(this, KeyboardType.KEYBOARD_TYPE_SYSTEM);
+        int bannerHeight = KMManager.getBannerHeight(this);
         int kbHeight = KMManager.getKeyboardHeight(this);
-        outInsets.contentTopInsets = inputViewHeight - kbHeight;
+        outInsets.contentTopInsets = inputViewHeight - bannerHeight - kbHeight - navigationHeight;
+        outInsets.visibleTopInsets = outInsets.contentTopInsets;
         outInsets.touchableInsets = Insets.TOUCHABLE_INSETS_REGION;
         outInsets.touchableRegion.set(0, outInsets.contentTopInsets, size.x, size.y);
     }
@@ -154,6 +219,8 @@ public class SystemKeyboard extends InputMethodService implements KeyboardEventH
     @Override
     public void onKeyboardLoaded(KeyboardType keyboardType) {
         // Handle Keyman keyboard loaded event here if needed
+        if (exText != null)
+            exText = null;
     }
 
     @Override
@@ -163,7 +230,8 @@ public class SystemKeyboard extends InputMethodService implements KeyboardEventH
 
     @Override
     public void onKeyboardShown() {
-        // Handle Keyman keyboard shown event here if needed
+      // Refresh banner theme
+      BannerController.setHTMLBanner(this, KeyboardType.KEYBOARD_TYPE_SYSTEM);
     }
 
     @Override
@@ -172,7 +240,35 @@ public class SystemKeyboard extends InputMethodService implements KeyboardEventH
     }
 
     @Override
+    public boolean onEvaluateInputViewShown() {
+      // On Android API 36+, the OSK defaults to not appearing when a physical keyboard is connected.
+      // If the default implementation returns true, recommend honoring it
+      // Reference: https://android.googlesource.com/platform/frameworks/base/+/7b739a8%5E%21/
+      if (super.onEvaluateInputViewShown()) {
+        return true;
+      };
+
+      SharedPreferences prefs = this.getSharedPreferences(
+        PreferencesManager.fv_prefs_name, Context.MODE_PRIVATE);
+      boolean showOSK = prefs.getBoolean(
+        PreferencesManager.oskWithPhysicalKeyboardKey, false);
+      return showOSK;
+    }
+
+    @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            switch (keyCode) {
+              case KeyEvent.KEYCODE_BACK:
+                // Dismiss the keyboard if currently shown
+                if (isInputViewShown()) {
+                  KMManager.hideSystemKeyboard();
+                  return true;
+                }
+                break;
+            }
+        }
+
         return interpreter.onKeyDown(keyCode, event);  // if false, will revert to default handling.
     }
 

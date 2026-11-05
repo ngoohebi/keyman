@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Build KMFL in the required order: keyboardprocessor kmflcomp libkmfl ibus-kmfl ibus-keyman
+# Build Keyman for Linux: core ibus-keyman
 
 # It must be run from the keyman/linux directory
 
 set -e
 
-BASEDIR=`pwd`
+BASEDIR=$(pwd)
 
 INSTALLDIR=${INSTALLDIR:-"/usr/local"}
 
@@ -19,69 +19,32 @@ if [[ "${CONFIGUREONLY}" != "no" && "${BUILDONLY}" != "no" ]]; then
 fi
 
 if [[ "${BUILDONLY}" == "no" ]]; then
-	if [ ! -d keyboardprocessor ]; then
-		meson ../common/engine/keyboardprocessor keyboardprocessor
-	fi
-	cd keyboardprocessor
-	echo "reconfiguring keyboardprocessor meson with prefix ${INSTALLDIR}"
-	meson configure -Dprefix=${INSTALLDIR} && ninja reconfigure
-	cd $BASEDIR
+	cd "$BASEDIR"
+	../core/build.sh --no-tests configure:arch
+
+	# While we can't pass extra parameters to the configure action
+	# we need these extra commands
+	cd ../core/build/arch/release
+	echo "reconfiguring Keyman Core meson with prefix ${INSTALLDIR}"
+	meson configure -Dprefix="${INSTALLDIR}" && ninja reconfigure
+
+	# We need to build core first before we can configure ibus-keyman!
+	cd "$BASEDIR"
+	../core/build.sh build:arch
+
+	cd "$BASEDIR/ibus-keyman"
+	./build.sh clean configure -- --prefix="${INSTALLDIR}"
 fi
 
 if [[ "${CONFIGUREONLY}" == "no" ]]; then
-	echo "building keyboardprocessor"
-	cd keyboardprocessor
-	ninja
-	cd $BASEDIR
-fi
+	echo "building Keyman Core"
+	cd "$BASEDIR"
+	# May 2021: For now, running tests here as well. We could move this elsewhere
+	# in the future if we want to split out the tests, but they run in a couple of seconds
+	# at present.
+	../core/build.sh build:arch test:arch
 
-for proj in kmflcomp libkmfl ibus-kmfl ibus-keyman; do
-	if [ ! -f $proj/configure ]; then
-		echo "$proj is not set up with autoreconf. First run 'make reconf' or 'make devreconf'"
-		exit 1
-	fi
-	if [[ "${BUILDONLY}" == "no" ]]; then
-		rm -rf build-$proj
-	fi
-	mkdir -p build-$proj
-	cd build-$proj
-	if [[ "${BUILDONLY}" == "no" ]]; then
-		echo "Configuring $proj"
-		if [[ "${INSTALLDIR}" == "/tmp/kmfl" ]]; then # don't install ibus-kmfl or ibus-keyman into ibus
-			../$proj/configure KEYMAN_PROC_CFLAGS="-I\$(top_builddir)/../keyboardprocessor/include -I\$(top_builddir)/../../common/engine/keyboardprocessor/include" \
-				CPPFLAGS="-I\$(top_builddir)/../build-kmflcomp -I\$(top_builddir)/../build-libkmfl" \
-				KEYMAN_PROC_LIBS="-L`pwd`/../build-libkmfl/src -L`pwd`/../keyboardprocessor/src -lkmnkbp0" \
-				LDFLAGS="-L`pwd`/../build-kmflcomp/src -L`pwd`/../build-libkmfl/src" --prefix=${INSTALLDIR} --libexecdir=${INSTALLDIR}/lib/ibus
-		else	# install ibus-kmfl and ibus-keyman into ibus
-			../$proj/configure KEYMAN_PROC_CFLAGS="-I\$(top_builddir)/../keyboardprocessor/include -I\$(top_builddir)/../../common/engine/keyboardprocessor/include" \
-				CPPFLAGS="-I\$(top_builddir)/../build-kmflcomp -I\$(top_builddir)/../build-libkmfl" \
-				LDFLAGS="-L`pwd`/../build-kmflcomp/src -L`pwd`/../build-libkmfl/src" \
-				KEYMAN_PROC_LIBS="-L`pwd`/../build-libkmfl/src -L`pwd`/../keyboardprocessor/src -lkmnkbp0" \
-				--prefix=${INSTALLDIR} --libexecdir=${INSTALLDIR}/lib/ibus --datadir=/usr/share
-		fi
-		if [ -d ../$proj/include ]; then
-			echo "copying $proj include files to kmfl dir"
-			mkdir kmfl
-			cp -a ../$proj/include/*.h kmfl
-		fi
-	fi
-	if [[ "${CONFIGUREONLY}" == "no" ]]; then
-		if [ ! -f config.h ]; then
-			echo "$proj has not been configured before building. First run 'make configure'"
-			exit 1
-		fi
-		echo "Building $proj"
-		make
-	fi
-	cd $BASEDIR
-done
-
-if [[ "${CONFIGUREONLY}" == "no" ]]; then
-	cd keyman-config
-	if [ ! -f keyman_config/version.py ]; then
-		echo "The version of keyman-config has not been configured before building. First run 'make reconf'"
-	fi
-	make clean
-	make
-	cd $BASEDIR
+	echo "building ibus-keyman"
+	cd "$BASEDIR/ibus-keyman"
+	./build.sh build
 fi

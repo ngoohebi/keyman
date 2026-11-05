@@ -1,69 +1,47 @@
 #!/bin/bash
 
-# autoreconf autotool projects
-
-# parameters: [JENKINS="yes"] ./reconf.sh [proj]
-# JENKINS="yes" to set version for jenkins builds
-# proj = only reconf this project
-
-set -e
+set -eu
 
 ## START STANDARD BUILD SCRIPT INCLUDE
 # adjust relative paths as necessary
-THIS_SCRIPT="$(greadlink -f "${BASH_SOURCE[0]}" 2>/dev/null || readlink -f "${BASH_SOURCE[0]}")"
-. "$(dirname "$THIS_SCRIPT")/../../resources/build/build-utils.sh"
+THIS_SCRIPT="$(readlink -f "${BASH_SOURCE[0]}")"
+. "${THIS_SCRIPT%/*}/../../resources/build/builder-basic.inc.sh"
 ## END STANDARD BUILD SCRIPT INCLUDE
 
 BASEDIR="$KEYMAN_ROOT/linux"
 echo "basedir is $BASEDIR"
-autotool_projects="kmflcomp libkmfl ibus-kmfl ibus-keyman"
-extra_projects="keyboardprocessor keyman-config"
 
-if [ "$1" != "" ]; then
-    if [ "$1" == "keyboardprocessor" ]; then
-        echo "reconfiguring only keyboardprocessor"
-        extra_projects="keyboardprocessor"
-        autotool_projects=""
-    elif [ ! -d "$1" ]; then
-        echo "project $1 does not exist"
-        exit 1
-    elif [ "$1" == "keyman-config" ]; then
-        echo "reconfiguring only keyman-config"
-        extra_projects="keyman-config"
-        autotool_projects=""
-    else
-        echo "reconfiguring only $1"
-        autotool_projects="$1"
-        extra_projects=""
-    fi
-fi
+echo "Found tier ${KEYMAN_TIER}, version ${KEYMAN_VERSION}"
 
-. "$BASEDIR/scripts/version.sh"
-version
+# We need to configure+build core before we can configure ibus-keyman
+cd ../core
+./build.sh --no-tests clean:arch configure:arch build:arch
 
-# autoreconf the projects
-for proj in ${autotool_projects}; do
-    if [ "${proj}" != "keyman-config" ]; then
-        cd $proj
-        echo "Reconfiguring $proj to version `cat VERSION`"
-        autoreconf -if
-        cd $BASEDIR
-    fi
-done
+# Building ibus-keyman will also build dependency keyman-system-service
+cd "$BASEDIR/ibus-keyman"
+./build.sh clean configure
 
-for proj in ${extra_projects}; do
-    if [ "${proj}" == "keyboardprocessor" ]; then
-        rm -rf keyboardprocessor
-        #TODO: update meson version to 0.50.0+ and use `meson rewrite`
-        #meson rewrite kwargs set project / version "${newvers}"
-        sed -i "s/version: '.*'/version: '${newvers}'/" ../common/engine/keyboardprocessor/meson.build
-        meson ../common/engine/keyboardprocessor keyboardprocessor
-    fi
-    if [ "${proj}" == "keyman-config" ]; then
-        cd keyman-config
-        make clean
-        cd keyman_config
-        sed -e "s/_VERSION_/${newvers}/g" -e "s/_MAJORVERSION_/${VERSION_MAJOR}/g" version.py.in > version.py
-    fi
-    cd $BASEDIR
-done
+cd "$BASEDIR/keyman-config"
+./build.sh clean
+
+cd "$BASEDIR/keyman-config/keyman_config"
+export QUILT_PATCHES="${BASEDIR}/debian/patches"
+export QUILT_REFRESH_ARGS="-p ab --no-timestamps --no-index"
+quilt push -a || true
+quilt new version_py.diff
+quilt add "version.py"
+
+sed \
+    -e "s/__KEYMAN_VERSION__/${KEYMAN_VERSION}/g" \
+    -e "s/__KEYMAN_VERSION_WITH_TAG__/${KEYMAN_VERSION_WITH_TAG}/g" \
+    -e "s/__KEYMAN_VERSION_GIT_TAG__/${KEYMAN_VERSION_GIT_TAG}/g" \
+    -e "s/__KEYMAN_VERSION_MAJOR__/${KEYMAN_VERSION_MAJOR}/g" \
+    -e "s/__KEYMAN_VERSION_RELEASE__/${KEYMAN_VERSION_RELEASE}/g" \
+    -e "s/__KEYMAN_TIER__/${KEYMAN_TIER}/g" \
+    -e "s/__KEYMAN_VERSION_ENVIRONMENT__/${KEYMAN_VERSION_ENVIRONMENT}/g" \
+    -e "s/__UPLOAD_SENTRY__/${UPLOAD_SENTRY}/g" \
+    version.py.in > version.py
+quilt refresh
+quilt pop -a
+cd ../buildtools && python3 ./build-langtags.py
+cd "$BASEDIR"

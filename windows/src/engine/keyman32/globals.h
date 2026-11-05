@@ -1,18 +1,18 @@
 /*
   Name:             globals
   Copyright:        Copyright (C) SIL International.
-  Documentation:    
-  Description:      
+  Documentation:
+  Description:
   Create Date:      1 Aug 2006
 
   Modified Date:    25 Oct 2016
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
-  Bugs:             
-  Todo:             
-  Notes:            
+  Bugs:
+  Todo:
+  Notes:
   History:          01 Aug 2006 - mcdurdin - Add hotkeys
                     14 Sep 2006 - mcdurdin - Add UpdateActiveWindows function
                     16 May 2007 - mcdurdin - I819 - Test if Keyman is functioning
@@ -54,18 +54,14 @@
 
 #include <evntprov.h>
 
-#define GLOBAL_ContextStackSize 80
-#define GLOBAL_MsgStackSize 80
-#define GLOBAL_MaxKeyboards 32
-
 #include "serialkeyeventclient.h"
 #include "SharedBuffers.h"
+
+#include "..\..\..\include\kmtip_guids.h"
 
 class Globals
 {
 public:
-	//static INI *Ini();
-
 	static HHOOK *hhookGetMessage();
 	static HHOOK *hhookCallWndProc();
 
@@ -83,7 +79,7 @@ public:
 
 	static DWORD *FSingleThread();
   static DWORD *InitialisingThread();   // I4326
-	
+
   //static DWORD *ActiveKeymanID();
   //static HKL *ActiveKeyboardLayout();
 
@@ -93,10 +89,19 @@ public:
 	static DWORD *ShiftState();
 
   static LONG *RefreshTag();
+  static LONG get_RefreshTag();
+
+#ifndef _WIN64
+  static HWND get_hwndHostX64();
+  static HWND get_hwndHostARM64();
+
+  static HWND *hwndHostX64();
+  static HWND *hwndHostARM64();
+#endif
 
 	static HHOOK get_hhookGetMessage();
 	static HHOOK get_hhookCallWndProc();
-  
+
 #ifndef _WIN64
   static HHOOK get_hhookLowLevelKeyboardProc();   // I4124
 #endif
@@ -132,12 +137,10 @@ public:
 
 	static LRESULT SendMasterController(UINT msg, WPARAM wParam, LPARAM lParam);
 	static void PostMasterController(UINT msg, WPARAM wParam, LPARAM lParam);
-  
+
   static BOOL ResetControllers();
 
-	static void PostControllers(UINT msg, WPARAM wParam, LPARAM lParam);
-  static void PostProcessControllers(UINT msg, WPARAM wParam, LPARAM lParam);
-  static BOOL IsControllerProcess();
+  static BOOL IsControllerThread(DWORD tid);
 
   static BOOL InitHandles();
   static BOOL InitSettings();
@@ -156,6 +159,7 @@ public:
 
 typedef HRESULT (WINAPI *PKEYMANPROCESSOUTPUTFUNC)(int n, WCHAR *buf, int nbuf);
 typedef HRESULT (WINAPI *PKEYMANGETCONTEXTFUNC)(int n, PWSTR buf);
+typedef HRESULT (WINAPI *PKEYMANGETCONTEXTISSELECTEDFUNC)(int n, PWSTR buf, BOOL* isTextSelected);
 typedef BOOL (WINAPI *PTIPCALLBACK)();  // Tells the TIP to update its status (used to be done through 0x88)
 
 typedef BOOL (WINAPI *PKeymanOutputBackspace)(HWND hwnd);
@@ -187,18 +191,15 @@ typedef struct tagKEYMANHKLPAIR
 
 #define MAXCACHEDKEYBOARDLAYOUTS 128
 
+typedef BOOL (WINAPI *CUSTOMPOSTKEYCALLBACKPROC)(APPACTIONQUEUEITEM* Queue, int QueueSize);
+
 typedef struct tagKEYMAN64THREADDATA
 {
   LPINTKEYBOARDINFO lpKeyboards;			// keyboard definitions
   LPINTKEYBOARDINFO lpActiveKeyboard;
-   // I3616
-  LPMSG msgbuf;						// Message buffer (alloc at runtime)
 
   int nKeyboards;						// nLoadedKeyboards
   int nLanguages;           // I1087 //TODO UNUSED
-
-  LPWORD IndexStack;
-  LPWSTR miniContext;
 
   KMSTATE state;
 
@@ -209,19 +210,20 @@ typedef struct tagKEYMAN64THREADDATA
 	  FInitialised,
     FInitialising;
 
-  char ForceFileName[MAX_PATH];
-
   DWORD ActiveKeymanID;
 
   /* TIP Globals */
 
   PKEYMANPROCESSOUTPUTFUNC TIPProcessOutput;
   PKEYMANGETCONTEXTFUNC TIPGetContext;
- 
+  PKEYMANGETCONTEXTISSELECTEDFUNC TIPGetContextIsSelected;
+
   BOOL TIPFUpdateable, TIPFPreserved;   // I4290
 
+  BOOL CoreProcessEventRun;  // True if core process event has been run
+
   BOOL FInRefreshKeyboards;
-  LONG RefreshTag_Process;
+  LONG RefreshTag_Thread;
 
   /* Addin Globals */
 
@@ -232,6 +234,7 @@ typedef struct tagKEYMAN64THREADDATA
   HWND CurrenthWnd;
 
   BOOL debug_DebugInit;   // I3951
+  int debug_Depth;
   char debug_buf[64];
 
    // I3617   // I3618
@@ -240,37 +243,32 @@ typedef struct tagKEYMAN64THREADDATA
 
   /* TSF Manager Globals */
 
-  HMODULE hMSCTF;
-  ITfInputProcessorProfiles *pInputProcessorProfiles;
-  ITfInputProcessorProfileMgr *pInputProcessorProfileMgr;
-  BOOL TSFFailed;
   WPARAM LastKey;   // I4642
   BYTE LastScanCode;   // I4642
+  BYTE LastTransition;
 
   /* Serialized key events */
 
   ISerialKeyEventClient *pSerialKeyEventClient;
   ISharedBufferManager *pSharedBufferManager;
 
+  /* Test host integration */
+
+  CUSTOMPOSTKEYCALLBACKPROC CustomPostKeyCallback;
+
 } KEYMAN64THREADDATA, *PKEYMAN64THREADDATA;
 
-extern UINT 
+extern UINT
   wm_keyman,						// user message - ignore msg
-  wm_kmdebug,						//  " "  "  "   - debugging
   wm_keyman_control,				// messages to main Keyman window - replaces WM_USER+*
   wm_keyman_control_internal,       // messages to all windows to notify of changes to Keyman   // I4412
-  wm_keymankeydown,
-  wm_keymankeyup,
-  wm_keymandebug,
   wm_keyman_grabwindowproc,
   wm_keyman_refresh,
   wm_kmgetactivekeymanid,
   wm_keymanshift,
   wm_keymanim_close,
   wm_keymanim_contextchanged,
-  wm_test_keyman_functioning,
-  wm_keyman_keyevent;   // for serialized input 
-
+  wm_test_keyman_functioning;
 extern BOOL
   flag_ShouldSerializeInput;
 
@@ -292,5 +290,17 @@ BOOL Globals_ProcessInitialised();
 /* Debug flags */
 
 BOOL Reg_GetDebugFlag(LPSTR pszFlagRegistrySetting, BOOL bDefault);
+
+/* Test Host integration */
+
+void WINAPI SetCustomPostKeyCallback(CUSTOMPOSTKEYCALLBACKPROC proc);
+
+/**
+ * Is the active keyboard a Keyman keyboard? This value is
+ * only valid in the master controller thread, and is used
+ * by serialized input to ensure that we only trap input
+ * while a Keyman keyboard is active.
+ **/
+extern BOOL isKeymanKeyboardActive;
 
 #endif

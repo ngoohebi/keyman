@@ -1,110 +1,135 @@
-#!/bin/bash
-
+#!/usr/bin/env bash
 # Build source packages from nightly builds and upload to PPA
 
-# must be run from linux dir
+# shellcheck disable=SC2310 # -e will be disabled in if
 
-# parameters: [UPLOAD="yes"] [TIER="<tier>"] [PROJECT="<project>"] [DIST="<dist>"] [PACKAGEVERSION="<version>"] ./scripts/launchpad.sh
-# UPLOAD="yes" do the dput for real
-# TIER="<tier>" alpha, beta or stable tier. If not provided, use TIER.md
-# PROJECT="<project>" only upload this project
-# DIST="<dist>" only upload for this distribution
+## START STANDARD BUILD SCRIPT INCLUDE
+# adjust relative paths as necessary
+THIS_SCRIPT="$(readlink -f "${BASH_SOURCE[0]}")"
+# shellcheck source=resources/build/builder-full.inc.sh
+. "${THIS_SCRIPT%/*}/../../resources/build/builder-full.inc.sh"
+## END STANDARD BUILD SCRIPT INCLUDE
 
+# shellcheck source=linux/scripts/package-build.inc.sh
+. "$(dirname "${THIS_SCRIPT}")/package-build.inc.sh"
 
-set -e
+builder_describe \
+  "Build source packages from nightly builds and upload to PPA" \
+  build \
+  "--no-download                    Don't download source. Assume keyman-<version> exists as subdirectory of current dir." \
+  "--upload                         Upload to launchpad." \
+  "--simulate                       Simulate the upload to launchpad." \
+  "--no-lintian                     Don't run lintian while creating source package." \
+  "--no-sign                        Don't sign the source package." \
+  "--dist=DIST                      Only upload this distribution. Default: upload all supported dists." \
+  "--packageversion=PACKAGEVERSION  String to append to the package version. Default: '1~sil1'." \
+  "--outputdir=OUTPUTDIR            Directory for resulting artifacts. Default: \$KEYMAN_ROOT/linux/launchpad." \
+  "--retries=RETRIES                Number of retries on network errors. Default: 5."
 
-if [ "${UPLOAD}" == "yes" ]; then
-    SIM=""
+builder_parse "$@"
+
+cd "${KEYMAN_ROOT}/linux"
+
+checkPrerequisites
+
+if [[ -z "${OUTPUTDIR:-}" ]]; then
+  OUTPUTDIR="${KEYMAN_ROOT}/linux/launchpad"
+fi
+
+if builder_has_option --simulate; then
+  SIM="-s"
 else
-    SIM="-s"
+  SIM=""
 fi
 
-# Determine the tier. First check if TIER.md exists
-if [[ -f ../TIER.md ]]; then
-    tier=`cat ../TIER.md`
-elif [[ -z "${TIER}" ]]; then
-    echo "TIER.md or \${TIER} must be set to (alpha, beta, stable) to use this script"
-    exit 1
+DEBUILD_OPTS=()
+if builder_has_option --no-lintian; then
+  DEBUILD_OPTS+=("--no-lintian")
+fi
+
+if builder_has_option --no-sign; then
+  DEBUILD_OPTS+=("--no-sign")
+fi
+
+if [[ "${KEYMAN_TIER}" == "stable" ]]; then
+  ppa="keyman-ppa:keyman"
+elif [[ "${KEYMAN_TIER}" == "beta" ]]; then
+  ppa="keyman-ppa:keyman-beta"
 else
-    tier="${TIER}"
+  ppa="keyman-ppa:keyman-alpha"
 fi
+echo "ppa: ${ppa}"
 
-if [ "${tier}" == "stable" ]; then
-    ppa="ppa:keymanapp/keyman"
-else
-    ppa="ppa:keymanapp/keyman-daily"
-fi
+function upload_with_retry() {
+  local changes_file="$1"
+  local retries="$2"
+  local sim="$3"
+  local ppa="$4"
+  local attempt=0
+  local max_attempts=$((retries+1))
+  local rc=0
+  local output
 
-if [ ! `which xmllint` ]; then
-    echo "you must install xmllint (libxml2-utils package) to use this script"
-    exit 1
-fi
-
-if [ "${PROJECT}" != "" ]; then
-    projects="${PROJECT}"
-else
-    projects="keyman-keyboardprocessor kmflcomp libkmfl ibus-kmfl keyman-config ibus-keyman"
-fi
-
-if [ "${DIST}" != "" ]; then
-    distributions="${DIST}"
-else
-    distributions="xenial bionic eoan"
-fi
-
-if [ "${PACKAGEVERSION}" != "" ]; then
-    packageversion="${PACKAGEVERSION}"
-else
-    packageversion="1~sil1"
-fi
-
-
-BASEDIR=`pwd`
-
-rm -rf launchpad
-mkdir -p launchpad
-
-for proj in ${projects}; do
-    if [ "${proj}" == "keyman-keyboardprocessor" ]; then
-       cd ${BASEDIR}/../common/engine/keyboardprocessor
-    else
-       cd ${proj}
+  while (( attempt++ < max_attempts )); do
+    builder_echo "Uploading ${changes_file} (attempt ${attempt}/${max_attempts})..."
+    set -o pipefail
+    # shellcheck disable=SC2312,SC2086  # no quotes for $sim - it might not be set
+    output=$(dput ${sim:-} "${ppa}" "${changes_file}" 2>&1 | tee /dev/stderr)
+    rc=$?
+    set +o pipefail
+    if [[ ${rc} == 0 ]]; then
+      return 0
     fi
-    if [ "${proj}" == "keyman-config" ]; then
-        tarname="keyman_config"
-        make clean
+    # Check if error is a network-related error
+    if [[ ${rc} == 1 ]] && echo "${output}" | grep -iE 'Connection reset|Connection refused|Network is unreachable|Name or service not known|Connection timed out|Temporary failure|Broken pipe|Connection aborted' > /dev/null 2>&1; then
+      if (( attempt < max_attempts )); then
+        builder_echo warning "Network error detected, retrying..."
+        sleep $((attempt * 5))
+      fi
     else
-        tarname="${proj}"
+      # Non-network error, fail immediately
+      builder_echo error "Upload failed with non-network error (exit code: ${rc})"
+      builder_echo error "${output}"
+      return "${rc}"
     fi
+  done
 
-    # Update tier in Debian watch files (replacing any previously set tier)
-    sed -i "s/\$tier\|alpha\|beta\|stable/$tier/g" debian/watch
+  builder_echo error "Failed to upload after ${max_attempts} attempts"
+  return 1
+}
 
-    version=`uscan --report --dehs|xmllint --xpath "//dehs/upstream-version/text()" -`
-    dirversion=`uscan --report --dehs|xmllint --xpath "//dehs/upstream-url/text()" - | cut -d/ -f6`
-    echo "${proj} version is ${version}"
-    uscan
-    cd ..
-    mv ${proj}-${version} ${BASEDIR}/launchpad
-    mv ${proj}_${version}.orig.tar.gz ${BASEDIR}/launchpad
-    mv ${tarname}-${version}.tar.gz ${BASEDIR}/launchpad
-    rm ${proj}*.debian.tar.xz
-    cd ${BASEDIR}/launchpad
-    wget -N https://downloads.keyman.com/linux/${tier}/${dirversion}/SHA256SUMS
-    sha256sum -c --ignore-missing SHA256SUMS |grep ${tarname}
-    cd ${proj}-${version}
-    echo `pwd`
-    cp debian/changelog ../${proj}-changelog
-    #TODO separate source builds and dputs for each of $dists?
-    for dist in ${distributions}; do
-        cp ../${proj}-changelog debian/changelog
-        dch -v ${version}-${packageversion}~${dist} "source package for PPA"
-        dch -D ${dist} -r ""
-        debuild -d -S -sa -Zxz
-    done
-    cd ..
-    for dist in ${distributions}; do
-        dput ${SIM} ${ppa} ${proj}_${version}-${packageversion}~${dist}_source.changes
-    done
-    cd ${BASEDIR}
+distributions="${DIST:-jammy noble resolute stonking}"
+packageversion="${PACKAGEVERSION:-1~sil1}"
+retries="${RETRIES:-5}"
+
+if ! builder_has_option --no-download; then
+  rm -rf launchpad
+  mkdir -p launchpad
+fi
+
+if ! builder_has_option --no-download; then
+  downloadSource launchpad
+else
+  version=$(cat "${KEYMAN_ROOT}/VERSION.md")
+  cd "${OUTPUTDIR}"
+fi
+
+cd "keyman-${version:-}"
+pwd
+cp debian/changelog "../keyman-changelog"
+for dist in ${distributions}; do
+  cp "../keyman-changelog" debian/changelog
+  dch -v "${version}-${packageversion}~${dist}" "source package for PPA"
+  dch -D "${dist}" -r ""
+  # According to the docs, -S is equivalent to --build=source, but that causes debuild to fail.
+  # There is no long option for -sa (passed to dpkg-genchanges)
+  debuild "${DEBUILD_OPTS[@]}" --no-check-builddeps --compression=xz -S -sa
 done
+if builder_has_option --upload || builder_has_option --simulate; then
+  cd ..
+  for dist in ${distributions}; do
+    if ! upload_with_retry "keyman_${version}-${packageversion}~${dist}_source.changes" "${retries}" "${SIM}" "${ppa}"; then
+      builder_die "Upload failed for distribution ${dist}"
+    fi
+  done
+fi

@@ -9,6 +9,7 @@
 // It replaces the original in every case but one.
 
 import UIKit
+import os.log
 
 private let toolbarButtonTag = 100
 
@@ -19,7 +20,7 @@ class KeyboardSwitcherViewController: UITableViewController, UIAlertViewDelegate
   override func viewDidLoad() {
     super.viewDidLoad()
     
-    title = "Keyboards"
+    title = NSLocalizedString("menu-picker-title", bundle: engineBundle, comment: "")
     
     self.accessoryType = .none
     
@@ -27,7 +28,7 @@ class KeyboardSwitcherViewController: UITableViewController, UIAlertViewDelegate
     //NEEDED?
     navigationItem.rightBarButtonItem = nil
     
-    log.info("didLoad: KeyboardSwitcherViewController")
+    os_log("didLoad: KeyboardSwitcherViewController", log: KeymanEngineLogger.ui, type: .info)
   }
 
   override func viewWillAppear(_ animated: Bool) {
@@ -35,6 +36,13 @@ class KeyboardSwitcherViewController: UITableViewController, UIAlertViewDelegate
     
     loadUserKeyboards()
     scroll(toSelectedKeyboard: false)
+  }
+  
+  override func viewDidAppear(_ animated: Bool) {
+    super.viewDidAppear(animated)
+    
+    // Helps to handle slide-dismissal.
+    navigationController?.presentationController?.delegate = self
   }
   
   public func scroll(toSelectedKeyboard animated: Bool) {
@@ -107,6 +115,7 @@ class KeyboardSwitcherViewController: UITableViewController, UIAlertViewDelegate
       tableView.reloadData()
     }
     
+    navigationController?.presentationController?.delegate = nil
     Manager.shared.dismissKeyboardPicker(self)
   }
   
@@ -118,5 +127,13 @@ class KeyboardSwitcherViewController: UITableViewController, UIAlertViewDelegate
   public func loadUserKeyboards() {
     userKeyboards = Storage.active.userDefaults.userKeyboards ?? []
     tableView.reloadData()
+  }
+}
+
+extension KeyboardSwitcherViewController: UIAdaptivePresentationControllerDelegate {
+  public func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
+    
+    navigationController?.presentationController?.delegate = nil
+    Manager.shared.dismissKeyboardPicker(self)
   }
 }

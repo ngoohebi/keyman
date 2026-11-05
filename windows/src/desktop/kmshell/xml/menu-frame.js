@@ -1,5 +1,5 @@
   var menuframe_activeindex=0, menuframe_items = [];
-          
+
   function menuframe_add(path, name, description, hotkey)
   {
     var n = menuframe_items.length;
@@ -13,38 +13,49 @@
     menuframe_items[n].menu_hotkey = hotkey;
     menuframe_items[n].menu_name = name;
   }
-  
+
   function menuframe_activate(n)
   {
     var p = menuframe_items[menuframe_activeindex], c = menuframe_items[n];
-    var itemtype, blah;
-    
-    p.className='menuframe'; 
-    c.className='menuframe_active'; 
+    var itemtype, list_array;
+
+    if(window.Sentry) {
+      // trace for KEYMAN-WINDOWS-62, KEYMAN-WINDOWS-6H(?)
+      window.Sentry.addBreadcrumb({category:'trace', message:`menuframe_activate:n=${n}, activeindex=${menuframe_activeindex}, c=${JSON.stringify(c)}, p=${JSON.stringify(p)}`, level: 'info'});
+      if(!document.getElementById('content_'+p.menu_name)) window.Sentry.addBreadcrumb({category:'trace', message:`menuframe_activate:p:content_${p.menu_name} is undefined`, level: 'info'});
+      if(!document.getElementById('content_'+c.menu_name)) window.Sentry.addBreadcrumb({category:'trace', message:`menuframe_activate:c:content_${c.menu_name} is undefined`, level: 'info'});
+    }
+
+    p.className='menuframe';
+    c.className='menuframe_active';
     menuframe_activeindex=n;
     document.getElementById('content_'+p.menu_name).style.display = 'none';
     document.getElementById('content_'+c.menu_name).style.display = 'block';
-    
+
     save_state();
 
     if(!loading_state) {
-      var q = document.getElementById('content_'+c.menu_name).getElementsByTagName('span');
-      for(var i = 0; i < q.length; i++) {
-        blah = q[i].id;
-        itemtype = blah.substr(0, 5);
-        
-        if( itemtype == "list_" ) {
-          q[i].focus();
-          break;
-        }
+      let q = null;
+      if (c.menu_name.includes("keyboardlist")) {
+        q = document.getElementById('content_'+c.menu_name).getElementsByClassName('list_item expanded');
+      }
+      // if none are expanded get the full list
+      if (q == null || q.length == 0) {
+        q = document.getElementById('content_'+c.menu_name).getElementsByClassName('list_item');
+      }
+      // select the first list item
+      if (q!==null && q.length > 0) {
+        list_array = q[0].id;
+        itemtype = list_array.substring(0, 5);
+        q[0].focus();
       }
     }
-    
+
     if(typeof window['menuframe_activate_'+c.menu_name] != 'undefined') {
       window['menuframe_activate_'+c.menu_name]();
     }
   }
-  
+
   function menuframe_keydown(event)
   //document.onkeydown = function()
   {
@@ -80,16 +91,11 @@
         }
         break;
       case 13:    // enter
-        if( event.target.id.substring(0,6) != 'button' && event.target.tagName != 'TEXTAREA' ) {
-          event.cancelBubble = true; event.returnValue = false;
-          location.href='keyman:footer_ok';
-          break;
-        }
-        event.cancelBubble = true; event.returnValue = true;
+        event.cancelBubble = true;
+        event.returnValue = event.target.id.substring(0,6) == 'button' || event.target.tagName == 'TEXTAREA';
         break;
       case 27:    // esc
         event.cancelBubble = true; event.returnValue = false;
-        location.href='keyman:footer_cancel';
         break;
       case 32:    // spacebar
         switch(event.srcElement.tagName.toLowerCase()) {
@@ -103,18 +109,18 @@
             document.getElementById(k).focus();
             break;
           case 'input': return true;
-          case 'div': 
-          case 'span': 
+          case 'div':
+          case 'span':
             if(event.srcElement.parentElement) {
               switch(event.srcElement.parentElement.id) {
                 case 'keyboards':
-                  keyboard_checkclick(event.srcElement.id.substring(5),true);
+                  keyboard_checkclick(event.srcElement.id.substring('list_keyboard_'.length),true);
                   break;
                 case 'options':
-                  options_updatecheck(event.srcElement.id.substring(5),true);
+                  options_updatecheck(event.srcElement.id.substring('list_option_'.length),true);
                   break;
-                case 'hotkeys':
-                  location.href='keyman:hotkey_set?index=hotkey_' + event.srcElement.id.substring(5);
+                case 'subcontent_hotkeys':
+                  location.href='keyman:hotkey_set?index=hotkey_' + event.srcElement.id.substring('list_hotkey_'.length);
                   break;
                 default:
                   break;
@@ -124,13 +130,13 @@
         }
         event.cancelBubble = true; event.returnValue = false; event.preventDefault(); break;
         break;
-      default: 
+      default:
         for(var i = 0; i < menuframe_items.length; i++)
           if(menuframe_items[i].menu_hotkey.charCodeAt(0) == event.keyCode && event.altKey)
           {
               event.cancelBubble = true; event.returnValue = false; menuframe_activate(i); break;
           }
-            
+
     }
   }
 
@@ -138,5 +144,4 @@
     document.onkeydown = menuframe_keydown;
   }
   doAttachEvent(window, 'load', menuframe_setup);
-  
- 
+

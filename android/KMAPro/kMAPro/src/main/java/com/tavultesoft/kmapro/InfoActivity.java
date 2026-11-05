@@ -1,35 +1,30 @@
 /**
- * Copyright (C) 2017-2019 SIL International. All rights reserved.
+ * Copyright (C) 2017-2021 SIL International. All rights reserved.
  */
 
 package com.tavultesoft.kmapro;
 
-import com.tavultesoft.kmea.KMManager;
-import com.tavultesoft.kmea.KMManager.FormFactor;
+import com.keyman.engine.BaseActivity;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
-import android.view.Gravity;
 import android.view.View;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.annotation.SuppressLint;
-import androidx.appcompat.widget.Toolbar;
-import androidx.appcompat.app.AppCompatActivity;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager.NameNotFoundException;
 
-public class InfoActivity extends AppCompatActivity {
-
+public class InfoActivity extends BaseActivity {
+  private final static String TAG = "InfoActivity";
   private WebView webView;
-  private final String kmHelpBaseUrl = "https://help.keyman.com/products/android";
-  private String kmUrl = "";
-  private final String htmlPath = "file:///android_asset/info/products/android";
-  private final String htmlPage = "index.php";
+  private final String htmlPath = "file:///android_asset/info";
+  private final String htmlPage = "index.html";
   private String kmOfflineUrl = "";
 
   @SuppressLint("SetJavaScriptEnabled")
@@ -39,56 +34,49 @@ public class InfoActivity extends AppCompatActivity {
     final Context context = this;
 
     setContentView(R.layout.activity_info);
+    setupEdgeToEdge(R.id.info_layout);
 
-    Toolbar toolbar = findViewById(R.id.info_toolbar);
-    setSupportActionBar(toolbar);
-    getSupportActionBar().setTitle(null);
-    getSupportActionBar().setDisplayUseLogoEnabled(true);
-    getSupportActionBar().setDisplayShowHomeEnabled(true);
-    getSupportActionBar().setLogo(R.drawable.keyman_logo);
-    getSupportActionBar().setDisplayShowTitleEnabled(false);
-    getSupportActionBar().setDisplayShowCustomEnabled(true);
+    // Navigation buttons
+    final ImageButton backButton = (ImageButton) findViewById(R.id.back_button);
+    backButton.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        onBackPressed();
+      }
+    });
 
-    TextView version = new TextView(this);
-    version.setWidth((int) getResources().getDimension(R.dimen.label_width));
-    version.setTextSize(getResources().getDimension(R.dimen.titlebar_label_textsize));
-    version.setGravity(Gravity.CENTER);
+    final ImageButton forwardButton = (ImageButton) findViewById(R.id.forward_button);
+    forwardButton.setEnabled(false);
+    forwardButton.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        if (webView != null && webView.canGoForward()) {
+          webView.goForward();
+        }
+      }
+    });
 
-    // Parse to create a version title
-    String versionStr = "";
-    PackageInfo pInfo;
-    try {
-      pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
-      versionStr = pInfo.versionName;
-    } catch (NameNotFoundException e) {
-      // Fallback to a "current" version. This does not need to be maintained
-      versionStr = "12.0.0.0";
-    }
+    final ImageButton closeButton = (ImageButton) findViewById(R.id.close_button);
+    closeButton.setOnClickListener(new View.OnClickListener() {
+      public void onClick(View v) {
+        finish();
+      }
+    });
 
-    String versionTitle = String.format("%s: %s", getString(R.string.title_version), versionStr);
+    TextView version = findViewById(R.id.infoVersion);
+
+    // Parse app version string to create a version title (Not using KMManager.getVersion() because that's for KMEA)
+    String versionStr = BuildConfig.VERSION_NAME;
+
+    String versionTitle = String.format(getString(R.string.title_version), versionStr);
     version.setText(versionTitle);
-    getSupportActionBar().setCustomView(version);
 
-    // Extract the the major minor version from the full version string
-    String[] versionArray = versionStr.split("\\.", 3);
-    String majorMinorVersion = String.format("%s.%s", versionArray[0], versionArray[1]);
-
-    // Determine the appropriate form factor
-    FormFactor ff = KMManager.getFormFactor();
-    String formFactor;
-
-    if(ff == FormFactor.PHONE) {
-      formFactor = "phone";
-    } else {
-      formFactor = "tablet";
-    }
-
-    kmUrl = String.format("%s/%s/%s?embed=android&formfactor=%s", kmHelpBaseUrl, majorMinorVersion, htmlPage, formFactor);
     // The offline mirroring process (currently) adds .html to the end of the whole string.
-    kmOfflineUrl = String.format("%s/%s/%s.html", htmlPath, formFactor, htmlPage);
+    kmOfflineUrl = String.format("%s/%s", htmlPath, htmlPage);
     webView = (WebView) findViewById(R.id.infoWebView);
     webView.getSettings().setLayoutAlgorithm(WebSettings.LayoutAlgorithm.SINGLE_COLUMN);
     webView.getSettings().setJavaScriptEnabled(true);
+    webView.getSettings().setAllowFileAccess(true);
     webView.getSettings().setUseWideViewPort(true);
     webView.getSettings().setLoadWithOverviewMode(true);
     webView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
@@ -102,9 +90,20 @@ public class InfoActivity extends AppCompatActivity {
 
       @Override
       public boolean shouldOverrideUrlLoading(WebView view, String url) {
-        if (url != null && !url.toLowerCase().equals("about:blank")) {
+        String lowerURL = url.toLowerCase();
+        if (lowerURL.equals("about:blank")) {
+          return true; // never load a blank page, e.g. when the component initializes
+        }
+
+        Uri uri = Uri.parse(url);
+
+        // All links that aren't internal Keyman help links open in user's browser
+        if (!url.contains(htmlPath)) {
+          Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+          startActivity(intent);
+        } else {
           view.loadUrl(url);
-         }
+        }
 
         return true;
       }
@@ -115,21 +114,24 @@ public class InfoActivity extends AppCompatActivity {
 
       @Override
       public void onPageFinished(WebView view, String url) {
+        if (webView != null) {
+          forwardButton.setEnabled(webView.canGoForward());
+        }
       }
     });
 
-    if (KMManager.hasConnection(context)) {
-      // Load app info page from server
-      webView.loadUrl(kmUrl);
-    } else {
-      // Load app info page from assets
-      webView.loadUrl(kmOfflineUrl);
-    }
+    // Always load offline info page from assets
+    webView.loadUrl(kmOfflineUrl);
   }
 
   @Override
   public void onBackPressed() {
-    finish();
-    overridePendingTransition(0, android.R.anim.fade_out);
+    if (webView != null && webView.canGoBack()) {
+      webView.goBack();
+    } else {
+      super.onBackPressed();
+      finish();
+      overridePendingTransition(0, android.R.anim.fade_out);
+    }
   }
 }

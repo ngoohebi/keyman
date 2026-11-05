@@ -1,18 +1,18 @@
 /*
   Name:             kmtip
   Copyright:        Copyright (C) SIL International.
-  Documentation:    
+  Documentation:
   Description:      CKMTipTextService declaration.
   Create Date:      7 Sep 2009
 
   Modified Date:    27 Jan 2015
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
-  Bugs:             
-  Todo:             
-  Notes:            
+  Bugs:
+  Todo:
+  Notes:
   History:          07 Sep 2009 - mcdurdin - I2095 - TSF addin is not threadsafe
                     01 May 2014 - mcdurdin - I4216 - V9.0 - Keyman TIP should use ITfTextInputProcessorEx
                     16 Jun 2014 - mcdurdin - I4274 - V9.0 - kmtip does not work if already active before KM starts
@@ -88,8 +88,6 @@ public:
 
     BOOL TIPNotifyActivate(GUID *guidProfile);
 
-    BOOL DoRefreshPreservedKeys(BOOL Activating);
-
     static __declspec(thread) CKMTipTextService *ThreadThis;
 
 private:
@@ -97,17 +95,16 @@ private:
     BOOL _InitThreadMgrSink();
     BOOL _InitKeystrokeSink();
     BOOL _InitPreservedKeys();   // I4274
-    BOOL _LoadKeyman();
-    BOOL _InitKeyman();
-    BOOL _CheckKeymanLoaded();   // I4274
+    BOOL _InitKeymanIfNotAlreadyInitialized();
 
     HRESULT _PreserveAltKeys(ITfKeystrokeMgr *pKeystrokeMgr);
 
     // uninit methods
     void _UninitThreadMgrSink();
     void _UninitKeystrokeSink();
-    void _UninitKeyman();
-  
+
+    void _TryAndStartKeyman();
+
     HRESULT _UnpreserveAltKeys(ITfKeystrokeMgr *pKeystrokeMgr);
 
     // Keyman interfaces
@@ -117,12 +114,10 @@ private:
     // state
     //
 
-    GUID guidActiveProfile;   // I4274
-
     BOOL _keystrokeSinkInitialized;
     BOOL fEatenBuf[256];
+    BOOL fOnTestEatenBuf[256];
 
-    HMODULE _hKeyman;
     ITfThreadMgr *_pThreadMgr;
     TfClientId _tfClientId;
 
@@ -134,15 +129,40 @@ private:
 
     DWORD _dwDeepIntegration;   // I4375
 
+    BOOL _tryAndStartKeyman;
+    GUID _activeGuidProfile;
+    BOOL _keymanInitialized;
+
     LONG _cRef;     // COM ref count
 };
 
+//
+// Keyman32 interfaces
+//
+
+typedef HRESULT(WINAPI *PKEYMANPROCESSOUTPUTFUNC)(int n, WCHAR *buf, int nbuf);   // I3567
+
+typedef HRESULT(WINAPI *PKEYMANGETCONTEXTFUNC)(int n, PWSTR buf);   // I3567
+typedef HRESULT(WINAPI *PKEYMANGETCONTEXTISSELECTEDFUNC)(int n, PWSTR buf, BOOL* isTextSelected);
+
 class Keyman32Interface {
-private:
-  static HMODULE GetHandle();
 public:
-  static void SetFocus(HWND hwndActive, HWND hwndPrevious);
-  static void WriteDebugEvent(char *file, int line, PWCHAR msg);
+  static void WriteDebugEvent(PWCHAR file, int line, PWCHAR function, PWCHAR msg);
+  static void WriteDebugEntry(PWCHAR file, int line, PWCHAR function);
+  static void WriteDebugExit(PWCHAR file, int line, PWCHAR function);
+
+  static BOOL TIPActivateEx(BOOL fActivate);
+  static BOOL TIPActivateKeyboard(GUID *profile);
+
+  static BOOL TIPProcessKey(WPARAM wParam, LPARAM lParam, PKEYMANPROCESSOUTPUTFUNC outfunc,
+    PKEYMANGETCONTEXTFUNC ctfunc, BOOL Updateable, BOOL Preserved);
+
+  static BOOL TIPProcessKeyEx(WPARAM wParam, LPARAM lParam, PKEYMANPROCESSOUTPUTFUNC outfunc,
+    PKEYMANGETCONTEXTISSELECTEDFUNC ctfunc, BOOL Updateable, BOOL Preserved);
+
+  static BOOL GetKeyboardPreservedKeys(PreservedKey **pPreservedKeys, size_t *cPreservedKeys);
+
+  static BOOL TIPIsKeymanRunning();
 };
 
 #endif // KMTIP_H

@@ -1,18 +1,18 @@
 /*
   Name:             preservedkeymap
   Copyright:        Copyright (C) SIL International.
-  Documentation:    
-  Description:      
+  Documentation:
+  Description:
   Create Date:      1 Dec 2012
 
   Modified Date:    10 Feb 2015
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
-  Bugs:             
-  Todo:             
-  Notes:            
+  Bugs:
+  Todo:
+  Notes:
   History:          01 Dec 2012 - mcdurdin - I3623 - V9.0 - Add preserved key mapping from .kmx file
                     17 Jan 2013 - mcdurdin - I3762 - V9.0 - underlying layout cannot be controlled cleanly via TSF so support translation
                     11 Aug 2013 - mcdurdin - I3775 - V9.0 - Fail I3762 - AltGr combinations are not matched on French base layout
@@ -26,8 +26,6 @@
    // I3623   // I4169   // I4575   // I4575
 #include "pch.h"
 
-WORD USVKToScanCodeToLayoutVK(WORD VKey);   // I3762
-
 struct PreservedKey
 {
   GUID guid;
@@ -37,12 +35,25 @@ struct PreservedKey
 class PreservedKeyMap
 {
 public:
-  BOOL MapKeyboard(KEYBOARD *pKeyboard, PreservedKey **pPreservedKeys, size_t *cPreservedKeys);
+  /**
+   * Updates a map of preserved keys (with GUID) that are used in keyboard rules.
+   * Passing in NULL for pPreservedKeys will cause cPreservedKeys to be set to the number
+   * of preserved keys needed for the supplied pKeyboard; this should be used in creating
+   * pPreservedKeys list to sufficient size. When pPreservedKeys list is passed the
+   * cPreservedKeys will be the actual count of the number of unique pPreservedKeys
+   *
+   * @param   pKeyboard  the keyboard for which the rules will be extracted from
+   * @param   pPreservedKeys  preallocated array for preserved keys to be filled in, or nullptr to retrieve required size
+   * @param   cPreservedKeys  number of preserved keys in pPreservedKeys - or the size pPreservedKeys needs to be
+   * @return  BOOL  return TRUE on success
+   */
+  BOOL MapKeyboard(km_core_keyboard *pKeyboard, PreservedKey **pPreservedKeys, size_t *cPreservedKeys);
+
 private:
   BOOL m_BaseKeyboardUsesAltGr;   // I4592
   UINT ShiftToTSFShift(UINT ShiftFlags);
   BOOL MapUSCharToVK(UINT *puKey, UINT *puShiftFlags);
-  BOOL MapKeyRule(KEY *pKey, TF_PRESERVEDKEY *pPreservedKey);
+  BOOL MapKeyRule(km_core_keyboard_key *pKeyRule, TF_PRESERVEDKEY *pPreservedKey);
   BOOL IsMatchingKey(PreservedKey *pKey, PreservedKey *pKeys, size_t cKeys);
 };
 
@@ -158,8 +169,8 @@ BOOL PreservedKeyMap::MapUSCharToVK(UINT *puKey, UINT *puShiftFlags)
 {
   if(*puKey >= 0x20 && *puKey < 0x7F)
   {
+    *puShiftFlags = ISVIRTUALKEY | (USCharMap[*puKey - 0x20].shift ? K_SHIFTFLAG : 0);
     *puKey = USCharMap[*puKey - 0x20].key;
-    *puShiftFlags = USCharMap[*puKey - 0x20].shift ? (ISVIRTUALKEY | K_SHIFTFLAG) : 0;
     return TRUE;
   }
   return FALSE;
@@ -184,15 +195,15 @@ UINT PreservedKeyMap::ShiftToTSFShift(UINT ShiftFlags)
   return res;
 }
 
-BOOL PreservedKeyMap::MapKeyRule(KEY *pKey, TF_PRESERVEDKEY *pPreservedKey)
-{
+BOOL
+PreservedKeyMap::MapKeyRule(km_core_keyboard_key *pKeyRule, TF_PRESERVEDKEY *pPreservedKey) {
   UINT ShiftFlags;
   UINT Key;
 
-  Key = pKey->Key;
-  ShiftFlags = pKey->ShiftFlags;
+  Key        = pKeyRule->key;
+  ShiftFlags = pKeyRule->modifier_flag;
 
-  if(Key == VK_BACK || Key == VK_RETURN || Key == VK_TAB)   // I4575
+  if (Key == VK_BACK || Key == VK_RETURN || Key == VK_TAB)  // I4575
   {
     //
     // We never map backspace, return or tab because these are the only supported virtual key outputs,
@@ -210,12 +221,7 @@ BOOL PreservedKeyMap::MapKeyRule(KEY *pKey, TF_PRESERVEDKEY *pPreservedKey)
     return FALSE;
   }
 
-  if(ShiftFlags == 0)
-  {
-    if(!MapUSCharToVK(&Key, &ShiftFlags)) return FALSE;
-  }
-
-  pPreservedKey->uVKey = (UINT) USVKToScanCodeToLayoutVK( (WORD) Key);   // I3762
+  pPreservedKey->uVKey      = (UINT)USVKToScanCodeToLayoutVK((WORD)Key);  // I3762
   pPreservedKey->uModifiers = ShiftToTSFShift(ShiftFlags);
 
   return TRUE;
@@ -233,16 +239,15 @@ BOOL PreservedKeyMap::IsMatchingKey(PreservedKey *pKey, PreservedKey *pKeys, siz
   return FALSE;
 }
 
-BOOL PreservedKeyMap::MapKeyboard(KEYBOARD *pKeyboard, PreservedKey **pPreservedKeys, size_t *cPreservedKeys)
-{
-  size_t cKeys = 0, n;
-  DWORD i, j;
-  GROUP *pGroup;
+BOOL
+PreservedKeyMap::MapKeyboard(km_core_keyboard *pKeyboard, PreservedKey **pPreservedKeys, size_t *cPreservedKeys) {
+  size_t cKeys = 0, cRules = 0, n = 0;
+  DWORD i;
 
-  m_BaseKeyboardUsesAltGr = KeyboardGivesCtrlRAltForRAlt();   // I4592
+  m_BaseKeyboardUsesAltGr = KeyboardGivesCtrlRAltForRAlt();  // I4592
 
-  // This is not the same as m_BaseKeyboardUsesAltGr -- we are turning 
-  // the simulation back on after (possibly) turning it off, for a 
+  // This is not the same as m_BaseKeyboardUsesAltGr -- we are turning
+  // the simulation back on after (possibly) turning it off, for a
   // consistent experience. TODO: determine if m_BaseKeyboardUseAltGr
   // is still needed given we always use kbdus as base for Keyman 10+
   BOOL bSimulateAltGr = Globals::get_SimulateAltGr();
@@ -251,80 +256,88 @@ BOOL PreservedKeyMap::MapKeyboard(KEYBOARD *pKeyboard, PreservedKey **pPreserved
   // So we exclude all our other favourite modifier keys.
   const UINT RALT_MATCHING_MASK = TF_MOD_CONTROL | TF_MOD_ALT | TF_MOD_LCONTROL | TF_MOD_RCONTROL | TF_MOD_LALT | TF_MOD_RALT;
 
-  for(i = 0; i < pKeyboard->cxGroupArray; i++)
-  {
-    if(pKeyboard->dpGroupArray[i].fUsingKeys)
-    {
-      cKeys += pKeyboard->dpGroupArray[i].cxKeyArray;
-    }
-  }
+  // This is where we will call down to the api to get list of keys used in the keyboard rules
+  km_core_keyboard_key *kb_key_list;
 
-  if(cKeys == 0)
-  {
+  km_core_status err_status = km_core_keyboard_get_key_list(pKeyboard, &kb_key_list);
+  if ((err_status != KM_CORE_STATUS_OK) || (kb_key_list ==nullptr)) {
     return FALSE;
   }
 
-  if (bSimulateAltGr)
-  {
+  km_core_keyboard_key *key_rule_it = kb_key_list;
+  for (; key_rule_it->key; ++key_rule_it) {
+    ++cRules;
+  }
+  cKeys = cRules;
+  if (cKeys == 0) {
+    km_core_keyboard_key_list_dispose(kb_key_list);
+    return FALSE;
+  }
+
+  if (bSimulateAltGr) {
     // We might need twice as many preserved keys to map both LCtrl+LAlt+x and RAlt+x
     cKeys *= 2;
   }
 
-  if(pPreservedKeys == NULL)
-  {
+  if (pPreservedKeys == NULL) {
     *cPreservedKeys = cKeys;
+    km_core_keyboard_key_list_dispose(kb_key_list);
     return TRUE;
   }
 
-  if(*cPreservedKeys < cKeys)
-  {
+  if (*cPreservedKeys < cKeys) {
+    km_core_keyboard_key_list_dispose(kb_key_list);
     return FALSE;
   }
 
   PreservedKey *pKeys = *pPreservedKeys;
 
-  for(n = i = 0; i < pKeyboard->cxGroupArray; i++)
-  {
-    pGroup = &pKeyboard->dpGroupArray[i];
-    if(pGroup->fUsingKeys)
-    {
-      for(j = 0; j < pGroup->cxKeyArray; j++)
-      {
-        // If we have a key rule for the key, we should preserve it
-        if(MapKeyRule(&pGroup->dpKeyArray[j], &pKeys[n].key))
-        {
-          // Don't attempt to add the same preserved key twice. Bad things happen
-          if(!IsMatchingKey(&pKeys[n], pKeys, n))
-          {
-            CoCreateGuid(&pKeys[n].guid);
-            n++;
 
-            if (bSimulateAltGr && (pKeys[n-1].key.uModifiers & RALT_MATCHING_MASK) == TF_MOD_RALT) 
-            {
-              // Do this for RALT and RALT+SHIFT only, so we've tested against that mask
-              // Copy the key and fix modifiers
-              pKeys[n].key = pKeys[n - 1].key;
-              pKeys[n].key.uModifiers = (pKeys[n].key.uModifiers & ~TF_MOD_RALT) | TF_MOD_LCONTROL | TF_MOD_LALT;
-              CoCreateGuid(&pKeys[n].guid);
-              n++;
-            }
-          }
+  for (i = 0; i < cRules; i++) {
+    // If we have a key rule for the key, we should preserve it
+    if (MapKeyRule(&kb_key_list[i], &pKeys[n].key)) {
+      // Don't attempt to add the same preserved key twice. Bad things happen
+      if (!IsMatchingKey(&pKeys[n], pKeys, n)) {
+        CoCreateGuid(&pKeys[n].guid);
+        n++;
+
+        if (bSimulateAltGr && (pKeys[n - 1].key.uModifiers & RALT_MATCHING_MASK) == TF_MOD_RALT) {
+          // Do this for RALT and RALT+SHIFT only, so we've tested against that mask
+          // Copy the key and fix modifiers
+          pKeys[n].key            = pKeys[n - 1].key;
+          pKeys[n].key.uModifiers = (pKeys[n].key.uModifiers & ~TF_MOD_RALT) | TF_MOD_LCONTROL | TF_MOD_LALT;
+          CoCreateGuid(&pKeys[n].guid);
+          n++;
         }
       }
     }
   }
 
+  km_core_keyboard_key_list_dispose(kb_key_list);
+
   *cPreservedKeys = n;  // return actual count of allocated keys, usually smaller than allocated count
   return TRUE;
 }
+
+
+
+
 
 extern "C" __declspec(dllexport) BOOL WINAPI GetKeyboardPreservedKeys(PreservedKey **pPreservedKeys, size_t *cPreservedKeys)
 {
   PreservedKeyMap pkm;
   PKEYMAN64THREADDATA _td = ThreadGlobals();
-  if(!_td) return FALSE;
-  if(!_td->lpActiveKeyboard) return FALSE;
-  if(!_td->lpActiveKeyboard->Keyboard) return FALSE;
+  if (!_td) {
+    return FALSE;
+  }
 
-  return pkm.MapKeyboard(_td->lpActiveKeyboard->Keyboard, pPreservedKeys, cPreservedKeys);
+  if (!_td->lpActiveKeyboard) {
+    return FALSE;
+  }
+
+  if (!_td->lpActiveKeyboard->lpCoreKeyboard) {
+    return FALSE;
+  }
+  // use api to get key rules
+  return pkm.MapKeyboard(_td->lpActiveKeyboard->lpCoreKeyboard, pPreservedKeys, cPreservedKeys);
 }

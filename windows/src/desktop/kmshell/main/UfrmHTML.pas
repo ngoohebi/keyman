@@ -21,7 +21,7 @@
                     23 Aug 2007 - mcdurdin - I919 - Add print button
                     27 Mar 2008 - mcdurdin - Use TfrmKeymanBase instead of TfrmKMShell
                     25 May 2010 - mcdurdin - I2393 - Forward, Back and new window functions in Keyboard Welcome
-                    17 Dec 2010 - mcdurdin - I2570 - Upgrade EmbeddedWB (also I2393)
+                    17 Dec 2010 - mcdurdin - I2570 - Upgrade E-mbeddedWB (also I2393)
                     11 Jan 2011 - mcdurdin - I2641 - Print button now prints, not page setup
                     18 Feb 2011 - mcdurdin - I2721 - Override Javascript-disabled security for web controls
                     18 May 2012 - mcdurdin - I3306 - V9.0 - Remove TntControls + Win9x support
@@ -33,34 +33,23 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ExtCtrls, OleCtrls, SHDocVw, EmbeddedWB,
-  keymanapi_TLB, UfrmKeymanBase, SHDocVw_EWB, EwbCore,
-  KeymanEmbeddedWB, Vcl.AppEvnts;
+  StdCtrls, ExtCtrls, keymanapi_TLB, UfrmKeymanBase, Vcl.AppEvnts, Keyman.UI.UframeCEFHost;
 
 type
   TfrmHTML = class(TfrmKeymanBase)
     cmdOK: TButton;
     panHTML: TPanel;
-    web: TKeymanEmbeddedWB;
     cmdPrint: TButton;
     cmdBack: TButton;
     cmdForward: TButton;
-    ApplicationEvents1: TApplicationEvents;
     procedure FormDestroy(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure cmdPrintClick(Sender: TObject);
-    procedure webNewWindow3(ASender: TObject; var ppDisp: IDispatch;
-      var Cancel: WordBool; dwFlags: Cardinal; const bstrUrlContext,
-      bstrUrl: WideString);
     procedure cmdBackClick(Sender: TObject);
     procedure cmdForwardClick(Sender: TObject);
-    procedure webCommandStateChange(ASender: TObject; Command: Integer;
-      Enable: WordBool);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
-    procedure webKeyDown(Sender: TObject; var Key: Word; ScanCode: Word;
-      Shift: TShiftState);
-    procedure ApplicationEvents1Message(var Msg: tagMSG; var Handled: Boolean);
   private
+    cef: TframeCEFHost;
     FFileName: string;
     procedure SetText(const Value: string);
     procedure SetURL(const Value: string);
@@ -70,7 +59,7 @@ type
     property URL: string write SetURL;
   end;
 
-procedure DoShowPackageWelcome(pkg: IKeymanPackage; ShowMessageIfNoWelcome: Boolean);
+procedure DoShowPackageWelcome(AOwner: TComponent; pkg: IKeymanPackage; ShowMessageIfNoWelcome: Boolean);
 //procedure DoShowWelcome(const Title, FileName: WideString);
 
 implementation
@@ -89,33 +78,8 @@ uses
 
 procedure TfrmHTML.ShowFile(const FileName: WideString);
 begin
-  if FileExists(FileName) and Assigned(web) then
-    web.Navigate(FileName);
-end;
-
-procedure TfrmHTML.webCommandStateChange(ASender: TObject; Command: Integer;
-  Enable: WordBool);
-begin
-  if Command = CSC_NAVIGATEFORWARD then
-    cmdForward.Enabled := Enable
-  else if Command = CSC_NAVIGATEBACK then
-    cmdBack.Enabled := Enable;
-end;
-
-procedure TfrmHTML.webKeyDown(Sender: TObject; var Key: Word; ScanCode: Word;
-  Shift: TShiftState);
-begin
-  inherited;
-  if Key = VK_ESCAPE then
-    Close;
-end;
-
-procedure TfrmHTML.webNewWindow3(ASender: TObject; var ppDisp: IDispatch;
-  var Cancel: WordBool; dwFlags: Cardinal; const bstrUrlContext,
-  bstrUrl: WideString);
-begin
-  Cancel := True;
-  TUtilExecute.URL(bstrUrl);  // I3349
+  if FileExists(FileName) and Assigned(cef) then
+    cef.Navigate(FileName);
 end;
 
 procedure TfrmHTML.SetText(const Value: string);
@@ -136,31 +100,22 @@ begin
   ShowFile(FFileName);
 end;
 
-procedure TfrmHTML.ApplicationEvents1Message(var Msg: tagMSG;
-  var Handled: Boolean);
-begin
-  if (Msg.message = WM_SYSCOMMAND) and (Msg.wParam = SC_RESTORE) then
-  begin
-    // Handle the case where Win+M pressed, window never restores
-    SendMessage(Application.Handle, WM_SHOWWINDOW, 1, 0);
-    SendMessage(Handle, WM_SHOWWINDOW, 1, SW_PARENTOPENING);
-    OpenIcon(Handle);
-  end;
-end;
-
 procedure TfrmHTML.cmdBackClick(Sender: TObject);
 begin
-  web.GoBack;
+  if Assigned(cef) and Assigned(cef.cef) then
+    cef.cef.GoBack;
 end;
 
 procedure TfrmHTML.cmdForwardClick(Sender: TObject);
 begin
-  web.GoForward;
+  if Assigned(cef) and Assigned(cef.cef) then
+    cef.cef.GoForward;
 end;
 
 procedure TfrmHTML.cmdPrintClick(Sender: TObject);
 begin
-  web.Print;  // I2641
+  if Assigned(cef) and Assigned(cef.cef) then
+    cef.cef.Print;
 end;
 
 procedure TfrmHTML.FormCreate(Sender: TObject);
@@ -172,6 +127,15 @@ begin
   if s <> '' then Font.Name := s;
   cmdOK.Caption := MsgFromId(SKButtonOK);
   cmdPrint.Caption := MsgFromId(SKButtonPrint);
+
+  cef := TframeCEFHost.Create(Self);
+  cef.Parent := panHTML;
+  cef.Visible := True;
+  cef.ShouldOpenRemoteUrlsInBrowser := True;
+
+//  cef.OnBeforeBrowse := cefBeforeBrowse;
+//  cef.OnBeforeBrowseSync := cefBeforeBrowseSync;
+//  cef.OnLoadEnd := cefLoadEnd;
 end;
 
 procedure TfrmHTML.FormDestroy(Sender: TObject);
@@ -189,12 +153,12 @@ end;
 
 procedure TfrmHTML.SetURL(const Value: string);
 begin
-  if Assigned(web) then web.Navigate(Value);
+  if Assigned(cef) then cef.Navigate(Value);
 end;
 
-procedure DoShowWelcome(const Title, FileName: WideString);
+procedure DoShowWelcome(AOwner: TComponent; const Title, FileName: WideString);
 begin
-  with TfrmHTML.Create(Screen.ActiveForm) do
+  with TfrmHTML.Create(AOwner) do
   try
     Width := Screen.Width * 6 div 10;
     Height := Screen.Height * 6 div 10;
@@ -208,13 +172,13 @@ begin
   end;
 end;
 
-procedure DoShowPackageWelcome(pkg: IKeymanPackage; ShowMessageIfNoWelcome: Boolean);
+procedure DoShowPackageWelcome(AOwner: TComponent; pkg: IKeymanPackage; ShowMessageIfNoWelcome: Boolean);
 var
   FWelcomeFile: IKeymanPackageContentFile;
 begin
   FWelcomeFile := pkg.WelcomeFile;
   if Assigned(FWelcomeFile) then
-    DoShowWelcome(pkg.Name, FWelcomeFile.FullFilename)
+    DoShowWelcome(AOwner, pkg.Name, FWelcomeFile.FullFilename)
   else if ShowMessageIfNoWelcome then
     ShowMessage(MsgFromIdFormat(SKPackageDoesNotIncludeWelcome, [pkg.Name]));
 end;

@@ -1,18 +1,18 @@
 (*
   Name:             uninstall
   Copyright:        Copyright (C) SIL International.
-  Documentation:    
-  Description:      
+  Documentation:
+  Description:
   Create Date:      27 Mar 2008
 
   Modified Date:    1 Jan 2013
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
-  Bugs:             
-  Todo:             
-  Notes:            
+  Bugs:
+  Todo:
+  Notes:
   History:          27 Mar 2008 - mcdurdin - Initial version
                     28 Aug 2008 - mcdurdin - I1609 - Uninstall requires administrator if installed by admin
                     12 Mar 2010 - mcdurdin - I2216 - Show currently installed fonts in package details
@@ -29,7 +29,7 @@ uses
 
 function UninstallPackage(Owner: TWinControl; const PackageName: WideString; Silent: Boolean): Boolean;
 function UninstallKeyboard(Owner: TWinControl; const KeyboardName: WideString; Silent: Boolean): Boolean;
-function UninstallKeyboardLanguage(Owner: TWinControl; const LanguageProfileGUID: WideString; Silent: Boolean): Boolean;   // I3624
+function UninstallKeyboardLanguage(const LanguageProfileGUID: WideString; Silent: Boolean): Boolean;   // I3624
 
 implementation
 
@@ -44,6 +44,23 @@ uses
   MessageIdentifierConsts;
 
 { I1201, I1169, I1167, I1163, I1150, I1135 - Fix crash uninstalling admin-installed keyboards and packages }
+
+procedure UninstallKeyboardTips(Keyboard: IKeymanKeyboardInstalled);
+var
+  i: Integer;
+begin
+  for i := 0 to Keyboard.Languages.Count - 1 do
+    if Keyboard.Languages[i].IsInstalled then
+      Keyboard.Languages[i].Uninstall;
+end;
+
+procedure UninstallPackageTips(Package: IKeymanPackageInstalled);
+var
+  i: Integer;
+begin
+  for i := 0 to Package.Keyboards.Count - 1 do
+    UninstallKeyboardTips(Package.Keyboards[i] as IKeymanKeyboardInstalled);
+end;
 
 function UninstallPackage(Owner: TWinControl; const PackageName: WideString; Silent: Boolean): Boolean;
 var
@@ -77,12 +94,13 @@ begin
 
   if CanElevate then
   begin
+    UninstallPackageTips(pkg);
     pkgID := pkg.ID;
     pkg := nil;
     if WaitForElevatedConfiguration(Handle, '-up "'+pkgID+'" -s') = 0 then
     begin
-      kmcom.Keyboards.Refresh;
-      kmcom.Keyboards.Apply;
+      kmcom.Refresh;
+      kmcom.Apply;
       Result := True;
     end;
     Exit;
@@ -97,10 +115,12 @@ begin
   end;
 
   kmcom.Keyboards.Apply;
+
+  UninstallPackageTips(pkg);
   pkg.Uninstall(True);
   pkg := nil;
-  kmcom.Keyboards.Refresh;
-  kmcom.Keyboards.Apply;
+  kmcom.Refresh;
+  kmcom.Apply;
   Result := True;
 end;
 
@@ -125,14 +145,17 @@ begin
   if not Silent and (MessageDlg(MsgFromIdFormat(SKUninstallKeyboard, [kbd.Name]), mtConfirmation, mbOkCancel, 0) = mrCancel) then
     Exit;
 
+  // First, uninstall TIPs in user context
+  UninstallKeyboardTips(kbd);
+
   if CanElevate then
   begin
     kbdID := kbd.ID;
     kbd := nil;
     if WaitForElevatedConfiguration(Handle, '-uk "'+kbdID+'" -s') = 0 then
     begin
-      kmcom.Keyboards.Refresh;
-      kmcom.Keyboards.Apply;
+      kmcom.Refresh;
+      kmcom.Apply;
       Result := True;
     end;
     Exit;
@@ -141,14 +164,13 @@ begin
   kmcom.Keyboards.Apply;
   kbd.Uninstall;
   kbd := nil;
-  kmcom.Keyboards.Refresh;
-  kmcom.Keyboards.Apply;
+  kmcom.Refresh;
+  kmcom.Apply;
   Result := True;
 end;
 
-function UninstallKeyboardLanguage(Owner: TWinControl; const LanguageProfileGUID: WideString; Silent: Boolean): Boolean;   // I3624
+function UninstallKeyboardLanguage(const LanguageProfileGUID: WideString; Silent: Boolean): Boolean;   // I3624
 var
-  Handle: THandle;
   I: Integer;
   kbd: IKeymanKeyboardInstalled;
   J: Integer;
@@ -156,9 +178,6 @@ var
   FProfileGUID: TGUID;
 begin
   Result := False;
-  if Assigned(Owner)
-    then Handle := Owner.Handle
-    else Handle := 0;
 
   FProfileGUID := StringToGUID(LanguageProfileGUID);
   kbdlang := nil;
@@ -177,25 +196,10 @@ begin
 
   if not Assigned(kbdlang) then Exit;
 
-  if not kmcom.SystemInfo.IsAdministrator then
-  begin
-    if not CanElevate then
-    begin
-      if not Silent then ShowMessage('Cannot uninstall this profile unless you are an administrator');
-      Exit;
-    end;
-
-    if WaitForElevatedConfiguration(Handle, '-ukl "'+LanguageProfileGUID+'" -s') = 0 then
-    begin
-      kmcom.Keyboards.Refresh;
-      Result := True;
-    end;
-    Exit;
-  end;
-
   kbdlang.Uninstall;
   kbdlang := nil;
   kmcom.Keyboards.Refresh;
+  kmcom.Apply;
   Result := True;
 end;
 

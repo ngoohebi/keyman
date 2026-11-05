@@ -15,6 +15,7 @@ object frmEmail: TfrmEmail
   Font.Style = []
   OldCreateOrder = False
   Position = poScreenCenter
+  OnCreate = FormCreate
   PixelsPerInch = 96
   TextHeight = 13
   object lblEmail: TLabel
@@ -37,9 +38,9 @@ object frmEmail: TfrmEmail
     Top = 124
     Width = 439
     Height = 26
-    Caption = 
+    Caption =
       '&Please enter as many details as you can of any problems you are' +
-      ' experiencing using Keyman Desktop, to assist us in finding a re' +
+      ' experiencing using Keyman, to assist us in finding a re' +
       'solution:'
     FocusControl = memoBody
     WordWrap = True
@@ -53,15 +54,15 @@ object frmEmail: TfrmEmail
     FocusControl = editTitle
   end
   object lblSecure: TLabel
-    Left = 200
-    Top = 314
-    Width = 238
+    Left = 180
+    Top = 313
+    Width = 154
     Height = 13
-    Caption = 'This report will be sent to https://api.keyman.com/'
+    Caption = 'This report will be sent to (api url)'
   end
   object Image1: TImage
     Left = 472
-    Top = 312
+    Top = 311
     Width = 12
     Height = 15
     AutoSize = True
@@ -93,7 +94,7 @@ object frmEmail: TfrmEmail
     Top = 256
     Width = 361
     Height = 13
-    Caption = 
+    Caption =
       'No personally identifiable information is included in this repor' +
       't.  You can view '
   end
@@ -102,7 +103,7 @@ object frmEmail: TfrmEmail
     Top = 270
     Width = 464
     Height = 26
-    Caption = 
+    Caption =
       'all the information sent in the report by selecting Advanced Vie' +
       'w in the Options menu while viewing the report.  Please see our ' +
       'online'
@@ -114,7 +115,6 @@ object frmEmail: TfrmEmail
     Width = 83
     Height = 13
     Cursor = crHandPoint
-    Hint = 'http://www.keyman.com/privacy'
     Caption = 'privacy statement'
     Font.Charset = DEFAULT_CHARSET
     Font.Color = clBlue

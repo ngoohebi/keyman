@@ -1,5 +1,5 @@
 var menudiv = null, global_menu_elem_name = null;
-  
+
   function RightButtonMenu( menuid ) {
     if( (event.clientX + 180) > document.body.clientWidth ) {
       ShowMenu( menuid,'right', event.clientX, event.clientY );
@@ -7,7 +7,7 @@ var menudiv = null, global_menu_elem_name = null;
       ShowMenu( menuid,'left', event.clientX, event.clientY );
     }
   }
-  
+
   function PageOffset(e)
   {
     var pt = {x: 0, y: 0};
@@ -18,51 +18,62 @@ var menudiv = null, global_menu_elem_name = null;
     }
     return pt;
   }
-        
+
   function ShowMenu(name,align,xpos,ypos) {
     global_menu_elem_name = name;
     var q;
     var menu = document.getElementById('menu_'+name), button = document.getElementById('button_'+name);
     var index = name.substr(8,2);
 
+    if(window.Sentry) {
+      // trace for KEYMAN-WINDOWS-7J
+      window.Sentry.addBreadcrumb({category:'trace', message:`ShowMenu:name=${name}, menu=${menu?'defined':'undefined'} menudiv=${menudiv?'defined':'undefined'}`, level: 'info'});
+    }
+
     menudiv.innerHTML = menu.innerHTML;
     menudiv.style.width = menu.offsetWidth + 'px';
-    
+    menudiv.style.overflowY = 'auto';
+    menudiv.style.overflowX = 'hidden';
+
     (function(m) {
       for(var i = 0; i < m.children.length; i++) {
         if(m.children[i].id != '') { m.children[i].id = 'Popup_'+m.children[i].id; }
       }
     })(menudiv);
-    
+
     var pb = PageOffset(button);
     var pm = PageOffset(menu.offsetParent);
 
     menudiv.style.zIndex=100;
     menudiv.style.visibility='visible';
-    
+
+    let top = 0;
+
     if( xpos && ypos ) {
       if(align=='right')
         menudiv.style.left = (xpos-menudiv.offsetWidth) + 'px';
       else
         menudiv.style.left = xpos + 'px';
-      menudiv.style.top = ypos + 'px';
+      top = ypos;
     } else {
       if(align=='right') menudiv.style.left = (pb.x+button.offsetWidth-menudiv.offsetWidth) + 'px';
-        else menudiv.style.left = pb.x + 'px'; 
-      menudiv.style.top = (pb.y+button.offsetHeight) + 'px';
+      else menudiv.style.left = pb.x + 'px';
+      top = pb.y+button.offsetHeight;
     }
-    
-    
+    menudiv.style.top = top + 'px';
+    menudiv.style.maxHeight = (document.body.clientHeight - top) + 'px';
+
     q = menudiv.children[0];
     q.focus();
-//menudiv.setCapture(false);  // I1828
+
+    document.getElementById('menubackground').className = 'show';
   }
-  
+
   function HideMenu() {
     if(event.srcElement != menudiv) {
       global_menu_elem_name = null;
       menudiv.style.visibility='hidden';
-      document.releaseCapture();
+      document.getElementById('menubackground').className = '';
       try {
         if(lastfocus_item != null) lastfocus_item.focus();
       } catch(e) {
@@ -72,7 +83,7 @@ var menudiv = null, global_menu_elem_name = null;
   }
 
   function menuitem_keydown(n)
-  { 
+  {
     switch(event.keyCode) {
       case 27:  // esc
         /* esc */
@@ -84,7 +95,7 @@ var menudiv = null, global_menu_elem_name = null;
       case 32:  // enter, spacebar
         HideMenu();
         menuitemdown(true);
-        event.cancelBubble = true; 
+        event.cancelBubble = true;
         event.returnValue = false;
         return true;
 
@@ -100,7 +111,7 @@ var menudiv = null, global_menu_elem_name = null;
           elem.children[i].focus();
           break;
         }
-        
+
       }
       break;
     case 38:    // up
@@ -109,7 +120,7 @@ var menudiv = null, global_menu_elem_name = null;
         event.cancelBubble=true;
         return true;
       }
-      
+
       // find prev list element
       var elem = event.srcElement.parentElement;
       for(var i = 0; i < elem.children.length; i++) {
@@ -134,7 +145,7 @@ var menudiv = null, global_menu_elem_name = null;
         event.cancelBubble=true;
         return true;
       }
-      
+
       // find next file element
       var elem = event.srcElement.parentElement;
       for(var i = 0; i < elem.children.length; i++) {
@@ -185,19 +196,16 @@ var menudiv = null, global_menu_elem_name = null;
       event.cancelBubble = true;
     }
   }
-  
-  function menu_doAttachEvent(obj, e, f)
-  {
-    if(obj.attachEvent) return obj.attachEvent('on'+e, f);
-    return obj.addEventListener(e, f, false);
-  }
 
   function menusetup() {
     menudiv = document.createElement('SPAN');
     menudiv.className='menu';
-    menu_doAttachEvent(menudiv, 'mouseup', HideMenu);
+    menudiv.addEventListener('mouseup', HideMenu);
     document.body.appendChild(menudiv);
+    if(window.Sentry) {
+      // trace for KEYMAN-WINDOWS-7J
+      window.Sentry.addBreadcrumb({category:'trace', message:`menusetup: menudiv defined`, level: 'info'});
+    }
   }
-  menu_doAttachEvent(window, 'load', menusetup);
-  
-  
+  window.addEventListener('load', menusetup);
+

@@ -1,0 +1,739 @@
+import { KeymanWebKeyboard } from '@keymanapp/common-types';
+import { KeymanEngineBase, DeviceDetector } from 'keyman/engine/main';
+import { getAbsoluteY } from 'keyman/engine/dom-utils';
+import { AbstractElementTextStore } from 'keyman/engine/element-text-stores';
+import {
+  TwoStateActivator,
+  VisualKeyboard
+} from 'keyman/engine/osk';
+import { ErrorStub, KeyboardStub, CloudQueryResult, toPrefixedKeyboardId } from 'keyman/engine/keyboard-storage';
+import { DeviceSpec } from 'keyman/common/web-utils';
+import { JSKeyboard, Keyboard } from "keyman/engine/keyboard";
+import KeyboardObject = KeymanWebKeyboard.KeyboardObject;
+
+import * as views from './viewsAnchorpoint.js';
+import { BrowserConfiguration, BrowserInitOptionDefaults, BrowserInitOptionSpec } from './configuration.js';
+import { ContextManager } from './contextManager.js';
+import { DefaultBrowserRules } from './defaultBrowserRules.js';
+import { HardwareEventKeyboard } from './hardwareEventKeyboard.js';
+import { FocusStateAPIObject } from './context/focusAssistant.js';
+import { PageIntegrationHandlers } from './context/pageIntegrationHandlers.js';
+import { LanguageMenu } from './languageMenu.js';
+import { setupOskListeners } from './oskConfiguration.js';
+import { whenDocumentReady } from './utils/documentReady.js';
+import { textStoreForElement } from 'keyman/engine/attachment';
+
+import { UtilApiEndpoint} from './utilApiEndpoint.js';
+import { UIModule } from './uiModuleInterface.js';
+import { HotkeyManager } from './hotkeyManager.js';
+import { BeepHandler } from './beepHandler.js';
+import { KeyboardInterface } from './keyboardInterface.js';
+import { WorkerFactory } from '@keymanapp/lexical-model-layer/web';
+import { KeyboardDetails } from './keyboardDetails.js';
+
+export class KeymanEngine extends KeymanEngineBase<BrowserConfiguration, ContextManager, HardwareEventKeyboard> {
+  touchLanguageMenu?: LanguageMenu;
+  private pageIntegration: PageIntegrationHandlers;
+
+  private _initialized: number = 0;
+  readonly _util: UtilApiEndpoint;
+
+  private _ui: UIModule;
+  hotkeyManager: HotkeyManager = new HotkeyManager();
+  private readonly beepHandler: BeepHandler;
+
+
+  // Properties sometimes set up by a hosting page
+  public getOskHeight?: () => number = null;
+  public getOskWidth?: () => number = null;
+
+  /**
+   * Public API: Provides a quick link to the base help page for Keyman keyboards. (deprecated)
+   * @deprecated
+   * See https://help.keyman.com/developer/engine/web/current-version/reference/core/helpURL
+   */
+  public readonly helpURL = 'https://help.keyman.com/go';
+
+  public keyEventRefocus = () => {
+    this.contextManager.restoreLastActiveTextStore();
+  }
+
+  constructor(workerFactory: WorkerFactory, sourceUri: string) {
+    const config = new BrowserConfiguration(sourceUri);  // currently set to perform device auto-detect.
+
+    super(workerFactory, config, new ContextManager(config, () => this.legacyAPIEvents), (engine) => {
+      return {
+        baseLayout: 'us',
+        keyboardInterface: new KeyboardInterface(window, engine as KeymanEngine),
+        defaultOutputRules: new DefaultBrowserRules(engine.contextManager)
+      };
+    });
+
+    this._util = new UtilApiEndpoint(config);
+    this.beepHandler = new BeepHandler(this.core.keyboardInterface);
+    this.core.keyboardProcessor.beepHandler = () => this.beepHandler.beep(this.contextManager.activeTextStore);
+
+    this.hardKeyboard = new HardwareEventKeyboard(config.hardDevice, this.core.keyboardProcessor, this.contextManager);
+
+    // Scrolls the document-body to ensure that a focused element remains visible after the OSK appears.
+    this.contextManager.on('textstorechange', (textStore) => {
+      const elem = (textStore as AbstractElementTextStore<any>)?.getElement();
+      if(this.osk) {
+        (this.osk.activationModel as TwoStateActivator<HTMLElement>).activationTrigger = elem;
+      }
+
+      if(this.config.hostDevice.touchable && textStore) {
+        this.ensureElementVisibility(elem);
+      }
+    });
+  }
+
+  public ensureElementVisibility(elem: HTMLElement): void {
+    if(!elem || !this.osk) {
+      return;
+    }
+
+    // Get the absolute position of the caret
+    const y = getAbsoluteY(elem);
+    const t = window.pageYOffset;
+    let dy = y-t;
+    if(y >= t) {
+      dy -= (window.innerHeight - this.osk._Box.offsetHeight - elem.offsetHeight - 2);
+      if(dy < 0) {
+        dy=0;
+      }
+    }
+    // Hide OSK, then scroll, then re-anchor OSK with absolute position (on end of scroll event)
+    if(dy != 0) {
+      window.scrollTo(0, dy + t);
+    }
+  }
+
+  public get util(): UtilApiEndpoint {
+    return this._util;
+  }
+
+  public get views() {
+    // NOT this.views.  Just... `views`, the import of viewsAnchorpoint.ts
+    return views;
+  }
+
+  /**
+   * See https://help.keyman.com/developer/engine/web/current-version/reference/core/initialized
+   */
+  public get initialized(): number {
+    return this._initialized;
+  }
+
+  public get ui(): UIModule {
+    return this._ui;
+  }
+
+  public set ui(module: UIModule) {
+    if(this._ui) {
+      this.legacyAPIEvents.callEvent('unloaduserinterface', {});
+      this._ui.shutdown();
+    }
+
+    this._ui = module;
+    if(module && this.config.deferForInitialization.isFulfilled) {
+      module.initialize();
+      this.legacyAPIEvents.callEvent('loaduserinterface', {});
+    }
+  }
+
+  /**
+   * Function     Initialization
+   * Scope        Public
+   * @param       {com.keyman.OptionType}  arg     object specifying configuration properties for KeymanEngine + its resources
+   *
+   * Performs initialization of the KeymanEngine for Web, including:
+   * - device-detection
+   * - option configuration
+   * - integration with the active page
+   * - OSK-selection
+   * - finalization for pre-loaded keyboard + stub registrations.
+   *
+   * It also self-defers if the page is not yet fully loaded; it will automatically await page
+   * load and resume once page-load is complete.  (Certain initialization behaviors will only
+   * proceed properly with a fully-loaded page.)
+   *
+   * @returns A Promise that only resolves once the engine is fully initialized.
+   */
+  public async init(options: Required<BrowserInitOptionSpec>): Promise<void> {
+    const deviceDetector = new DeviceDetector();
+    const device = deviceDetector.detect();
+
+    const totalOptions = {...BrowserInitOptionDefaults, ...options};
+
+    // // Possible condition we can add:  no change of init options after a  ***
+    // // prior finalized init.
+
+    this.config.hostDevice = device;
+    // Set any incoming options, overriding previous entries.
+    this.config.initialize(totalOptions);
+
+    this._initialized = 1;
+
+    // Must wait for document load for further initialization.
+    await whenDocumentReady();
+
+    // Deferred keyboard loading + shortcutting if a different init call on the engine has
+    // already fully resolved.
+    if(this.config.deferForInitialization.isResolved) {
+      // abort!  Maybe throw an error, too.
+      return Promise.resolve();
+    }
+
+    // There may be some valid mutations possible even on repeated calls?
+    // The original seems to allow it.
+
+    await super.init(totalOptions);
+
+    // Used by keymanweb.com; if no keyboard-cookie exists, we need this to trigger
+    // default-stub selection on mobile devices so that a keyboard - and thus, the
+    // globe key - are accessible.
+    //
+    // The `super` call above initializes `keyboardRequisitioner`, as needed here.
+    this.keyboardRequisitioner.cloudQueryEngine.once('unboundregister', async () => {
+      if(!this.contextManager.activeKeyboard?.keyboard) {
+        // Autoselects this.keyboardRequisitioner.cache.defaultStub, which will be
+        // set to an actual keyboard on mobile devices.
+        await this.setActiveKeyboard('', '');
+      }
+    });
+
+    this.contextManager.initialize();  // will seek to attach to the page, which requires document.body
+
+    // Capture the saved-keyboard string now, before we load any keyboards/stubs
+    // or do anything that would mutate the value.
+    let savedKeyboardStr = this.contextManager.getSavedKeyboardRaw();
+
+    if(device.touchable) {
+      this.osk = new views.AnchoredOSKView(this);
+    } else {
+      this.osk = new views.FloatingOSKView(this);
+    }
+
+    setupOskListeners(this, this.osk, this.contextManager);
+
+    // Automatically performs related handler setup & maintains references
+    // needed for related cleanup / shutdown.
+    this.pageIntegration = new PageIntegrationHandlers(window, this);
+    this.config.finalizeInit();
+
+    if(this.ui) {
+      this.ui.initialize();
+      this.legacyAPIEvents.callEvent('loaduserinterface', {});
+    }
+
+    this._initialized = 2;
+
+    // Let any deferred, pre-init stubs complete registration
+    await Promise.resolve();
+
+    // If there's no value here, we should check to see if `Keyboard_us:en`
+    // is one of the available stubs; we default to that if it's available.
+    savedKeyboardStr ||= this.contextManager.getSavedKeyboard();
+    if(savedKeyboardStr) {
+      // Attempt to restore the user's last-used keyboard from their previous session.
+      //
+      // Note:  any cloud stubs will probably not be available yet.
+      // If we tracked cloud requests and awaited a Promise.all on pending queries,
+      // we could handle that too.
+      this.contextManager.restoreSavedKeyboard(savedKeyboardStr);
+    }
+
+    await Promise.resolve();
+  }
+
+  get register(): (x: CloudQueryResult) => void {
+    return this.keyboardRequisitioner.cloudQueryEngine.registerFromCloud;
+  }
+
+  /**
+   * Function     getUIState
+   * Scope        Public
+   * @return      {Object.<string,(boolean|number)>}
+   * Description  Return object with activation state of UI:
+   *                activationPending (bool):   KMW being activated
+   *                activated         (bool):   KMW active
+   *
+   * See https://help.keyman.com/developer/engine/web/current-version/reference/core/getUIState
+   */
+  public getUIState(): FocusStateAPIObject {
+    return this.contextManager.focusAssistant.getUIState();
+  }
+
+  /**
+   * Set or clear the IsActivatingKeymanWebUI flag (exposed function)
+   *
+   * See https://help.keyman.com/developer/engine/web/current-version/reference/core/activatingUI
+   *
+   * @param       {(boolean|number)}  state  Activate (true,false)
+   */
+  public activatingUI(state: boolean | number): void {
+    this.contextManager.focusAssistant.setMaintainingFocus(!!state);
+  }
+
+  /**
+   * Associate control with independent keyboard settings initialized to a specific keyboard.
+   * The pair of `keyboardId` and `languageCode` (if not `null` or empty string) must refer to a
+   * registered keyboard stub.
+   *
+   * See https://help.keyman.com/developer/engine/web/current-version/reference/core/setKeyboardForControl
+   *
+   * @param  {Element}       elem          The control element to be managed manually
+   * @param  {string|null=}  keyboardId    The id of a keyboard, consisting of the word
+   *                                       `Keyboard_` followed by the internal keyboard name.
+   *                                       For a keyboard with the internal name `laokeys` this
+   *                                       would be `Keyboard_laokeys`.
+   *                                       If keyboardId and languageCode are both null, the
+   *                                       control will use the global keyboard.
+   *                                       If both are the empty string, the control will use the
+   *                                       system keyboard (on desktop), or the first installed
+   *                                       keyboard (on touch devices).
+   * @param  {string|null=}  languageCode  A BCP47 language code which was used when registering
+   *                                       the keyboard stub.
+   */
+  public setKeyboardForControl(elem: HTMLElement, keyboardId?: string | null, languageCode?: string | null): void {
+    if(elem instanceof elem.ownerDocument.defaultView.HTMLIFrameElement) {
+      console.warn("'keymanweb.setKeyboardForControl' cannot set keyboard on iframes.");
+      return;
+    }
+
+    if(!this.isAttached(elem)) {
+      console.error("KeymanWeb is not attached to element " + elem);
+      return;
+    }
+
+    let stub = null;
+    if(keyboardId) {
+      stub = this.keyboardRequisitioner.cache.getStub(keyboardId, languageCode);
+      if(!stub) {
+        throw new Error(`No keyboard has been registered with id ${keyboardId} and language code ${languageCode}.`);
+      }
+    }
+
+    this.contextManager.setKeyboardForTextStore(elem._kmwAttachment.textStore, keyboardId, languageCode);
+  }
+
+  /**
+   * Returns the keyboard ID of the current independently-managed keyboard for this control.
+   * If it is currently following the global keyboard setting, returns null instead.
+   *
+   * See https://help.keyman.com/developer/engine/web/current-version/reference/core/getKeyboardForControl
+   *
+   * @param       {Element}      elem   Control element
+   * @return      {string|null}         The independently-managed keyboard for the control,
+   *                                    '' for independently-managed but set to system
+   *                                    keyboard, or null if it is following the global keyboard
+   *                                    setting.
+   */
+  public getKeyboardForControl(elem: HTMLElement): string | null{
+    if(!elem || !this.contextManager.isElementInIndependentMode(elem)) {
+      return null;
+    }
+    const keyboardId = elem._kmwAttachment.keyboard;
+    if(keyboardId === '') {
+      return '';
+    }
+    const stub = this.keyboardRequisitioner.cache.getStub(keyboardId, elem._kmwAttachment.languageCode);
+    return stub?.KI ?? keyboardId;
+  }
+
+  // Is not currently published API... but it exists.
+  /**
+   * Returns the language code used with the current independently-managed keyboard
+   * for this control. If it is currently following the global keyboard setting,
+   * returns null instead.
+   *
+   * @param       {Element}      elem  Control element
+   * @return      {string|null}        The language code for the control (or '' for the system-
+   *                                   specified language) if independently managed, or null if
+   *                                   using global mode.
+   */
+  public getLanguageForControl(elem: HTMLElement): string | null {
+    if(!elem || !this.contextManager.isElementInIndependentMode(elem)) {
+      return null;
+    }
+    return elem._kmwAttachment.languageCode ?? '';
+  }
+
+  public isAttached(x: HTMLElement): boolean {
+    return this.contextManager.page.isAttached(x);
+  }
+
+  /**
+   * Exposed function to load keyboards by name. One or more arguments may be used
+   *
+   * @param {any[]} args keyboard name string or keyboard metadata JSON object
+   * @returns {Promise<(KeyboardStub|ErrorStub)[]>} Promise of added keyboard/error stubs
+   *
+   * See https://help.keyman.com/developer/engine/web/current-version/reference/core/addKeyboards
+   */
+  public async addKeyboards(...args: any[]): Promise<(KeyboardStub|ErrorStub)[]> {
+    return this.config.deferForInitialization.then(() => {
+      if (!args || !args[0] || args[0].length == 0) {
+        // Get the cloud keyboard catalog
+        return this.keyboardRequisitioner.fetchCloudCatalog().catch((errVal) => {
+          console.error(errVal[0].error);
+          return errVal;
+        });
+      } else {
+        let x: (string|KeyboardStub)[] = [];
+        if (Array.isArray(args[0])) {
+          x = x.concat(args[0]);
+        } else if (Array.isArray(args)) {
+          x = x.concat(args);
+        }
+        return this.keyboardRequisitioner.addKeyboardArray(x);
+      }
+    })
+  }
+
+  /**
+   *  Add default keyboards for given language(s)
+   *
+   *  @param  {string|string[]}   arg    Language name (multiple arguments allowed)
+   *  @returns {Promise<(KeyboardStub|ErrorStub)[]>} Promise of added keyboard/error stubs
+   *
+   * See https://help.keyman.com/developer/engine/web/current-version/reference/core/addKeyboardsForLanguage
+   **/
+  public async addKeyboardsForLanguage(arg: string[]|string) : Promise<(KeyboardStub|ErrorStub)[]> {
+    return this.config.deferForInitialization.then(() => {
+      if (typeof arg === 'string') {
+        return this.keyboardRequisitioner.addLanguageKeyboards(arg.split(',').map(item => item.trim()));
+      } else {
+        return this.keyboardRequisitioner.addLanguageKeyboards(arg);
+      }
+    });
+  }
+
+  /**
+   * Get an associative array of keyboard identification strings
+   *   This was defined as an array, so is kept that way, but
+   *   Javascript treats it as an object anyway
+   *
+   * This is a public API function documented at
+   * https://help.keyman.com/developer/engine/web/current-version/reference/core/getKeyboard.
+   *
+   * @param       {Object}    Lstub      JSKeyboard stub object
+   * @param       {Object}    Lkbd       Keyboard script object
+   * @return      {Object}               Keyboard details object
+   *
+   */
+  // TODO-web-core: check each property of Lstub for KMXKeyboard availability
+  private _GetKeyboardDetail(Lstub: KeyboardStub, Lkbd: Keyboard): KeyboardDetails { // I2078 - Full keyboard detail
+   return Lstub && {
+      Name: Lstub.KN,
+      InternalName: Lstub.KI,
+      LanguageName: Lstub.KL,  // I1300 - Add support for language names
+      LanguageCode: Lstub.KLC, // I1702 - Add support for language codes, region names, region codes, country names and country codes
+      RegionName: Lstub.KR,
+      RegionCode: Lstub.KRC,
+      // @ts-ignore
+      CountryName: Lstub['KC'] as string,
+      // @ts-ignore
+      CountryCode: Lstub['KCC'] as string,
+      // @ts-ignore
+      KeyboardID: Lstub['KD'] as string,
+      Font: Lstub.KFont,
+      OskFont: Lstub.KOskFont,
+      HasLoaded: !!Lkbd,
+      IsRTL: Lkbd ? Lkbd.isRTL : null
+    };
+  }
+
+  /**
+   * Function    isCJK
+   * Scope       Public
+   * @param      {Object=}  k0
+   * @return     {boolean}
+   * Description Tests if active keyboard (or specified keyboard script object, as optional argument)
+   *             uses a pick list (Chinese, Japanese, Korean, etc.)
+   *             (This function accepts either keyboard structure.)
+   *
+   * See https://help.keyman.com/developer/engine/web/current-version/reference/core/isCJK
+   */
+  public isCJK(k0?: KeyboardObject | KeyboardDetails /* [b/c Toolbar UI]*/) {
+    let kbd: Keyboard;
+    if(k0) {
+      const kbdDetail = k0 as KeyboardDetails;
+      if(kbdDetail.KeyboardID){
+        kbd = this.keyboardRequisitioner.cache.getKeyboard(kbdDetail.KeyboardID);
+      } else {
+        kbd = new JSKeyboard(k0);
+      }
+    } else {
+      kbd = this.core.activeKeyboard;
+    }
+
+    // We only support isCJK on legacy .js keyboards; see #7928
+    return kbd && kbd instanceof JSKeyboard && kbd.isCJK;
+  }
+
+  /**
+   * Get keyboard meta data for the selected keyboard and language
+   *
+   * @param       {string}    id         Internal name of keyboard
+   * @param       {string?}   langCode   language code
+   * @return      {KeyboardDetails}      Details of named keyboard
+   *
+   * See https://help.keyman.com/developer/engine/web/current-version/reference/core/getKeyboard
+   **/
+  public getKeyboard(id: string, langCode?: string): KeyboardDetails {
+    const stub = this.keyboardRequisitioner.cache.getStub(id, langCode);
+    const keyboard = this.keyboardRequisitioner.cache.getKeyboardForStub(stub);
+
+    return this._GetKeyboardDetail(stub, keyboard);
+  }
+
+  /**
+   * Get API-friendly array of available keyboard metadata
+   *
+   * @return   {KeyboardDetails[]}     Array of available keyboards
+   *
+   * See https://help.keyman.com/developer/engine/web/current-version/reference/core/getKeyboards
+   */
+  public getKeyboards(): KeyboardDetails[] {
+    const detailsForAllKeyboards: KeyboardDetails[] = [];
+
+    const cache = this.keyboardRequisitioner.cache;
+    const keyboardStubs = cache.getStubList()
+    for (const stub of keyboardStubs) {
+      const keyboard = cache.getKeyboardForStub(stub);
+      const keyboardDetails = this._GetKeyboardDetail(stub, keyboard);
+      if (keyboardDetails) {
+        detailsForAllKeyboards.push(keyboardDetails);
+      }
+    }
+    return detailsForAllKeyboards;
+  }
+
+  /**
+   * Build 362: removeKeyboards() remove keyboard from list of available keyboards
+   *
+   * @param {string}  x      keyboard name string
+   *
+   * See https://help.keyman.com/developer/engine/web/current-version/reference/core/removeKeyboards
+   */
+  public removeKeyboards(...x: string[]): boolean {
+    for(let i=0; i < x.length; i++) {
+      // This will completely forget the keyboard, requiring an async load operation to restore it again.
+      // `true` is responsible for this & is required to pass a variable-store unit test.
+      this.keyboardRequisitioner.cache.forgetKeyboard(x[i], true);
+
+      if(this.contextManager.activeKeyboard?.metadata.id == toPrefixedKeyboardId(x[i])) {
+        this.contextManager.activateKeyboard('', '');
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Gets the cookie for the name and language code of the most recently active keyboard
+   *
+   * Defaults to US English, but this needs to be user-set in later revision (TODO)
+   *
+   * @return      {string}          InternalName:LanguageCode
+   *
+   * See https://help.keyman.com/developer/engine/web/current-version/reference/core/getSavedKeyboard
+   **/
+  public getSavedKeyboard(): string {
+    return this.contextManager.getSavedKeyboard();
+  }
+
+  /**
+   * Set focus to last active target element (browser-dependent)
+   *
+   * See https://help.keyman.com/developer/engine/web/current-version/reference/core/focusLastActiveElement
+   */
+  public focusLastActiveElement(): void {
+    this.contextManager.lastActiveTextStore?.focus();
+  }
+
+  /**
+   * Get the last active target element *before* KMW activated (I1297)
+   *
+   * @return      {Object}
+   *
+   * See https://help.keyman.com/developer/engine/web/current-version/reference/core/getLastActiveElement
+   */
+  public getLastActiveElement(): HTMLElement | null {
+    return this.contextManager.lastActiveTextStore?.getElement() ?? null;
+  }
+
+  /**
+   *  Set the active input element directly optionally setting focus
+   *
+   *  @param  {Object|string} e         element id or element
+   *  @param  {boolean=}      setFocus  optionally set focus  (KMEW-123)
+   **/
+  setActiveElement(e: string|HTMLElement, setFocus?: boolean): void {
+    if(typeof e == 'string') {
+      const id = e;
+      e = document.getElementById(e);
+
+      if(!e) {
+        throw new Error(`Could not find the specified element (id: ${id}`);
+      }
+    }
+
+    const textStore = textStoreForElement(e);
+    if(!textStore) {
+      throw new Error(`KMW is not attached to the specified element (id: ${e.id}).`);
+    }
+    this.contextManager.setActiveTextStore(textStore, setFocus);
+  }
+
+  /**
+   * Move focus to user-specified element
+   * @deprecated
+   * @param  {string|Object}   e   element or element id
+   * See https://help.keyman.com/developer/engine/web/current-version/reference/core/moveToElement
+   **/
+  public moveToElement(e: string|HTMLElement): void {
+    if(typeof(e) == "string") {
+      e=document.getElementById(e);
+    }
+
+    e.focus();
+  }
+
+  /**
+   * Function     addHotkey
+   * Scope        Public
+   * @param       {number}            keyCode
+   * @param       {number}            shiftState
+   * @param       {function(Object)}  handler
+   * Description  Add hot key handler to array of document-level hotkeys triggered by key up event
+   *
+   * See https://help.keyman.com/developer/engine/web/current-version/reference/core/addHotKey
+   */
+  public addHotKey(keyCode: number, shiftState: number, handler: () => void): void {
+    this.hotkeyManager.addHotKey(keyCode, shiftState, handler);
+  }
+
+  /**
+   * Function     removeHotkey
+   * Scope        Public
+   * @param       {number}        keyCode
+   * @param       {number}        shiftState
+   * Description  Remove a hot key handler from array of document-level hotkeys triggered by key up event
+   *
+   * See https://help.keyman.com/developer/engine/web/current-version/reference/core/removeHotKey
+   */
+  public removeHotKey(keyCode: number, shiftState: number): void {
+    this.hotkeyManager.removeHotkey(keyCode, shiftState);
+  }
+
+  /**
+   * Function     attachToControl
+   * Scope        Public
+   * @param       {Element}    Pelem       Element to which KMW will be attached
+   * Description  Attaches KMW to control (or IFrame)
+   *
+   * See https://help.keyman.com/developer/engine/web/current-version/reference/core/attachToControl
+   */
+  public attachToControl(Pelem: HTMLElement): void {
+    this.contextManager.page.attachToControl(Pelem);
+  }
+
+  /**
+   * Function     detachFromControl
+   * Scope        Public
+   * @param       {Element}    Pelem       Element from which KMW will detach
+   * Description  Detaches KMW from a control (or IFrame)
+   *
+   * See https://help.keyman.com/developer/engine/web/current-version/reference/core/detachFromControl
+   */
+  public detachFromControl(Pelem: HTMLElement): void {
+    this.contextManager.page.detachFromControl(Pelem);
+  }
+
+  /**
+   * Function     disableControl
+   * Scope        Public
+   * @param       {Element}      Pelem       Element to be disabled
+   * Description  Disables a KMW control element
+   *
+   * See https://help.keyman.com/developer/engine/web/current-version/reference/core/disableControl
+   */
+  public disableControl(Pelem: HTMLElement): void {
+    this.contextManager.page.disableControl(Pelem);
+  }
+
+  /**
+   * Function     enableControl
+   * Scope        Public
+   * @param       {Element}      Pelem       Element to be disabled
+   * Description  Disables a KMW control element
+   *
+   * See https://help.keyman.com/developer/engine/web/current-version/reference/core/enableControl
+   */
+  public enableControl(Pelem: HTMLMapElement): void {
+    this.contextManager.page.enableControl(Pelem);
+  }
+
+  /**
+   * Create copy of the OSK that can be used for embedding in documentation or help
+   * The currently active keyboard will be returned if PInternalName is null
+   *
+   *  @param  {string}          PInternalName   internal name of keyboard, with or without Keyboard_ prefix
+   *  @param  {number}          Pstatic         static keyboard flag  (unselectable elements)
+   *  @param  {string=}         argFormFactor   layout form factor, defaulting to 'desktop'
+   *  @param  {(string)=}  argLayerId    name or index of layer to show, defaulting to 'default'
+   *  @return {Object}                          DIV object with filled keyboard layer content
+   *
+   * See https://help.keyman.com/developer/engine/web/current-version/reference/core/BuildVisualKeyboard
+   */
+  public BuildVisualKeyboard(
+    PInternalName: string,
+    Pstatic: number,
+    argFormFactor?: DeviceSpec.FormFactor,
+    argLayerId?: string
+  ): HTMLElement {
+    const PKbd = (PInternalName != null ? this.keyboardRequisitioner.cache.getKeyboard(PInternalName) : null) || this.core.activeKeyboard;
+
+    const jsKbd = PKbd as JSKeyboard;
+    const Pstub = this.keyboardRequisitioner.cache.getStub(jsKbd);
+
+    // help.keyman.com will set this function in place to specify the desired
+    // dimensions for the documentation-keyboards, so we'll give it priority.  One of those
+    // "temporary" (but actually permanent) solutions from yesteryear.
+    //
+    // Note that the main intended use of that function is for embedded KMW on the mobile apps...
+    // but they never call `BuildVisualKeyboard`, so it's all good.
+    const getOskHeight = this['getOskHeight'];
+    const targetHeight = (typeof getOskHeight == 'function' ? getOskHeight() : null) || this.osk.computedHeight || 200;
+
+    return VisualKeyboard.buildDocumentationKeyboard(
+      jsKbd,
+      Pstub,
+      this.config.paths,
+      argFormFactor,
+      argLayerId,
+      targetHeight
+      );
+  }
+
+  /**
+   * Detaches all KMW event handlers attached by this instance of the engine and releases
+   * other related resources as appropriate.
+   *
+   * The primary use of this method is to facilitate a clean transition between engine
+   * instances during integration testing.  The goal is to prevent interactions intended
+   * for the 'current' instance from being accidentally intercepted by a discarded one.
+   */
+  public shutdown(): void {
+    this.pageIntegration.shutdown();
+    this.contextManager.shutdown();
+    this.osk?.shutdown();
+    this.core.languageProcessor.shutdown();
+    this.hardKeyboard.shutdown();
+    this.util.shutdown(); // For tracked dom events, stylesheets.
+    this.ui = undefined; // will shutdown and call event listeners
+  }
+}

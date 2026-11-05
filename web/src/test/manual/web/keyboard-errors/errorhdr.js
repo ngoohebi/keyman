@@ -1,0 +1,42 @@
+/*
+    This script is designed to test KeymanWeb error message handling.
+*/
+
+  function loadKeyboards()
+  {
+    // We start by adding a keyboard correctly.  It's best to include a 'control' in our experiment.
+    keyman.addKeyboards({id:'us',name:'English',languages:{id:'en',name:'English'},
+      filename:'../us-1.0.js'});
+
+    // Insert a keyboard that cannot be found.
+    keyman.addKeyboards({id:'lao_2008_basic',name:'wrong-filename',
+      languages:{
+        id:'lo',name:'debugging',region:'Asia',
+        font:{family:'LaoWeb',source:['../font/saysettha_web.ttf','../font/saysettha_web.woff','../font/saysettha_web.eot']}
+        },
+      filename:'./missing_file.js' // Intentional error - the file doesn't exist, so the <script> tag will raise an error event.
+    });
+
+    // Insert a keyboard that will generate a timing error.
+    keyman.addKeyboards({id:'unparsable',name:'non-parsable',
+      languages:{
+        id:'lo',name:'debugging',region:'Asia',
+        font:{family:'LaoWeb',source:['../font/saysettha_web.ttf','../font/saysettha_web.woff','../font/saysettha_web.eot']}
+        },
+      filename:'./unparsable.js' // Intentional error - the file has no parsable keyboard, so while the <script> tag will load,
+        // registration will fail.
+    });
+
+    // Insert a keyboard that will generate a timing error. `timeout.js` doesn't
+    // exist, but the test server (web/src/tools/testing/test-server/index.cjs)
+    // has special handling for that URL and times out after 10 seconds.
+    keyman.addKeyboards({id:'timeout',name:'timeout',
+      languages:{
+        id:'lo',name:'debugging',region:'Asia',
+        font:{family:'LaoWeb',source:['../font/saysettha_web.ttf','../font/saysettha_web.woff','../font/saysettha_web.eot']}
+        },
+      filename: './timeout.js' // Intentional (simulated) error - the file never loads,
+      // simulating a server timeout. web/src/tools/testing/test-server/index.cjs#L12
+      // has special code when this file gets requested!
+    });
+  }

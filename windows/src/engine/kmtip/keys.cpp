@@ -1,18 +1,18 @@
 /*
   Name:             keys
   Copyright:        Copyright (C) SIL International.
-  Documentation:    
-  Description:      
+  Documentation:
+  Description:
   Create Date:      7 Sep 2009
 
   Modified Date:    27 Jan 2015
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
-  Bugs:             
-  Todo:             
-  Notes:            
+  Bugs:
+  Todo:
+  Notes:
   History:          07 Sep 2009 - mcdurdin - I1713 - Sticky shift keys with TSF addin
                     07 Sep 2009 - mcdurdin - I2096 - 0x88 callback change
                     17 Nov 2012 - mcdurdin - I3566 - V9.0 - When legacy output is used, we need to avoid eating Keyman-generated characters
@@ -26,8 +26,6 @@
                     27 Jan 2015 - mcdurdin - I4575 - V9.0 - Support output of TAB and ENTER for unmatched key events
 */
 
-//#define _DEBUG_LOGKEY
-
 // keys.cpp
 //
 // ITfKeyEventSink implementation.
@@ -35,8 +33,9 @@
 
 #include "pch.h"
 #include "kmtip.h"
+#include "../../../../common/include/vkeys.h"
 
-#include "Vkeys.h"
+//#define _DEBUG_LOGKEY
 
 //+---------------------------------------------------------------------------
 //
@@ -50,11 +49,11 @@ BOOL CKMTipTextService::_InitKeystrokeSink()
   ITfKeystrokeMgr *pKeystrokeMgr;
   HRESULT hr;
 
-  Log(L"InitKeystrokeSink");
+  SendDebugEntry();
 
   if (!_pThreadMgr) {
     SendDebugMessage(L"_InitKeystrokeSink called but pThreadMgr == NULL");
-    return FALSE;   // I3714 -> app hangs when switching kmtip off when keyman32 not loaded, due to not init.   // I3714
+    return_SendDebugExit(FALSE);   // I3714 -> app hangs when switching kmtip off when keyman32 not loaded, due to not init.   // I3714
   }
 
   if (_keystrokeSinkInitialized) {
@@ -66,9 +65,9 @@ BOOL CKMTipTextService::_InitKeystrokeSink()
   hr = _pThreadMgr->QueryInterface(IID_ITfKeystrokeMgr, (void **)&pKeystrokeMgr);
   if(hr!= S_OK) {
     DebugLastError0(L"QueryInterface(ITfKeystrokeMgr)", hr);
-    return FALSE;
+    return_SendDebugExit(FALSE);
   }
-  
+
   hr = pKeystrokeMgr->AdviseKeyEventSink(_tfClientId, (ITfKeyEventSink *)this, TRUE);
   if (hr != S_OK) {
     DebugLastError0(L"AdviseKeyEventSink", hr);
@@ -76,33 +75,34 @@ BOOL CKMTipTextService::_InitKeystrokeSink()
 
   pKeystrokeMgr->Release();
 
-	memset(fEatenBuf, 0, sizeof(fEatenBuf));
+	memset(fEatenBuf, 0, sizeof(fEatenBuf));          // OnKeyDown/Up
+  memset(fOnTestEatenBuf, 0, sizeof(fOnTestEatenBuf));  // OnTestKeyDown/Up
 
-  return _keystrokeSinkInitialized = (hr == S_OK);
+  return_SendDebugExit(_keystrokeSinkInitialized = (hr == S_OK));
 }
 
 BOOL CKMTipTextService::_InitPreservedKeys() {   // I4274
   ITfKeystrokeMgr *pKeystrokeMgr;
   HRESULT hr = S_OK;
 
-  Log(L"_InitPreservedKeys");
+  SendDebugEntry();
 
   if (!_pThreadMgr) {
-    Log(L"_InitPreservedKeys: pThreadMgr == NULL");
-    return FALSE;   // I3714 -> app hangs when switching kmtip off when keyman32 not loaded, due to not init.   // I3714
+    SendDebugMessage(L"pThreadMgr == NULL");
+    return_SendDebugExit(FALSE);   // I3714 -> app hangs when switching kmtip off when keyman32 not loaded, due to not init.   // I3714
   }
 
   hr = _pThreadMgr->QueryInterface(IID_ITfKeystrokeMgr, (void **)&pKeystrokeMgr);
   if (hr != S_OK) {
     DebugLastError0(L"QueryInterface(ITfKeystrokeMgr)", hr);
-    return FALSE;
+    return_SendDebugExit(FALSE);
   }
 
   hr = _PreserveAltKeys(pKeystrokeMgr);   // I3588
 
   pKeystrokeMgr->Release();
 
-  return (hr == S_OK);
+  return_SendDebugExit(hr == S_OK);
 }
 
 //+---------------------------------------------------------------------------
@@ -114,16 +114,20 @@ BOOL CKMTipTextService::_InitPreservedKeys() {   // I4274
 
 void CKMTipTextService::_UninitKeystrokeSink()
 {
-  LogEnter();
+  SendDebugEntry();
 
   ITfKeystrokeMgr *pKeystrokeMgr;
 
-  if (!_pThreadMgr) return;   // I3714 -> app hangs when switching kmtip off when keyman32 not loaded, due to not init.
+  if (!_pThreadMgr) {
+    SendDebugExit();
+    return;   // I3714 -> app hangs when switching kmtip off when keyman32 not loaded, due to not init.
+  }
 
   HRESULT hr;
   hr = _pThreadMgr->QueryInterface(IID_ITfKeystrokeMgr, (void **)&pKeystrokeMgr);
   if (hr != S_OK) {
     DebugLastError0(L"QueryInterface(ITfKeystrokeMgr)", hr);
+    SendDebugExit();
     return;
   }
 
@@ -135,6 +139,7 @@ void CKMTipTextService::_UninitKeystrokeSink()
   _UnpreserveAltKeys(pKeystrokeMgr);   // I3588
 
   pKeystrokeMgr->Release();
+  SendDebugExit();
 }
 
 //+---------------------------------------------------------------------------
@@ -146,21 +151,21 @@ void CKMTipTextService::_UninitKeystrokeSink()
 
 STDAPI CKMTipTextService::OnSetFocus(BOOL fForeground)
 {
-  LogEnter();
+  SendDebugMessageFormat(L"Foreground=%d", fForeground);
   return S_OK;
 }
 
 
 #ifdef _DEBUG_LOGKEY
-void LogKey(PSTR func, UINT msg, WPARAM wParam, LPARAM lParam) {   // I4548
+inline void LogKey(UINT msg, WPARAM wParam, LPARAM lParam) {   // I4548
   if(wParam >= 0 && wParam <= 0xFF) {
-    Log(L"%hs(%hs[%x],%x)\n", func, VKeyNames[wParam], wParam, lParam);
+    SendDebugMessageFormat(L"vkey=%hs[%x] lParam=%x", VKeyNames[wParam], wParam, lParam);
   } else {
-    Log(L"%hs(%x,%x)\n", func, wParam, lParam);
+    SendDebugMessageFormat(L"key=%x lParam=%x", wParam, lParam);
   }
 }
 #else
-#define LogKey(a,b,c,d)
+#define LogKey(a,b,c)
 #endif
 
 //+---------------------------------------------------------------------------
@@ -172,18 +177,11 @@ void LogKey(PSTR func, UINT msg, WPARAM wParam, LPARAM lParam) {   // I4548
 
 STDAPI CKMTipTextService::OnTestKeyDown(ITfContext *pContext, WPARAM wParam, LPARAM lParam, BOOL *pfEaten)
 {
-  LogKey("CKMTipTextService::OnTestKeyDown", 0, wParam, lParam);
-  // If the keystroke is a Keyman-generated key, ignore it
-  // But we need to pass Caps Lock through, even if we generated it, so we can track Caps Lock state.
-  // TODO: Fix magic constants
-  if ((lParam & 0x00FF0000L) == 0xFF0000L &&
-    wParam != VK_CAPITAL) {
-    *pfEaten = FALSE;
-  }
-  else {
-    *pfEaten = _KeymanProcessKeystroke(pContext, wParam, lParam, FALSE, FALSE);   // I3588
-//  SendDebugMessageFormat("CKMTipTextService::OnTestKeyDown(pfEaten=%s)", *pfEaten ? "TRUE" : "FALSE");
-  }
+  SendDebugEntry();
+  LogKey(0, wParam, lParam);
+  fOnTestEatenBuf[wParam] = *pfEaten = _KeymanProcessKeystroke(pContext, wParam, lParam, FALSE, FALSE);  // I3588
+  SendDebugMessageFormat(L"pfEaten=%s, wParam=%x, lParam=%x", *pfEaten ? L"TRUE" : L"FALSE", wParam, lParam);
+  SendDebugExit();
   return S_OK;
 }
 
@@ -197,9 +195,11 @@ STDAPI CKMTipTextService::OnTestKeyDown(ITfContext *pContext, WPARAM wParam, LPA
 
 STDAPI CKMTipTextService::OnKeyDown(ITfContext *pContext, WPARAM wParam, LPARAM lParam, BOOL *pfEaten)
 {
-  LogKey("CKMTipTextService::OnKeyDown", 1, wParam, lParam);
-  fEatenBuf[wParam] = *pfEaten = _KeymanProcessKeystroke(pContext, wParam, lParam, TRUE, FALSE);   // I3588
-//  SendDebugMessageFormat("CKMTipTextService::OnKeyDown(pfEaten=%s)", *pfEaten ? "TRUE" : "FALSE");
+  SendDebugEntry();
+  LogKey(1, wParam, lParam);
+  fEatenBuf[wParam] = *pfEaten = _KeymanProcessKeystroke(pContext, wParam, lParam, TRUE, FALSE);  // I3588
+  SendDebugMessageFormat(L"pfEaten=%s wParam=%x lParam=%x", *pfEaten ? L"TRUE" : L"FALSE", wParam, lParam);
+  SendDebugExit();
 	return S_OK;
 }
 
@@ -212,18 +212,12 @@ STDAPI CKMTipTextService::OnKeyDown(ITfContext *pContext, WPARAM wParam, LPARAM 
 
 STDAPI CKMTipTextService::OnTestKeyUp(ITfContext *pContext, WPARAM wParam, LPARAM lParam, BOOL *pfEaten)
 {
-  LogKey("CKMTipTextService::OnTestKeyUp", 2, wParam, lParam);
-  // If the keystroke is a Keyman-generated key, ignore it
-  // But we need to pass Caps Lock through, even if we generated it, so we can track Caps Lock state.
-  if ((lParam & 0x00FF0000L) == 0xFF0000L &&
-    wParam != VK_CAPITAL) {  // I3566
-    *pfEaten = FALSE;
-  }
-  else {
-    _KeymanProcessKeystroke(pContext, wParam, lParam, FALSE, FALSE);   // I3588
-    *pfEaten = fEatenBuf[wParam];
-  }
-//  SendDebugMessageFormat("CKMTipTextService::OnTestKeyUp(pfEaten=%s)", *pfEaten ? "TRUE" : "FALSE");
+  SendDebugEntry();
+  LogKey(2, wParam, lParam);
+  _KeymanProcessKeystroke(pContext, wParam, lParam, FALSE, FALSE);   // I3588
+  *pfEaten = fOnTestEatenBuf[wParam];
+  SendDebugMessageFormat(L"pfEaten=%s wParam=%x lParam=%x", *pfEaten ? L"TRUE" : L"FALSE", wParam, lParam);
+  SendDebugExit();
   return S_OK;
 }
 
@@ -237,19 +231,16 @@ STDAPI CKMTipTextService::OnTestKeyUp(ITfContext *pContext, WPARAM wParam, LPARA
 
 STDAPI CKMTipTextService::OnKeyUp(ITfContext *pContext, WPARAM wParam, LPARAM lParam, BOOL *pfEaten)
 {
-  LogKey("CKMTipTextService::OnKeyUp", 3, wParam, lParam);
+  SendDebugEntry();
+  LogKey(3, wParam, lParam);
   // If the keystroke is a Keyman-generated key, ignore it
   // But we need to pass Caps Lock through, even if we generated it, so we can track Caps Lock state.
-  if ((lParam & 0x00FF0000L) == 0xFF0000L &&
-    wParam != VK_CAPITAL) {   // I3566   // I3605
-    *pfEaten = FALSE;
-  }
-  else
-  {
-  	_KeymanProcessKeystroke(pContext, wParam, lParam, TRUE, FALSE);   // I3588   // I3605
-    *pfEaten = fEatenBuf[wParam];
-  }
-//  SendDebugMessageFormat("CKMTipTextService::OnKeyUp(pfEaten=%s)", *pfEaten ? "TRUE" : "FALSE");
+
+  _KeymanProcessKeystroke(pContext, wParam, lParam, TRUE, FALSE);   // I3588   // I3605
+  *pfEaten = fEatenBuf[wParam];
+
+  SendDebugMessageFormat(L"pfEaten=%s wParam=%x lParam=%x", *pfEaten ? L"TRUE" : L"FALSE", wParam, lParam);
+  SendDebugExit();
   return S_OK;
 }
 
@@ -257,42 +248,28 @@ STDAPI CKMTipTextService::OnKeyUp(ITfContext *pContext, WPARAM wParam, LPARAM lP
 //
 // _PreserveAltKeys
 //
-// Identify and preserve all Alt+ combinations that Keyman Engine needs to 
+// Identify and preserve all Alt+ combinations that Keyman Engine needs to
 // pass through to Keyman keyboard
 //----------------------------------------------------------------------------
 
-typedef BOOL (WINAPI *GetKeyboardPreservedKeys)(PreservedKey **pPreservedKeys, size_t *cPreservedKeys);
-
 HRESULT CKMTipTextService::_PreserveAltKeys(ITfKeystrokeMgr *pKeystrokeMgr)   // I3588
 {
-  LogEnter();
+  SendDebugEntry();
 
-  _PreservedKeys = NULL;
-  _cPreservedKeyCount = 0;
+  _UnpreserveAltKeys(pKeystrokeMgr);
 
-  if(!_LoadKeyman()) {   // I4274
-    return E_FAIL;
-  }
-
-  GetKeyboardPreservedKeys pGetKeyboardPreservedKeys = (GetKeyboardPreservedKeys)GetProcAddress(_hKeyman, "GetKeyboardPreservedKeys");
-  if(pGetKeyboardPreservedKeys == NULL) 
+  if(!Keyman32Interface::GetKeyboardPreservedKeys(NULL, &_cPreservedKeyCount))
   {
-    DebugLastError(L"GetProcAddress");
-    return E_FAIL;
-  }
-
-  if(!(*pGetKeyboardPreservedKeys)(NULL, &_cPreservedKeyCount))
-  {
-    Log(L"GetKeyboardPreservedKeys failed");
-    return E_FAIL;
+    SendDebugMessage(L"GetKeyboardPreservedKeys failed");
+    return_SendDebugExit(E_FAIL);
   }
 
   _PreservedKeys = new PreservedKey[_cPreservedKeyCount];
 
-  if(!(*pGetKeyboardPreservedKeys)(&_PreservedKeys, &_cPreservedKeyCount))
+  if(!Keyman32Interface::GetKeyboardPreservedKeys(&_PreservedKeys, &_cPreservedKeyCount))
   {
-    Log(L"GetKeyboardPreservedKeys(2nd) failed");
-    return E_FAIL;
+    SendDebugMessage(L"GetKeyboardPreservedKeys(2nd) failed");
+    return_SendDebugExit(E_FAIL);
   }
 
   HRESULT hr = S_OK;
@@ -302,21 +279,21 @@ HRESULT CKMTipTextService::_PreserveAltKeys(ITfKeystrokeMgr *pKeystrokeMgr)   //
     hr = pKeystrokeMgr->PreserveKey(_tfClientId, _PreservedKeys[i].guid, &_PreservedKeys[i].key, NULL, 0);
     if (hr != S_OK) {
       if(_PreservedKeys[i].key.uVKey < 256)
-        Log(L"Failed to preserve key %d: %s %x, %x", i, VKeyNames[_PreservedKeys[i].key.uVKey], _PreservedKeys[i].key.uModifiers, hr);
+        SendDebugMessageFormat(L"Failed to preserve key %d: %hs %x, %x", i, VKeyNames[_PreservedKeys[i].key.uVKey], _PreservedKeys[i].key.uModifiers, hr);
       else
-        Log(L"Failed to preserve key %d: %x %x, %x", i, _PreservedKeys[i].key.uVKey, _PreservedKeys[i].key.uModifiers, hr);
+        SendDebugMessageFormat(L"Failed to preserve key %d: %x %x, %x", i, _PreservedKeys[i].key.uVKey, _PreservedKeys[i].key.uModifiers, hr);
     }
 #ifdef _DEBUG_LOGKEY
     else {
       if (_PreservedKeys[i].key.uVKey < 256)
-        Log(L"Preserved key %d: %s %x, %x", i, VKeyNames[_PreservedKeys[i].key.uVKey], _PreservedKeys[i].key.uModifiers, hr);
+        SendDebugMessageFormat(L"Preserved key %d: %hs %x, %x", i, VKeyNames[_PreservedKeys[i].key.uVKey], _PreservedKeys[i].key.uModifiers, hr);
       else
-        Log(L"Preserved key %d: %x %x, %x", i, _PreservedKeys[i].key.uVKey, _PreservedKeys[i].key.uModifiers, hr);
+        SendDebugMessageFormat(L"Preserved key %d: %x %x, %x", i, _PreservedKeys[i].key.uVKey, _PreservedKeys[i].key.uModifiers, hr);
     }
 #endif
-  }    
+  }
 
-  return S_OK;
+  return_SendDebugExit(S_OK);
 }
 
 //+---------------------------------------------------------------------------
@@ -328,7 +305,7 @@ HRESULT CKMTipTextService::_PreserveAltKeys(ITfKeystrokeMgr *pKeystrokeMgr)   //
 
 HRESULT CKMTipTextService::_UnpreserveAltKeys(ITfKeystrokeMgr *pKeystrokeMgr)
 {
-  LogEnter();
+  SendDebugEntry();
 
   HRESULT hr = S_OK;
 
@@ -336,8 +313,8 @@ HRESULT CKMTipTextService::_UnpreserveAltKeys(ITfKeystrokeMgr *pKeystrokeMgr)
   {
     hr = pKeystrokeMgr->UnpreserveKey(_PreservedKeys[i].guid, &_PreservedKeys[i].key);
     if(hr != S_OK)
-      Log(L"Failed to unpreserve key %d, %x", i, hr);
-  }    
+      SendDebugMessageFormat(L"Failed to unpreserve key %d, %x", i, hr);
+  }
 
   hr = S_OK;
 
@@ -348,8 +325,8 @@ HRESULT CKMTipTextService::_UnpreserveAltKeys(ITfKeystrokeMgr *pKeystrokeMgr)
   }
 
   _cPreservedKeyCount = 0;
-  
-  return hr;
+
+  return_SendDebugExit(hr);
 }
 
 //+---------------------------------------------------------------------------
@@ -361,18 +338,13 @@ HRESULT CKMTipTextService::_UnpreserveAltKeys(ITfKeystrokeMgr *pKeystrokeMgr)
 
 STDMETHODIMP CKMTipTextService::OnPreservedKey(ITfContext *pContext, REFGUID rguid, BOOL *pfEaten)
 {
-  LogEnter();
-  if(!_CheckKeymanLoaded()) {   // I4325
-    Log(L"_CheckKeymanLoaded failed");
-    _UninitKeystrokeSink();
-    return E_FAIL;
-  }
+  SendDebugEntry();
 
   for(size_t i = 0; i < _cPreservedKeyCount; i++)   // I3588
   {
     if(IsEqualGUID(_PreservedKeys[i].guid, rguid))
     {
-      Log(L"preserved key %d found", i);   // I4575
+      SendDebugMessageFormat(L"preserved key %d found", i);   // I4575
       *pfEaten = _KeymanProcessKeystroke(pContext, _PreservedKeys[i].key.uVKey, _PreservedKeys[i].key.uModifiers, FALSE, TRUE);
       if(*pfEaten) _KeymanProcessKeystroke(pContext, _PreservedKeys[i].key.uVKey, _PreservedKeys[i].key.uModifiers, TRUE, TRUE);
       break;
@@ -380,38 +352,5 @@ STDMETHODIMP CKMTipTextService::OnPreservedKey(ITfContext *pContext, REFGUID rgu
   }
 
 	*pfEaten = FALSE;
-	return S_OK;
-}
-
-BOOL CKMTipTextService::DoRefreshPreservedKeys(BOOL Activating) {
-  LogEnter();
-  ITfKeystrokeMgr *pKeystrokeMgr;
-  HRESULT hr = S_OK;
-
-  Log(L"CKMTipTextService::DoRefreshPreservedKeys");
-
-  if (!_pThreadMgr) {
-    return FALSE;
-  }
-
-  if (_pThreadMgr->QueryInterface(IID_ITfKeystrokeMgr, (void **)&pKeystrokeMgr) != S_OK) {
-    return FALSE;
-  }
-
-  _UnpreserveAltKeys(pKeystrokeMgr);
-  if (Activating) {
-    hr = _PreserveAltKeys(pKeystrokeMgr);   // I3588
-  }
-
-  pKeystrokeMgr->Release();
-
-  return (hr == S_OK);
-}
-
-__declspec(dllexport) BOOL WINAPI RefreshPreservedKeys(BOOL Activating) {
-  LogEnter();
-  if (CKMTipTextService::ThreadThis) {
-    return CKMTipTextService::ThreadThis->DoRefreshPreservedKeys(Activating);
-  }
-  return FALSE;
+	return_SendDebugExit(S_OK);
 }

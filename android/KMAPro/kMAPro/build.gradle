@@ -1,48 +1,56 @@
 plugins {
     id 'com.android.application'
-    id 'io.fabric'
-    id 'com.github.triplet.play' version '2.5.0' apply false
+    id 'io.sentry.android.gradle'
+    // https://github.com/Triple-T/gradle-play-publisher/issues/947#issuecomment-843634852
+    id 'com.github.triplet.play' version '3.9.1' apply false
     id 'name.remal.default-plugins'
 }
 
 ext.rootPath = '../../'
 apply from: "$rootPath/version.gradle"
+String tier = System.getenv("KEYMAN_TIER");
+println "Using tier $tier"
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
 
 android {
-    compileSdkVersion 29
-    buildToolsVersion "29.0.2"
+    compileSdk 36
+    namespace="com.tavultesoft.kmapro"
+
+    // Don't compress kmp files so they can be copied via AssetManager
+    aaptOptions {
+        noCompress "kmp"
+    }
+
+    buildFeatures {
+        buildConfig = true
+    }
 
     defaultConfig {
         applicationId "com.tavultesoft.kmapro"
-        minSdkVersion 19
-        targetSdkVersion 29
+        minSdkVersion 21
+        targetSdkVersion 36
 
         //println "===DUMPING PROPERTIES==="
         //dumpProperties(project) // Use this to dump all external properties for debugging TeamCity integration
         //println "===END DUMP==="
 
-        String env_services_json_file = System.getenv('services_json_file')
-
-        if (env_services_json_file != null) {
-            env_services_json_file = String.valueOf(env_services_json_file)
-            println "Copying production google-services.json and using at kMAPro/"
-            copy {
-                from env_services_json_file
-                include '*.json'
-                into './'
-            }
-        }
-
-        // VERSION_CODE and VERSION_NAME from version.gradle
-        versionCode VERSION_CODE as Integer
-        versionName VERSION_NAME
+        // KEYMAN_VERSION strings from version.gradle
+        versionCode KEYMAN_VERSION_CODE as Integer
+        versionName KEYMAN_VERSION_NAME
+        buildConfigField 'String', 'KEYMAN_VERSION_ENVIRONMENT', '"'+KEYMAN_VERSION_ENVIRONMENT+'"'
+        buildConfigField 'String', 'KEYMAN_VERSION_GIT_TAG', '"'+KEYMAN_VERSION_GIT_TAG+'"'
     }
 
     String env_release_store_file = System.getenv("release_store_file")
     String env_release_store_password = System.getenv("release_store_password")
     String env_release_key_alias = System.getenv("release_key_alias")
     String env_release_key_password = System.getenv("release_key_password")
-    if (env_release_store_file != null) {
+    if (env_release_store_file != null && file(env_release_store_file).exists()) {
         signingConfigs {
             release {
                 println "Using signing from environment"
@@ -57,11 +65,13 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix ".debug"
+            pseudoLocalesEnabled true
+            debuggable true
         }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
-            if (env_release_store_file != null) {
+            if (env_release_store_file != null && file(env_release_store_file).exists()) {
                 signingConfig signingConfigs.release
             }
         }
@@ -69,63 +79,110 @@ android {
     productFlavors {
     }
 
+    applicationVariants.all { variant ->
+        // Append tag to app name to help differentiate versions for app testers:
+        //  - stable builds have no suffix
+        //  - beta and alpha release builds have "Beta" and "Alpha" suffixes
+        //  - local builds (incl. from IDE) also have "-local" suffix
+        //  - PR builds also have "-test-1234" suffix (where 1234 is PR#)
+        // Gradle sync will nullify these values, so have a fallback
+        String appSuffix = ''
+        String tag = KEYMAN_VERSION_TAG ? KEYMAN_VERSION_TAG : '-' + tier;
+        if (tag.startsWithAny("-beta", "beta")) {
+            appSuffix = ' Beta';
+        } else if (tag.startsWithAny("-alpha", "alpha")) {
+            appSuffix = ' Alpha';
+        }
+        def match = (tag =~ /.*(-test-\d+)$/);
+        if (match.find()) {
+            // -test-PR_NUMBER
+            appSuffix = appSuffix + match.group(1)
+        } else {
+            String environment = KEYMAN_VERSION_ENVIRONMENT ? KEYMAN_VERSION_ENVIRONMENT : 'local';
+            if (environment.matches("local")) {
+                appSuffix = appSuffix + '-' + environment;
+            }
+        }
+        variant.resValue "string", "app_name", 'Keyman' + appSuffix;
+
+        // Adjust output name to "keyman-${KEYMAN_VERSION_MD}.apk"
+        variant.outputs.all {
+            outputFileName = "keyman-" + KEYMAN_VERSION_MD + ".apk"
+        }
+    }
     lintOptions {
-        disable 'MissingTranslation'
+        disable 'MissingQuantity', 'MissingTranslation'
+        lintConfig file("lint.xml")
+    }
+
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['libs']
+        }
+    }
+}
+
+// how to configure the sentry android gradle plugin
+task publishSentry {
+    doLast {
+        println 'Publishing Keyman symbols to Sentry'
+        sentry {
+            // Disables or enables the automatic configuration of Native symbols
+            uploadNativeSymbols = true
+
+            // Does or doesn't include the source code of native code for Sentry
+            includeNativeSources = true
+        }
     }
 }
 
 String env_keys_json_file = System.getenv("keys_json_file")
-if (env_keys_json_file != null) {
+if (env_keys_json_file != null && file(env_keys_json_file).exists()) {
     apply plugin: 'com.github.triplet.play'
 
     play {
         serviceAccountCredentials = file(String.valueOf(env_keys_json_file))
 
         // Deactivate lower conflicting version APKs
-        resolutionStrategy = "ignore"
-        switch (System.env.TIER) {
+        resolutionStrategy.set(com.github.triplet.gradle.androidpublisher.ResolutionStrategy.IGNORE)
+        switch (tier) {
             case 'beta':
-                track = 'beta'
+                track.set("beta")
+                println "TIER set to beta"
                 break
 
             case 'stable':
-                track = 'production'
+                track.set("production")
+                println "TIER set to production"
                 break
 
             default:
-                track = 'alpha'
+                track.set("alpha")
+                println "TIER set to alpha"
         }
-        println "TIER set to $track"
     }
 }
 
 repositories {
-    flatDir {
-        dirs 'libs'
-    }
     google()
-    maven {
-        url 'https://maven.fabric.io/public'
-    }
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'androidx.appcompat:appcompat:1.2.0-alpha02'
-    implementation 'com.google.android.material:material:1.0.0'
-    api(name: 'keyman-engine', ext: 'aar')
-    implementation "com.google.firebase:firebase-analytics:17.2.1"
-    implementation "com.google.firebase:firebase-messaging:20.0.1"
-    implementation "com.google.firebase:firebase-crash:16.2.1"
-    implementation('com.crashlytics.sdk.android:crashlytics:2.10.1@aar') {
-        transitive = true
-    }
-    implementation 'androidx.preference:preference:1.1.0'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'com.stepstone.stepper:material-stepper:4.3.1'
+    implementation 'androidx.webkit:webkit:1.14.0'
+    implementation files('libs/keyman-engine.aar')
+    implementation 'io.sentry:sentry-android:8.19.1'
+    implementation 'androidx.preference:preference:1.2.1'
+    implementation 'com.android.installreferrer:installreferrer:2.2'
 
     // Add dependency for generating QR Codes
     // (Even though it's embedded in KMEA, because we're manually copying keyman-engine.aar,
     // we "lose" it in the dependency management)
-    implementation ('com.github.kenglxn.QRGen:android:2.6.0') {
+    implementation ('com.github.kenglxn.QRGen:android:3.0.1') {
         transitive = true
     }
 }
@@ -142,5 +199,3 @@ dependencies {
     println it.properties.entrySet()*.toString()
             .sort().toString().replaceAll(", ","\n")
 }*/
-
-apply plugin: 'com.google.gms.google-services'

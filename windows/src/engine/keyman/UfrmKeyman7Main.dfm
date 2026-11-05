@@ -27,10 +27,10 @@ object frmKeyman7Main: TfrmKeyman7Main
     Left = 28
     Top = 40
   end
-  object tmrOnlineUpdateCheck: TTimer
+  object tmrBackgroundUpdateCheck: TTimer
     Enabled = False
     Interval = 300000
-    OnTimer = tmrOnlineUpdateCheckTimer
+    OnTimer = tmrBackgroundUpdateCheckTimer
     Left = 280
     Top = 104
   end
@@ -39,5 +39,12 @@ object frmKeyman7Main: TfrmKeyman7Main
     OnTimer = tmrCheckInputPaneTimer
     Left = 96
     Top = 104
+  end
+  object tmrRefresh: TTimer
+    Enabled = False
+    Interval = 125
+    OnTimer = tmrRefreshTimer
+    Left = 440
+    Top = 40
   end
 end

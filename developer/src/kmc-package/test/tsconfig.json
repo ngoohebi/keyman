@@ -1,0 +1,21 @@
+{
+  "extends": "../../kmc/tsconfig.kmc-base.json",
+
+  "compilerOptions": {
+      "rootDir": ".",
+      "rootDirs": ["./", "../src/"],
+      "outDir": "../build/test",
+      "baseUrl": ".",
+      "allowSyntheticDefaultImports": true, // for jszip
+    },
+  "include": [
+      "**/*.tests.ts",
+      "helpers/*.ts"
+  ],
+  "references": [
+      { "path": "../" },
+      { "path": "../../../../common/web/types" },
+      { "path": "../../../../common/web/keyman-version" },
+      { "path": "../../common/web/test-helpers/" },
+    ]
+}

@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+## START STANDARD BUILD SCRIPT INCLUDE
+# adjust relative paths as necessary
+THIS_SCRIPT="$(readlink -f "${BASH_SOURCE[0]}")"
+. "${THIS_SCRIPT%/*}/../../../../../../resources/build/builder-full.inc.sh"
+## END STANDARD BUILD SCRIPT INCLUDE
+
+. "$KEYMAN_ROOT/resources/build/node.inc.sh"
+
+builder_describe "Builds a debug-host page simulating Keyman Android's WebView setup for KMW use" \
+  "@/common/web/keyman-version" \
+  "@/common/web/sentry-manager" \
+  "@/web/src/app/webview" \
+  clean configure build
+
+builder_describe_outputs \
+  configure          /node_modules \
+  build              /web/src/test/manual/embed/android-harness/host/keyboard.html
+
+builder_parse "$@"
+
+### ACTIONS
+
+function do_build() {
+  mkdir -p "host/osk"
+  cp -R "$KEYMAN_ROOT/android/KMEA/app/src/main/assets/"* "host/"
+  cp "$KEYMAN_ROOT/web/build/app/webview/debug/keymanweb-webview.js" "host/keymanweb-webview.js"
+  cp "$KEYMAN_ROOT/web/build/app/webview/debug/keymanweb-webview.js.map" "host/keymanweb-webview.js.map"
+  cp "$KEYMAN_ROOT/web/build/app/resources/osk/ajax-loader.gif" "host/ajax-loader.gif"
+  cp "$KEYMAN_ROOT/web/build/app/resources/osk/kmwosk.css" "host/kmwosk.css"
+  cp "$KEYMAN_ROOT/web/build/app/resources/osk/globe-hint.css" "host/globe-hint.css"
+  cp "$KEYMAN_ROOT/web/build/app/resources/osk/keymanweb-osk.ttf" "host/keymanweb-osk.ttf"
+
+  # We shouldn't rely on a prior Android build for these files!  We can retrieve them separately.
+  cp "$KEYMAN_ROOT/common/web/sentry-manager/build/lib/index.js" "host/keyman-sentry.js"
+
+  # Test keyboards
+
+  cp "$KEYMAN_ROOT/web/src/test/manual/web/web_context_tests.js" "host/"
+  # android\KMEA\app\src\main\assets\keyboard.html
+}
+
+builder_run_action clean       rm -rf build/
+builder_run_action configure   node_select_version_and_npm_ci
+builder_run_action build       do_build
+

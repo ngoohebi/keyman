@@ -2,7 +2,7 @@ object frmHTML: TfrmHTML
   Left = 192
   Top = 107
   BorderIcons = [biSystemMenu, biMaximize]
-  Caption = 'Keyman Desktop'
+  Caption = 'Keyman'
   ClientHeight = 313
   ClientWidth = 666
   Color = clBtnFace
@@ -14,6 +14,7 @@ object frmHTML: TfrmHTML
   KeyPreview = True
   OldCreateOrder = False
   Position = poScreenCenter
+  OnDestroy = FormDestroy
   DesignSize = (
     666
     313)
@@ -27,28 +28,21 @@ object frmHTML: TfrmHTML
     Anchors = [akLeft, akTop, akRight, akBottom]
     BevelOuter = bvNone
     TabOrder = 0
-    object web: TKeymanEmbeddedWB
+    object web: TWebBrowser
       Left = 0
       Top = 0
       Width = 666
       Height = 273
       Align = alClient
       TabOrder = 0
-      OnCommandStateChange = webCommandStateChange
-      OnNewWindow3 = webNewWindow3
-      DisableCtrlShortcuts = 'N'
-      UserInterfaceOptions = [EnablesFormsAutoComplete, EnableThemes]
-      About = ' EmbeddedWB http://bsalsa.com/'
-      DisableErrors.fpExceptions = False
-      PrintOptions.HTMLHeader.Strings = (
-        '<HTML></HTML>')
-      PrintOptions.Orientation = poPortrait
-      ExplicitTop = 1
-      ExplicitWidth = 477
+      ExplicitLeft = 184
+      ExplicitTop = 136
+      ExplicitWidth = 300
+      ExplicitHeight = 150
       ControlData = {
-        4C000000A52F0000631B00000000000000000000000000000000000000000000
+        4C000000D5440000371C00000000000000000000000000000000000000000000
         000000004C000000000000000000000001000000E0D057007335CF11AE690800
-        2B2E12620C000000000000004C0000000114020000000000C000000000000046
+        2B2E126208000000000000004C0000000114020000000000C000000000000046
         8000000000000000000000000000000000000000000000000000000000000000
         00000000000000000100000000000000000000000000000000000000}
     end

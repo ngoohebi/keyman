@@ -1,0 +1,24 @@
+{
+  "name": "@keymanapp/keyman-version",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/keymanapp/keyman.git",
+    "directory": "common/web/keyman-version"
+  },
+  "description": "Keyman global version data",
+  "exports": {
+    ".": {
+      "es6-bundling": "./version.inc.ts",
+      "default": "./build/version.inc.js"
+    }
+  },
+  "files": [
+    "/build/"
+  ],
+  "license": "MIT",
+  "scripts": {},
+  "type": "module",
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

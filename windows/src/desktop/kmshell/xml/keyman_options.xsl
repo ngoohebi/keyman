@@ -5,53 +5,68 @@
 
 		<div class="header">
   		<xsl:call-template name="header_helplinks" />
-			<xsl:value-of select="$locale/String[@Id='S_Options']"/>
+			<xsl:value-of select="$locale/string[@name='S_Options']"/>
 		</div>
 
 		<div class="content" id="subcontent_options">
       <div id="options" class="options_list">
         <xsl:for-each select="//OptionGroups/OptionGroup">
 					<xsl:sort select="sort" />
-          <div class="options_list_header"><xsl:value-of select="$locale/String[@Id=current()/name]"/></div>
+          <div class="options_list_header" tabindex="-1"><xsl:value-of select="$locale/string[@name=current()/name]"/></div>
           <xsl:for-each select="//KeymanOption[group=current()/name]">
             <xsl:if test="optiontype = 1">
               <xsl:call-template name="option" />
+              <xsl:if test="id='koStartWithWindows' and value='True' and //StartupDisabled='True'">
+                <div class="options_startup_warning">
+                  <img class="options_startup_warning_icon" src="/app/caution-icon.png" alt="" />
+                  <div class="options_startup_warning_content">
+                    <div><xsl:value-of select="$locale/string[@name='S_StartupDisabledWarning']"/></div>
+                    <xsl:call-template name="button">
+                      <xsl:with-param name="caption"><xsl:value-of select="$locale/string[@name='S_Button_StartupSettings']"/></xsl:with-param>
+                      <xsl:with-param name="command">keyman:options_startupsettings</xsl:with-param>
+                      <xsl:with-param name="tabid">1</xsl:with-param>
+                    </xsl:call-template>
+                  </div>
+                </div>
+              </xsl:if>
             </xsl:if>
           </xsl:for-each>
           <xsl:if test="current() != //OptionGroups/OptionGroup[last()]">
             <div class="options_list_footer"></div>
           </xsl:if>
         </xsl:for-each>
-        <div class="options_list_footer"></div>
 
-        <div id='options_control'>
           <xsl:call-template name="button">
-            <xsl:with-param name="caption"><xsl:value-of select="$locale/String[@Id='S_Button_ProxyConfig']"/></xsl:with-param>
+            <xsl:with-param name="caption"><xsl:value-of select="$locale/string[@name='S_Button_ProxyConfig']"/></xsl:with-param>
+            <xsl:with-param name="onkeydown">return list_keydown(event,'_');</xsl:with-param>
             <xsl:with-param name="command">keyman:support_proxyconfig</xsl:with-param>
           </xsl:call-template>
-      
+
+          <br />
+
           <xsl:call-template name="button">
             <xsl:with-param name="shield">1</xsl:with-param>
-            <xsl:with-param name="caption"><xsl:value-of select="$locale/String[@Id='S_Button_BaseKeyboard']"/></xsl:with-param>
+            <xsl:with-param name="caption"><xsl:value-of select="$locale/string[@name='S_Button_SettingsManager']"/></xsl:with-param>
+            <xsl:with-param name="onkeydown">return list_keydown(event,'_');</xsl:with-param>
+            <xsl:with-param name="command">keyman:options_settingsmanager</xsl:with-param>
+          </xsl:call-template>
+
+          <br />
+
+          <xsl:call-template name="button">
+            <xsl:with-param name="shield">1</xsl:with-param>
+            <xsl:with-param name="caption"><xsl:value-of select="$locale/string[@name='S_Button_BaseKeyboard']"/></xsl:with-param>
+            <xsl:with-param name="onkeydown">return list_keydown(event,'_');</xsl:with-param>
             <xsl:with-param name="command">keyman:options_basekeyboard</xsl:with-param>
           </xsl:call-template>
           <span id='options_base_keyboard_current'>(<xsl:value-of select= "//basekeyboard" />)</span>
-        </div>
+
+        <div class="options_list_footer" tabindex="-1"></div>
       </div>
     </div>
   </xsl:template>
 
   <xsl:template name="option">
-		<xsl:if test="id='koShowHints'">
-			<div style="float:right; margin-top:-3px">
-				<xsl:call-template name="button">
-					<xsl:with-param name="caption">
-						<xsl:value-of select="$locale/String[@Id='S_Button_ResetHints']"/>
-					</xsl:with-param>
-					<xsl:with-param name="command">keyman:options_resethints</xsl:with-param>
-				</xsl:call-template>
-			</div>
-		</xsl:if>
 		<div class="list_item" tagType="listitem" onmousedown="javascript:this.focus();">
       <xsl:if test="enabled">
         <xsl:attribute name="tabindex">1</xsl:attribute>
@@ -79,7 +94,7 @@
               <xsl:attribute name="style">display: inline; margin-left: 3px; </xsl:attribute>
             </xsl:otherwise>
           </xsl:choose>
-			  <xsl:value-of select="$locale/String[@Id=current()/id]"/>
+			  <xsl:value-of select="$locale/string[@name=current()/id]"/>
         </div>
       </div>
 
@@ -90,6 +105,17 @@
         </div>
       </div>
     </div>
+
+		<xsl:if test="id='koShowHints'">
+				<xsl:call-template name="button">
+          <xsl:with-param name="tabid">1</xsl:with-param>
+          <xsl:with-param name="onkeydown">return list_keydown(event,'_');</xsl:with-param>
+					<xsl:with-param name="caption">
+						<xsl:value-of select="$locale/string[@name='S_Button_ResetHints']"/>
+					</xsl:with-param>
+					<xsl:with-param name="command">keyman:options_resethints</xsl:with-param>
+				</xsl:call-template>
+		</xsl:if>
   </xsl:template>
-  
+
   </xsl:stylesheet>

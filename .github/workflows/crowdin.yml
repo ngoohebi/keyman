@@ -1,0 +1,37 @@
+name: Upload translation sources to Crowdin translate.keyman.com
+
+on:
+  schedule:
+    # At 06:00 every day. https://crontab.cronhub.io/
+    - cron: '0 6 * * *'
+
+jobs:
+  upload-sources-to-crowdin:
+    if: github.repository == 'keymanapp/keyman'
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+    - name: crowdin action
+      uses: crowdin/github-action@v2.7.0
+      with:
+        upload_sources: true
+
+        # This is the name of the top-level directory that Crowdin will use for files.
+        # Note that this is not a "branch" in the git sense, but more like a top-level directory in your Crowdin project.
+        # This branch does NOT need to be manually created. It will be created automatically by the action.
+        crowdin_branch_name: master
+        config: 'crowdin.yml'
+
+        # TODO if we want action to auto create PRs
+        #GITHUB_TOKEN: $
+
+        # See https://translate.keyman.com/project/keyman/tools/api
+        project_id: ${{ secrets.CROWDIN_PROJECT_ID }}
+
+        # A personal access token
+        # See https://crowdin.com/settings#api-key to generate a token
+        token: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}

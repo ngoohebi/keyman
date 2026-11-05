@@ -21,7 +21,7 @@
                     23 Aug 2007 - mcdurdin - I919 - Add print button
                     27 Mar 2008 - mcdurdin - Use TfrmKeymanBase instead of TfrmKMShell
                     25 May 2010 - mcdurdin - I2393 - Forward, Back and new window functions in Keyboard Welcome
-                    17 Dec 2010 - mcdurdin - I2570 - Upgrade EmbeddedWB (also I2393)
+                    17 Dec 2010 - mcdurdin - I2570 - Upgrade E-mbeddedWB (also I2393)
                     11 Jan 2011 - mcdurdin - I2645 - Refactor install process - move license to bootstrapper
                     18 Feb 2011 - mcdurdin - I2721 - Override Javascript-disabled security for web controls
                     18 May 2012 - mcdurdin - I3306 - V9.0 - Remove TntControls + Win9x support
@@ -33,17 +33,16 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ExtCtrls, OleCtrls, SHDocVw, EmbeddedWB,
-  SHDocVw_EWB, EwbCore, KeymanEmbeddedWB;
+  StdCtrls, ExtCtrls, OleCtrls, SHDocVw;
 
 type
   TfrmHTML = class(TForm)
     cmdOK: TButton;
     panHTML: TPanel;
-    web: TKeymanEmbeddedWB;
     cmdPrint: TButton;
     cmdBack: TButton;
     cmdForward: TButton;
+    web: TWebBrowser;
     procedure cmdPrintClick(Sender: TObject);
     procedure webNewWindow3(ASender: TObject; var ppDisp: IDispatch;
       var Cancel: WordBool; dwFlags: Cardinal; const bstrUrlContext,
@@ -52,13 +51,18 @@ type
     procedure cmdForwardClick(Sender: TObject);
     procedure webCommandStateChange(ASender: TObject; Command: Integer;
       Enable: WordBool);
+    procedure FormDestroy(Sender: TObject);
+  private
+    FFilename: string;
   public
     procedure ShowFile(const FileName: WideString);
+    procedure ShowText(const Text: string);
   end;
 
 implementation
 
 uses
+  utildir,
   utilexecute;
 
 {$R *.DFM}
@@ -69,6 +73,20 @@ procedure TfrmHTML.ShowFile(const FileName: WideString);
 begin
   if FileExists(FileName) and Assigned(web) then
     web.Navigate(FileName);
+end;
+
+procedure TfrmHTML.ShowText(const Text: string);
+var
+  stream: TStringStream;
+begin
+  FFilename := KGetTempFileName('.txt');
+  stream := TStringStream.Create(Text, TEncoding.UTF8);
+  try
+    stream.SaveToFile(FFilename);
+  finally
+    stream.Free;
+  end;
+  ShowFile(FFileName);
 end;
 
 procedure TfrmHTML.webCommandStateChange(ASender: TObject; Command: Integer;
@@ -100,7 +118,13 @@ end;
 
 procedure TfrmHTML.cmdPrintClick(Sender: TObject);
 begin
-  web.Print;
+  web.ExecWB(OLECMDID_PRINT, 0);
+end;
+
+procedure TfrmHTML.FormDestroy(Sender: TObject);
+begin
+  if FFileName <> '' then
+    System.SysUtils.DeleteFile(FFileName);
 end;
 
 end.

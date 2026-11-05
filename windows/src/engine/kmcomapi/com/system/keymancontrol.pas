@@ -1,7 +1,7 @@
 (*
   Name:             KeymanControl
   Copyright:        Copyright (C) SIL International.
-  Documentation:    
+  Documentation:
   Description:      Manages the connection with keyman32.dll.  All Keyman 7 compliant
                     applications should be using this unit to control Keyman, not connecting
                     directly to keyman32.dll.
@@ -12,12 +12,12 @@
 
   Modified Date:    25 Oct 2016
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
-  Bugs:             
-  Todo:             
-  Notes:            
+  Bugs:
+  Todo:
+  Notes:
   History:          20 Jun 2006 - mcdurdin - Initial version
                     01 Aug 2006 - mcdurdin - Add AutoApply functionality
                     14 Sep 2006 - mcdurdin - Store wm_keyman_refresh value
@@ -68,12 +68,15 @@ type
   TKeyman32GetActiveKeymanIDFunction = function: DWORD; stdcall;
   TKeyman32GetLastFocusWindowFunction = function: HWND; stdcall;
   TKeyman32GetLastActiveWindowFunction = function: HWND; stdcall;
-  TKeyman32RegisterControllerWindowFunction = function(Value: HWND): BOOL; stdcall;
-  TKeyman32UnregisterControllerWindowFunction = function(Value: HWND): BOOL; stdcall;
+  TKeyman32RegisterMasterControllerFunction = function(Value: HWND): BOOL; stdcall;
+  TKeyman32UnregisterMasterControllerFunction = function: BOOL; stdcall;
+  TKeyman32RegisterControllerThreadFunction = function(Value: DWORD): BOOL; stdcall;
+  TKeyman32UnregisterControllerThreadFunction = function(Value: DWORD): BOOL; stdcall;
   TKeyman32GetInitialisedFunction = function(var FSingleApp: BOOL): BOOL; stdcall;
   TKeyman32ControllerSendMessageFunction = function(msg: UINT; wParam: WPARAM; lParam: LPARAM): LRESULT; stdcall;
   TKeyman32ControllerPostMessageFunction = procedure(msg: UINT; wParam: WPARAM; lParam: LPARAM); stdcall;
   TKeyman32UpdateTouchPanelVisibilityFunction = procedure(Value: BOOL); stdcall;
+  TKeyman32WatchDogKeyEvent = procedure; stdcall;
 
   TKeymanControl = class(TKeymanAutoObject, IKeymanCustomisationAccess, IIntKeymanControl, IKeymanControl, IKeymanEngineControl)
   private
@@ -86,14 +89,16 @@ type
     FKeyman_GetActiveKeymanID: TKeyman32GetActiveKeymanIDFunction;
     FKeyman_GetLastFocusWindow: TKeyman32GetLastFocusWindowFunction;
     FKeyman_GetLastActiveWindow: TKeyman32GetLastActiveWindowFunction;
-    FKeyman_RegisterControllerWindow: TKeyman32RegisterControllerWindowFunction;
-    FKeyman_UnregisterControllerWindow: TKeyman32UnregisterControllerWindowFunction;
+    FKeyman_RegisterMasterController: TKeyman32RegisterMasterControllerFunction;
+    FKeyman_UnregisterMasterController: TKeyman32UnregisterMasterControllerFunction;
+    FKeyman_RegisterControllerThread: TKeyman32RegisterControllerThreadFunction;
+    FKeyman_UnregisterControllerThread: TKeyman32UnregisterControllerThreadFunction;
     FKeyman_GetInitialised: TKeyman32GetInitialisedFunction;
     FKeyman_SendMasterController: TKeyman32ControllerSendMessageFunction;
     FKeyman_PostMasterController: TKeyman32ControllerPostMessageFunction;
-    FKeyman_PostControllers: TKeyman32ControllerPostMessageFunction;
     FKeyman_StartExit: TKeyman32ExitFunction;  // I3092
     FKeyman_UpdateTouchPanelVisibility: TKeyman32UpdateTouchPanelVisibilityFunction;
+    FKeyman_WatchDogKeyEvent: TKeyman32WatchDogKeyEvent;
     procedure LoadKeyman32;
     procedure StartKeyman32;
     procedure Do_Keyman_Exit;
@@ -103,11 +108,10 @@ type
   private
     wm_keyman_control: UINT;
     wm_kmselectlang: UINT;
-    RefreshHandle: THandle;
     FAutoApply: Boolean;
     FKeymanCustomisation: IKeymanCustomisation;
+    FLastRefreshToken: IntPtr;
 
-    procedure RefreshWndProc(var Message: TMessage);
     function RunKeymanConfiguration(const filename: string): Boolean;
     procedure ApplyToRunningKeymanEngine;
     function FindMasterControllerWindow: THandle;
@@ -141,11 +145,22 @@ type
     procedure StartKeyman32Engine; safecall;    // 32 bit only
     procedure StopKeyman32Engine; safecall;    // 32 bit only
     procedure ResetKeyman32Engine; safecall;    // 32 bit only
-    procedure RegisterControllerWindow(Value: LongWord); safecall;     // 32 bit only
-    procedure UnregisterControllerWindow(Value: LongWord); safecall;    // 32 bit only
+    procedure RegisterControllerWindow(Value: LongWord); safecall;     // deprecated in #5060
+    procedure UnregisterControllerWindow(Value: LongWord); safecall;    // deprecated in #5060
     procedure DisableUserInterface; safecall;
     procedure EnableUserInterface; safecall;
     procedure UpdateTouchPanelVisibility(Value: Boolean); safecall;
+    procedure WatchDogKeyEvent; safecall;    // 32 bit only
+
+    procedure DiagnosticTestException; safecall;
+
+    function LastRefreshToken: IntPtr; safecall;
+
+    // #5060:
+    procedure RegisterMasterController(Value: LongWord); safecall;     // 32 bit only
+    procedure UnregisterMasterController(Value: LongWord); safecall;    // 32 bit only
+    procedure RegisterControllerThread(Value: LongWord); safecall;     // 32 bit only
+    procedure UnregisterControllerThread(Value: LongWord); safecall;    // 32 bit only
 
     { IIntKeymanControl }
     procedure AutoApplyKeyman;
@@ -156,7 +171,7 @@ type
     procedure Refresh;
 
     { IKeymanCustomisationAccess }
-    function KeymanCustomisation: IKeymanCustomisation;
+    function KeymanCustomisation: IKeymanCustomisation; safecall;
   public
     constructor Create(AContext: TKeymanContext);
     destructor Destroy; override;
@@ -180,7 +195,6 @@ uses
   keymanerrorcodes, psapi, Variants, KLog;
 
 var
-  wm_keyman_refresh: Integer = 0;
   wm_keyman: Integer = 0;
 
 {$IFNDEF WIN64}
@@ -191,8 +205,6 @@ const
 const
   SWnd_MasterController = 'TfrmKeyman7Main';
   SWnd_VisualKeyboard = 'TfrmVisualKeyboard';
-  SWnd_OnlineUpdateIcon = 'TfrmOnlineUpdateIcon';
-  SWnd_OnlineUpdateNewVersion = 'TfrmOnlineUpdateNewVersion';
 
 function TKeymanControl.GetAutoApply: Boolean;
 begin
@@ -270,7 +282,7 @@ function TKeymanControl.IsConfigurationOpen: WordBool;
 begin
   with TKeymanMutex.Create('KeymanConfiguration') do
   try
-    Result := MutexOwned;
+    Result := not TakeOwnership;
   finally
     Free;
   end;
@@ -281,17 +293,17 @@ begin
   Result := (FindMasterControllerWindow <> 0);
 end;
 
+// Deprecated interface needs to remain
 function TKeymanControl.IsOnlineUpdateCheckOpen: WordBool;
 begin
-  Result := (FindWindow(SWnd_OnlineUpdateIcon, nil) <> 0) or
-    (FindWindow(SWnd_OnlineUpdateNewVersion, nil) <> 0);
+  Result := False;
 end;
 
 function TKeymanControl.IsTextEditorOpen: WordBool;
 begin
   with TKeymanMutex.Create('KeymanTextEditor') do
   try
-    Result := MutexOwned;
+    Result := not TakeOwnership;
   finally
     Free;
   end;
@@ -311,7 +323,7 @@ function TKeymanControl.KeymanCustomisation: IKeymanCustomisation;
 begin
   if not Assigned(FKeymanCustomisation) then
     FKeymanCustomisation := TCustomisationAutoObject.Create(Context, IKeymanUserInterface,
-    TKeymanPaths.KeymanDesktopInstallPath('desktop_pro.pxx'));
+    TKeymanPaths.KeymanCustomisationPath);
   Result := FKeymanCustomisation;
 end;
 
@@ -351,21 +363,25 @@ begin
   ApplyToRunningKeymanEngine;
 end;
 
-procedure TKeymanControl.ApplyToRunningKeymanEngine;
-const
-  KR_REQUEST_REFRESH = 0;
-var
-  msg: TMsg;
+function TKeymanControl.LastRefreshToken: IntPtr;
 begin
-  // This convoluted way of refreshing keyman ensures that km is init for the thread.  Other methods would work but this is easiest
-  // Note that this creates a message queue on the thread which means it should be avoided for console apps, etc.
-  if wm_keyman_refresh = 0 then
-    wm_keyman_refresh := RegisterWindowMessage('WM_KEYMANREFRESH');
-  RefreshHandle := AllocateHWnd(RefreshWndProc);
-  PostMessage(RefreshHandle, wm_keyman_refresh, KR_REQUEST_REFRESH, 0);
-  GetMessage(msg, RefreshHandle, wm_keyman_refresh, wm_keyman_refresh);
-  DispatchMessage(msg);
-  DeallocateHWnd(RefreshHandle);
+  Result := FLastRefreshToken;
+end;
+
+type
+  TRefreshThread = class(TThread)
+  private
+    FLastRefreshToken: Integer;
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(ALastRefreshToken: Integer);
+  end;
+
+procedure TKeymanControl.ApplyToRunningKeymanEngine;
+begin
+  FLastRefreshToken := Random(MaxInt);
+  TRefreshThread.Create(FLastRefreshToken).Start;
 end;
 
 constructor TKeymanControl.Create(AContext: TKeymanContext);
@@ -414,7 +430,7 @@ end;
 
 procedure TKeymanControl.OpenUpdateCheck;
 begin
-  RunKeymanConfiguration('-ouc');
+  RunKeymanConfiguration('-buc');
 end;
 
 procedure TKeymanControl.StartKeyman;
@@ -436,10 +452,9 @@ begin
     FKeymanCustomisation.Refresh;
 end;
 
-procedure TKeymanControl.RefreshWndProc(var Message: TMessage);
+procedure TKeymanControl.DiagnosticTestException;
 begin
-  with Message do
-    Result := DefWindowProc(RefreshHandle, Msg, WParam, LParam);
+  raise Exception.Create('Testing safecall wrappering of exception for Sentry');
 end;
 
 procedure TKeymanControl.DisableUserInterface;
@@ -470,19 +485,6 @@ begin
 end;
 
 
-{procedure TKeymanVisualKeyboard.Print;  // I2329
-var
-  pkg: IKeymanPackageInstalled;
-  kbd: IKeymanKeyboardInstalled;
-begin
-  kbd := GetOwnerKeyboard;
-  if not Assigned(kbd) then Exit;
-  pkg := kbd.Get_OwnerPackage;
-  if Assigned(pkg) then
-    Context.Control.RunKeymanConfiguration('-kp "'+kbd.ID+'"');
-end;}
-
-
 {**
   Control of startup and shutdown of keyman32.dll -- implemented only by 32 bit;
   generally these functions are intended to be used only by keyman.exe.
@@ -494,9 +496,7 @@ begin
   Error(Cardinal(E_NOTIMPL));
 {$ELSE}
   LoadKeyman32;
-
   StartKeyman32;
-  (Context.Keyboards as IIntKeymanKeyboardsInstalled).StartKeyboards;   // I4381
 {$ENDIF}
 end;
 
@@ -504,9 +504,6 @@ procedure TKeymanControl.StopKeyman32Engine;   // I5133
 begin
 {$IFDEF WIN64}
   Error(Cardinal(E_NOTIMPL));
-{$ELSE}
-  if Context.Keyboards <> nil then
-    (Context.Keyboards as IIntKeymanKeyboardsInstalled).StopKeyboards;   // I4381
 {$ENDIF}
 end;
 
@@ -530,13 +527,48 @@ begin
 {$ENDIF}
 end;
 
-procedure TKeymanControl.RegisterControllerWindow(Value: LongWord);
+(**
+ * Tell the LowLevelHookWatchDog that a key event has been received
+ *)
+procedure TKeymanControl.WatchDogKeyEvent;
+begin
+{$IFDEF WIN64}
+  Error(Cardinal(E_NOTIMPL));
+{$ELSE}
+  KL.MethodEnter(Self, 'WatchDogKeyEvent', []);
+  try
+    LoadKeyman32;
+    FKeyman_WatchDogKeyEvent;
+  finally
+    KL.MethodExit(Self, 'WatchDogKeyEvent');
+  end;
+{$ENDIF}
+end;
+
+
+procedure TKeymanControl.RegisterControllerThread(Value: LongWord);
 begin
 {$IFDEF WIN64}
   Error(Cardinal(E_NOTIMPL));
 {$ELSE}
   LoadKeyman32;
-  if not FKeyman_RegisterControllerWindow(Value) then
+  if not FKeyman_RegisterControllerThread(Value) then
+    Error(KMN_E_KeymanControl_CannotRegisterControllerWindow);
+{$ENDIF}
+end;
+
+procedure TKeymanControl.RegisterControllerWindow(Value: LongWord);
+begin
+  // no-op (removed as part of #5060)
+end;
+
+procedure TKeymanControl.RegisterMasterController(Value: LongWord);
+begin
+{$IFDEF WIN64}
+  Error(Cardinal(E_NOTIMPL));
+{$ELSE}
+  LoadKeyman32;
+  if not FKeyman_RegisterMasterController(Value) then
     Error(KMN_E_KeymanControl_CannotRegisterControllerWindow);
 {$ENDIF}
 end;
@@ -562,14 +594,32 @@ begin
 {$ENDIF}
 end;
 
-procedure TKeymanControl.UnregisterControllerWindow(Value: LongWord);
+procedure TKeymanControl.UnregisterControllerThread(Value: LongWord);
 begin
 {$IFDEF WIN64}
   Error(Cardinal(E_NOTIMPL));
 {$ELSE}
-  LoadKeyman32;
-  if not FKeyman_UnregisterControllerWindow(Value) then
-    Error(KMN_E_KeymanControl_CannotUnregisterControllerWindow);
+  if hlibKeyman32 = 0 then
+    KL.LogError('UnregisterControllerThread: keyman32.dll is not loaded')
+  else if not FKeyman_UnregisterControllerThread(Value) then
+    KL.LogError('UnregisterControllerThread: Could not unregister controller thread %x', [Value]);
+{$ENDIF}
+end;
+
+procedure TKeymanControl.UnregisterControllerWindow(Value: LongWord);
+begin
+  // no-op (removed as part of #5060)
+end;
+
+procedure TKeymanControl.UnregisterMasterController(Value: LongWord);
+begin
+{$IFDEF WIN64}
+  Error(Cardinal(E_NOTIMPL));
+{$ELSE}
+  if hlibKeyman32 = 0 then
+    KL.LogError('UnregisterMasterController: keyman32.dll is not loaded')
+  else if not FKeyman_UnregisterMasterController then
+    KL.LogError('UnregisterMasterController: Could not unregister controller window %x', [Value]);
 {$ENDIF}
 end;
 
@@ -715,12 +765,16 @@ begin
     @FKeyman_GetActiveKeymanID   := ProcAddr('GetActiveKeymanID');
     @FKeyman_GetLastFocusWindow  := ProcAddr('Keyman_GetLastFocusWindow');
     @FKeyman_GetLastActiveWindow := ProcAddr('Keyman_GetLastActiveWindow');
-    @FKeyman_RegisterControllerWindow := ProcAddr('Keyman_RegisterControllerWindow');
-    @FKeyman_UnregisterControllerWindow := ProcAddr('Keyman_UnregisterControllerWindow');
+    @FKeyman_RegisterMasterController := ProcAddr('Keyman_RegisterMasterController');
+    @FKeyman_UnregisterMasterController := ProcAddr('Keyman_UnregisterMasterController');
+    @FKeyman_RegisterControllerThread := ProcAddr('Keyman_RegisterControllerThread');
+    @FKeyman_UnregisterControllerThread := ProcAddr('Keyman_UnregisterControllerThread');
     @FKeyman_SendMasterController := ProcAddr('Keyman_SendMasterController');
     @FKeyman_PostMasterController := ProcAddr('Keyman_PostMasterController');
-    @FKeyman_PostControllers := ProcAddr('Keyman_PostControllers');
     @FKeyman_UpdateTouchPanelVisibility := ProcAddr('Keyman_UpdateTouchPanelVisibility');
+{$IFNDEF WIN64}
+    @FKeyman_WatchDogKeyEvent := ProcAddr('Keyman_WatchDogKeyEvent');
+{$ENDIF}
   end;
 end;
 
@@ -744,5 +798,57 @@ begin
   end;
 end;
 {$ENDIF}
+
+{ TRefreshThread}
+
+constructor TRefreshThread.Create(ALastRefreshToken: Integer);
+begin
+  inherited Create(True);
+  FreeOnTerminate := True;
+  FLastRefreshToken := ALastRefreshToken;
+end;
+
+procedure TRefreshThread.Execute;
+const
+  KR_REQUEST_REFRESH = 0;
+  KR_SETTINGS_CHANGED = 3;
+var
+  msg: TMsg;
+  wm_keyman_refresh: UINT;
+  RefreshHandle: THandle;
+begin
+  // This convoluted way of refreshing keyman ensures that km is init for the thread.
+  // Other methods would work but this is easiest
+
+  wm_keyman_refresh := RegisterWindowMessage('WM_KEYMANREFRESH');
+  RefreshHandle := AllocateHWnd(nil);
+
+  // We currently have two announcements because the KR_REQUEST_REFRESH
+  // announcement is actioned only when Keyman Engine is running, while we
+  // still need to tell any apps listening for changes that the settings
+  // have changed. In future, we should probably refactor this to use a
+  // single broadcast.
+
+  // We use a random number here to so that multiple processes can generate
+  // hopefully unique tokens for refresh, and we share this token with our
+  // current consumer so they can ignore notifications that they have
+  // generated
+
+  // First, post out a KR_SETTINGS_CHANGED for the benefit of Keyman
+  // Configuration and other apps that want it
+  PostMessage(HWND_BROADCAST, wm_keyman_refresh, KR_SETTINGS_CHANGED, FLastRefreshToken);
+
+  // Then, post out a refresh to Keyman Engine and process it in this
+  // thread so that Keyman Engine will grab it and broadcast it, if it is
+  // currently running
+  PostMessage(RefreshHandle, wm_keyman_refresh, KR_REQUEST_REFRESH, 0);
+
+  // Flush the queue but don't stall the thread
+  while PeekMessage(msg, 0, 0, 0, PM_REMOVE) do
+  begin
+    DispatchMessage(msg);
+  end;
+  DeallocateHWnd(RefreshHandle);
+end;
 
 end.

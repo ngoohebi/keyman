@@ -1,22 +1,22 @@
 (*
   Name:             main
   Copyright:        Copyright (C) SIL International.
-  Documentation:    
-  Description:      
+  Documentation:
+  Description:
   Create Date:      1 Aug 2006
 
   Modified Date:    25 Oct 2016
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
-  Bugs:             
-  Todo:             
-  Notes:            
+  Bugs:
+  Todo:
+  Notes:
   History:          01 Aug 2006 - mcdurdin - Initial version
                     02 Aug 2006 - mcdurdin - Timeout when Beta expires
                     04 Dec 2006 - mcdurdin - Block Keyman loading if KM5/6 running
-                    23 Aug 2007 - mcdurdin - I910 - Fix crash when Keyman 6.0 is running and Keyman Desktop starts
+                    23 Aug 2007 - mcdurdin - I910 - Fix crash when Keyman 6.0 is running and Keyman starts
                     18 May 2012 - mcdurdin - I3306 - V9.0 - Remove TntControls + Win9x support
                     26 Jun 2012 - mcdurdin - I3377 - KM9 - Update code references from 8.0 to 9.0
                     01 Jan 2013 - mcdurdin - I3677 - V9.0 - OSK and Keyman menu show an entry in taskbar
@@ -35,13 +35,16 @@ uses
   Vcl.Dialogs,
   Vcl.Forms,
   Winapi.Windows,
-  System.Win.Registry,
+  System.Classes,
   System.SysUtils,
+  System.Win.Registry,
 
   GetOsVersion,
+  Keyman.System.ExecutionHistory,
   Keyman.System.Security,
   Keyman.Winapi.VersionHelpers,
   KeymanVersion,
+  Klog,
   RegistryKeys,
   UfrmKeyman7Main,
   UserMessages;
@@ -59,14 +62,25 @@ begin
   end;
 end;
 
+procedure RunProgram; forward;
+
 procedure Run;
+begin
+  RunProgram;
+  frmKeyman7Main.Free;
+end;
+
+procedure RunProgram;
 var
   FCommand: Integer;
   Finished: Boolean;
   Count: Integer;
   hMutex: Cardinal;
 begin
+
   if not ValidateParameters(FCommand) then Exit;
+
+  RecordKeymanStarted;
 
   hProgramMutex := CreateMutex(nil, False, 'KeymanEXE70');
   if hProgramMutex = 0 then
@@ -150,6 +164,7 @@ var
   sCommand: string;
 begin
   Result := False;
+
   if LowerCase(ParamStr(1)) <> '-kmc' then Exit;
 
   sCommand := LowerCase(ParamStr(2));
@@ -164,6 +179,9 @@ begin
     FCommand := KMC_HideVisualKeyboard
   else Exit;
 
+  FEnableCrashTest := ParamStr(3) = '-sentry-client-test-exception';
+
+
   Result := True;
 end;
 
@@ -175,17 +193,30 @@ end;
 procedure InitialiseRegistrySecurity;
 var
   r: TRegistry;
+
+  procedure ProcessKey(const root: string);
+  var
+    s: string;
+    str: TStringList;
+  begin
+    if r.OpenKey('\' + root, True) then
+    begin
+      str := TStringList.Create;
+      try
+        r.GetKeyNames(str);
+        GrantPermissionToAllApplicationPackages(r.CurrentKey, KEY_READ);
+        for s in str do
+          ProcessKey(root + '\' + s);
+      finally
+        str.Free;
+      end;
+    end;
+  end;
+
 begin
   r := TRegistry.Create;
   try
-    if r.OpenKey(SRegKey_KeymanRoot_CU, True) then
-    begin
-      GrantPermissionToAllApplicationPackages(r.CurrentKey, KEY_READ);
-      // #1680 - on some systems, HKCU\Software\Keyman\Keyman Engine is not
-      // inheriting permissions from HKCU\Software\Keyman
-      if r.OpenKey('\' + SRegKey_KeymanEngineRoot_CU, True) then
-        GrantPermissionToAllApplicationPackages(r.CurrentKey, KEY_READ);
-    end;
+    ProcessKey(SRegKey_KeymanRoot_CU);
   finally
     r.Free;
   end;

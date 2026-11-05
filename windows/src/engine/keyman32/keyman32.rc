@@ -1,0 +1,11 @@
+#include "version.rc"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+MASK                    BITMAP  DISCARDABLE     "..\\..\\..\\..\\common\\resources\\bitmaps\\mask.bmp"
+ARROW                   BITMAP  DISCARDABLE     "..\\..\\..\\..\\common\\resources\\bitmaps\\arrow.bmp"
+
+/////////////////////////////////////////////////////////////////////////////

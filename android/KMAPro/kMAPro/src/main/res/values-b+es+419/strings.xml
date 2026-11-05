@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- app_name removed in 16.0 beta. Set in build.gradle -->
+  <!-- Context: Menu Action -->
+  <string name="action_share" comment="Menu action to send text content to another app">Compartir</string>
+  <string name="drawer_open">Abrir el cajón de navegación</string>
+  <string name="drawer_close">Cerrar el cajón de navegación</string>
+  <string name="action_sidebar">Show sidebar menu</string>
+  <!-- Context: Menu Action -->
+  <string name="action_web" comment="Menu action to open Keyman browser">Navegador web</string>
+  <!-- Context: Keyman Settings menu titles -->
+  <string name="keyboards_and_languages_title" comment="Section title for Keyboards_and_Languages">Teclados e idiomas</string>
+  <string name="preferences_title" comment="Section title for Sidebar">Preferencias</string>
+  <string name="help_title" comment="Section title for Sidebar">Ayuda</string>
+  <!-- Context: Navigation drawer subtitles -->
+  <string name="drawer_subtitle_spacebar_caption" comment="Subtitle for Spacebar caption drawer item">Mostrar nombre del teclado en la barra espaciadora</string>
+  <string name="drawer_subtitle_show_osk" comment="Subtitle for Show On Screen Keyboard drawer item">Cuando se conecta el teclado físico</string>
+  <string name="drawer_subtitle_send_crash_report" comment="Subtitle for crash reporting drawer item">Permitir que se envíen los informes de errores al equipo Keyman</string>
+  <string name="drawer_subtitle_about" comment="Subtitle for About drawer item">Aprende cómo utilizar Keyman</string>
+  <string name="drawer_subtitle_about_current_keyboard" comment="Subtitle for current keyboard About drawer item">No hay teclado activo</string>
+  <string name="drawer_about_current_keyboard" comment="Title for current keyboard About drawer item">Acerca del teclado activo</string>
+  <string name="drawer_about_no_active_keyboard" comment="Fallback text when no active keyboard is selected">No hay teclado activo</string>
+  <string name="drawer_subtitle_theme" comment="Subtitle format for current theme setting">Configuración actual: %1$s</string>
+  <string name="drawer_subtitle_active_keyboard_help" comment="Subtitle for active keyboard help drawer item">Aprende cómo utilizar el %1$s </string>
+  <string name="drawer_title_active_keyboard_help" comment="Title for active keyboard help drawer item">Ayuda de %1$s</string>
+  <string name="drawer_title_active_keyboard_help_fallback" comment="Fallback title for active keyboard help drawer item">Ayuda de teclado activa</string>
+  <!-- Context: Menu Action -->
+  <string name="action_text_size" comment="Menu action to adjust text size">Tamaño del texto</string>
+  <!-- Context: Menu Action -->
+  <string name="action_overflow" comment="Show additional menu items">Más</string>
+  <!-- Context: Menu Action -->
+  <string name="action_clear_text" comment="Menu action to erase text">Borrar texto</string>
+  <!-- Context: Menu Action -->
+  <string name="action_info" comment="Menu action to display Keyman help page">Ayuda</string>
+  <!-- Context: Menu Action -->
+  <string name="action_settings" comment="Menu action to open Settings menu">Configuración</string>
+  <!-- Context: Menu Action -->
+  <string name="action_install_updates" comment="Menu notification that keyboard or dictionary updates available">Instalar actualizaciones</string>
+  <!-- Context: Title -->
+  <string name="title_version" comment="Title of Keyman for Android version">Versión: %1$s</string>
+  <!-- Context: Text label when old Chrome version installed. Label replaced in Keyman 19.0 -->
+  <string name="text_require_chrome_57" comment="Banner text when old version of Chrome is installed">
+    Keyman requiere Chrome versión 57 o posterior.</string>
+  <string name="text_require_chrome_version" comment="Banner text when old version of Chrome is installed">
+    Keyman requiere Chrome versión %1$s o posterior.</string>
+  <!-- Context: Button label -->
+  <string name="button_update_chrome" comment="Prompt to upgrade Chrome in the Play Store">Actualizar Chrome</string>
+  <!-- Context: Textfield prompt (&#8230; is the ellipsis character "...") -->
+  <string name="textview_hint" comment="Prompt to start typing">Comienza a escribir aquí&#8230;</string>
+  <!-- Context: Splash screen (version/copyright info currently disabled -->
+  <!-- Context: Splash screen (version/copyright info currently disabled -->
+  <!-- Context: Text Size dialog -->
+  <string name="text_size" comment="Current text size (number)">Tamaño del texto: %1$d</string>
+  <!-- Context: Text Size dialog -->
+  <string name="ic_text_size_up" comment="Make text bigger">Agrandar texto</string>
+  <!-- Context: Text Size dialog -->
+  <string name="ic_text_size_down" comment="Make text smaller">Achicar texto</string>
+  <!-- Context: Text Size dialog -->
+  <string name="ic_text_size_slider" comment="Adjust text size">Cursor de tamaño de texto</string>
+  <!-- Context: Clear Text dialog -->
+  <string name="all_text_will_be_cleared" comment="Erase all the text">\nSe borrará todo el texto\n</string>
+  <!-- Context: Get Started menu -->
+  <string name="get_started" comment="Menu for getting started">Empezar</string>
+  <!-- Context: Get Started menu -->
+  <string name="add_a_keyboard" comment="Menu item to add a keyboard">Agrega un teclado para tu idioma</string>
+  <!-- Context: Get Started menu -->
+  <string name="system_keyboards" comment="Menu item to open system keyboards">Teclados del sistema</string>
+  <!-- Context: Get Started menu -->
+  <string name="enable_system_keyboard" comment="Menu item to enable Keyman as system keyboard">Habilitar Keyman como teclado de sistema</string>
+  <!-- Context: Get Started menu -->
+  <string name="set_keyman_as_default" comment="Menu item to set Keyman as default system keyboard">Establecer teclado como teclado predeterminado</string>
+  <!-- Context: Get Started menu -->
+  <string name="more_info" comment="Open the Keyman for Android help page">Más información</string>
+  <!-- Context: Get Started menu -->
+  <string name="show_get_started" comment="Show the &quot;Get Started&quot; menu on startup">Mostrar \"%1$s\" al inicio</string>
+  <!-- Context: Android Storage Permission -->
+  <string name="request_storage_permission" comment="Request storage permission to access keyboard packages">
+    Para instalar los paquetes del teclado, permite que Keyman acceda al almacenamiento externo.</string>
+  <!-- Context: Android Storage Permission -->
+  <string name="storage_permission_denied" comment="Keyboard package installation may fail since Android storage permission not granted">
+    Se ha denegado la solicitud de permiso de almacenamiento. La instalación del paquete de teclado podría fallar</string>
+  <string name="storage_permission_denied2" comment="Keyboard package installation failed. Recommend install from local file">
+    Falló la solicitud de permiso de almacenamiento. Seleccione Configuración de Keyman - Instalar desde archivo local</string>
+  <!-- Context: Keyman Settings menu -->
+  <string name="keyman_settings" comment="Settings menu title">Configuración</string>
+  <!-- Context: Keyman Settings menu -->
+  <plurals name="installed_languages">
+    <item quantity="one">Idiomas instalados (%1$d)</item>
+    <item quantity="other">Idiomas instalados (%1$d)</item>
+  </plurals>
+  <!-- Context: Keyman Settings menu -->
+  <string name="install_keyboard_or_dictionary" comment="Menu item to install keyboard or dictionary">Instalar teclado o diccionario</string>
+  <!-- Context: Keyman Settings menu -->
+  <string name="change_display_language" comment="Menu action to change interface language">Idioma de interfaz</string>
+  <!-- Context: Keyman Settings menu -->
+  <string name="adjust_keyboard_height" comment="Menu action to adjust keyboard height">Ajustar la altura del teclado</string>
+  <!-- Context: Keyman Settings menu -->
+  <string name="adjust_longpress_delay" comment="Menu action to adjust longpress delay duration">Ajustar demora de pulsación larga</string>
+  <!-- Context: Keyman Settings menu -->
+  <string name="spacebar_caption" comment="Menu action to set the spacebar caption">Leyenda de barra espaciadora</string>
+  <!-- Context: Keyman Settings menu / Spacebar caption -->
+  <string name="spacebar_caption_keyboard" comment="Spacebar caption option - keyboard">Teclado</string>
+  <!-- Context: Keyman Settings menu / Spacebar caption -->
+  <string name="spacebar_caption_language" comment="Spacebar caption option - language">Idioma</string>
+  <!-- Context: Keyman Settings menu / Spacebar caption -->
+  <string name="spacebar_caption_language_keyboard" comment="Spacebar caption option - language + keyboard">Idioma + Teclado</string>
+  <!-- Context: Keyman Settings menu / Spacebar caption -->
+  <string name="spacebar_caption_blank" comment="Spacebar caption option - blank">Vacío</string>
+  <!-- Context: Keyman Settings menu / Spacebar caption hint -->
+  <string name="spacebar_caption_hint_keyboard" comment="Spacebar caption hint - keyboard">Mostrar nombre del teclado en la barra espaciadora</string>
+  <!-- Context: Keyman Settings menu / Spacebar caption hint -->
+  <string name="spacebar_caption_hint_language" comment="Spacebar caption hint - language">Mostrar nombre del idioma en la barra espaciadora</string>
+  <!-- Context: Keyman Settings menu / Spacebar caption hint -->
+  <string name="spacebar_caption_hint_language_keyboard" comment="Spacebar caption hint - language + keyboard">Idioma y teclado en la barra espaciadora</string>
+  <!-- Context: Keyman Settings menu / Spacebar caption hint -->
+  <string name="spacebar_caption_hint_blank" comment="Spacebar caption hint - blank">No mostrar leyenda en la barra espaciadora</string>
+  <!-- Context: Keyman Settings menu / Show OSK with Physical Keyboard -->
+  <string name="show_osk" comment="show OSK when physical keyboard is connected">Mostrar el teclado en pantalla</string>
+  <!-- Context: Keyman Settings menu / Show OSK with Physical Keyboard hint -->
+  <string name="show_osk_hint" comment="When physical keyboard is connected">Cuando se conecta el teclado físico</string>
+  <!-- Context: Keyman Settings menu / Haptic feedback -->
+  <string name="haptic_feedback" comment="haptic feedback on key press">Vibrar al escribir</string>
+  <!-- Context: Keyman Settings menu. Removed in Keyman 18 -->
+  <string name="show_banner" comment="text suggestions banner">Mostrar siempre el banner</string>
+  <!-- Context: Keyman Settings menu. Removed in Keyman 18 -->
+  <string name="show_banner_on" comment="Description when toggle is on">A implementar</string>
+  <!-- Context: Keyman Settings menu. Removed in Keyman 18 -->
+  <string name="show_banner_off" comment="Description when toggle is off">Cuando está desactivado, solo se muestra cuando el texto predictivo está habilitado</string>
+  <!-- Context: Keyman Settings menu -->
+  <string name="show_send_crash_report" comment="permission for sending crash reports">Informes de errores automáticos</string>
+  <!-- Context: Keyman Settings menu -->
+  <string name="show_send_crash_report_on" comment="Description when toggle is on">Permitir que se envíen los informes de errores al equipo Keyman</string>
+  <!-- Context: Keyman Settings menu -->
+  <string name="show_send_crash_report_off" comment="Description when toggle is off">Los informes de error no se envían al equipo Keyman</string>
+  <!-- Context: Main drawer menu -->
+  <string name="drawer_menu_help" comment="Help drawer item title">Guía de usuario</string>
+  <string name="drawer_menu_update_keyboards" comment="Drawer action to update installed keyboards">Actualizar teclados</string>
+  <string name="drawer_menu_installed_languages" comment="Drawer title for installed languages item">Idiomas instalados</string>
+  <string name="drawer_menu_show_get_started" comment="Drawer title for get started startup option">Show &quot;Get Started&quot; on startup</string>
+  <string name="theme" comment="Menu title for theme settings">Tema</string>
+  <string name="theme_choose" comment="Dialog title for choosing app theme">Choose theme</string>
+  <string name="theme_dark_mode" comment="Theme option">Modo oscuro</string>
+  <string name="theme_light_mode" comment="Theme option">Modo claro</string>
+  <string name="theme_system_default" comment="Theme option">Predeterminada del sistema</string>
+  <!-- Context: Keyman Settings "Install Keyboard or Dictionary" menu -->
+  <string name="install_from_keyman_dot_com" comment="Install package from Keyman server">Instalar desde keyman.com</string>
+  <!-- Context: Keyman Settings "Install Keyboard or Dictionary" menu -->
+  <string name="install_from_local_file" comment="Install package file from local device">Instalar desde archivo local</string>
+  <!-- Context: Keyman Settings "Install Keyboard or Dictionary" menu -->
+  <string name="install_from_other_device" comment="Scan QR Code">Instalar desde otro dispositivo</string>
+  <!-- Context: Keyman Settings "Install Keyboard or Dictionary" menu -->
+  <string name="add_languages_to_installed_keyboard" comment="Install additional languages from a keyboard package">Añadir idiomas al teclado instalado</string>
+  <!-- Context: Keyman Settings "Install Keyboard or Dictionary" menu -->
+  <string name="add_language_subtext" comment="Additional information for adding another language">(desde el paquete del teclado)</string>
+  <!-- Context: Select Package and Select Languages menu -->
+  <string name="title_select_keyboard_package_list" comment="Select a keyboard package to add languages">Selecciona un paquete de teclado</string>
+  <!-- Context: Select Package and Select Languages menu -->
+  <string name="title_select_languages_for_package" comment="Select language names from the keyboard package">Selecciona idiomas para %1$s</string>
+  <!-- Context: Select Package and Select Languages menu -->
+  <string name="added_language_to_keyboard" comment="Notification that a language name is added to a keyboard">Se agregó el idioma %1$s a %2$s</string>
+  <!-- Context: Select Package and Select Languages menu -->
+  <string name="all_languages_installed" comment="Text when all languages from a keyboard package have been installed">Ya están instalados todos los idiomas</string>
+  <!-- Context: Adjust Keyboard Height menu -->
+  <string name="adjust_keyboard_instructions" comment="Instructions for adjusting keyboard height">Arrastre el teclado para ajustar la altura. Gire el dispositivo para ajustar el modo vertical y horizontal.</string>
+  <!-- Context: Adjust Keyboard Height menu -->
+  <string name="reset_to_defaults" comment="Button to reset to default heights">Restaurar valores predeterminados</string>
+  <!-- Context: Keyboard height display format. %1$d = portrait percentage, %2$d = landscape percentage -->
+  <string name="keyboard_height_format" comment="Format for displaying keyboard height percentages">%1$d%% Modo vertical | %2$d%% Modo horizontal</string>
+  <!-- Context: Adjust Longpress Delay Time menu -->
+  <string name="longpress_delay_time" comment="Current longpress delay time (seconds)">Tiempo de retraso: %1$.1f segundos</string>
+  <!-- Context: Adjust Longpress Delay Time menu -->
+  <string name="ic_delay_time_up" comment="Make longpress delay longer">Tiempo de retraso más largo</string>
+  <!-- Context: Adjust Longpress Delay Time menu -->
+  <string name="ic_delay_time_down" comment="Make longpress delay shorter">Tiempo de retraso más corto</string>
+  <!-- Context: Adjust Longpress Delay Time menu -->
+  <string name="ic_longpress_delay_slider" comment="Adjust longpress delay time">Ajustador del tiempo de retraso de pulsación larga</string>
+  <!-- Context: Keyman Web Browser -->
+  <string name="hint_text" comment="Prompt to type in the browser search bar">Buscar o escribir una dirección web</string>
+  <!-- Context: Keyman Web Browser -->
+  <string name="title_bookmarks" comment="Title for bookmarks">Marcadores</string>
+  <!-- Context: Keyman Web Browser -->
+  <string name="no_bookmarks" comment="Text when bookmark list is empty">No hay marcadores</string>
+  <!-- Context: Keyman Web Browser -->
+  <string name="add_bookmark" comment="Confirmation to add bookmark">Agregar a marcadores</string>
+  <!-- Context: Keyman Web Browser -->
+  <string name="hint_title" comment="Page title for saved bookmark">Título</string>
+  <!-- Context: Keyman Web Browser -->
+  <string name="hint_url" comment="Page URL for saved bookmark">Dirección web</string>
+  <!-- Context: KMP Package strings -->
+  <string name="title_package_failed_to_install" comment="Error dialog title when package failed to install">No se instaló el paquete %1$s</string>
+  <!-- Context: KMP Package strings -->
+  <string name="downloading_keyboard_package" comment="Confirmation to download keyboard package filename">Descargando el paquete del teclado\n%1$s&#8230;</string>
+  <!-- Context: KMP Package strings -->
+  <string name="failed_to_extract" comment="Notification that keyboard package failed to unzip">Error al extraer</string>
+  <!-- Context: KMP Package strings -->
+  <string name="install_keyboard_package" comment="Title to install keyboard package">Instalar teclado</string>
+  <!-- Context: KMP Package strings -->
+  <string name="install_predictive_text_package" comment="Title to install dictionary package">Instalar diccionario</string>
+  <!-- Context: KMP Package strings -->
+  <string name="not_valid_package_file" comment="Notification when invalid package file cannot be installed">%1$s no es un archivo válido de paquete de Keyman.\n%2$s\"</string>
+  <!-- Context: KMP Package strings -->
+  <string name="no_new_touch_keyboards_to_install" comment="Notification when no touch-optimized keyboards can be installed">El paquete del teclado no tiene ningún teclado táctil para instalar</string>
+  <!-- Context: KMP Package strings -->
+  <string name="no_new_predictive_text_to_install" comment="Notification when no dictionaries can be installed">No hay nuevo texto predictivo para instalar</string>
+  <!-- Context: KMP Package strings -->
+  <string name="no_targets_to_install" comment="Notification when a package doesn't contain keyboards or dictionaries">No hay teclados ni texto predictivo para instalar</string>
+  <!-- Context: KMP Package strings -->
+  <string name="no_associated_languages" comment="Notification when a keyboard package doesn't contain languages">El paquete del teclado no tiene idiomas asociados para instalar</string>
+  <!-- Context: KMP Package strings -->
+  <string name="invalid_metadata" comment="kmp.json metadata file is invalid or missing in package">Metadatos inválidos/ausentes en el paquete</string>
+  <!-- Context: KMP Package strings -->
+  <string name="minimum_keyboard_version_not_supported" comment="Notification when keyboard has functionality not supported by current Keyman">
+    El teclado requiere una versión más reciente de Keyman</string>
+  <!-- Context: anywhere -->
+  <string name="unable_to_open_browser" comment="Notification when a browser activity cannot be launched">No se puede iniciar el navegador web</string>
+  <!-- Context: Menu title -->
+  <string name="menu_title" comment="Title for overflow/menu button">Menú</string>
+</resources>

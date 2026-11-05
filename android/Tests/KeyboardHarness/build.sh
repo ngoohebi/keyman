@@ -1,67 +1,37 @@
-#!/bin/bash
-# Build KeyboardHarness test app
+#!/usr/bin/env bash
+# Keyman is copyright (C) SIL Global. MIT License.
+#
+## START STANDARD BUILD SCRIPT INCLUDE
+# adjust relative paths as necessary
+THIS_SCRIPT="$(readlink -f "${BASH_SOURCE[0]}")"
+. "${THIS_SCRIPT%/*}/../../../resources/build/builder-full.inc.sh"
+## END STANDARD BUILD SCRIPT INCLUDE
 
+. "${KEYMAN_ROOT}/android/android-utils.inc.sh"
 
-display_usage ( ) {
-    echo "build.sh [-no-daemon] [-debug]"
-    echo
-    echo "Build KeyboardHarness test app"
-    echo "  -no-daemon              Don't start the Gradle daemon. Use for CI"
-    echo "  -debug                  Compile only Debug variant"
-    exit 1
+################################ Main script ################################
+
+builder_describe "Build KeyboardHarness test app for Android." \
+  "@/android/KMEA" \
+  "clean" \
+  "configure" \
+  "build" \
+  "test" \
+  ":app                   KeyboardHarness"
+
+builder_parse "$@"
+
+android_set_gradle_environment
+
+builder_describe_outputs \
+  build:app    "/android/Tests/KeyboardHarness/app/build/outputs/apk/${BUILDER_CONFIGURATION}/KeyboardHarness-${KEYMAN_VERSION_FOR_FILENAME}-${ARCHIVE_TARGET}.apk"
+
+#### Build action definitions ####
+
+do_build() {
+  cp "$KEYMAN_ROOT/android/KMEA/app/build/outputs/aar/keyman-engine-${BUILDER_CONFIGURATION}.aar" ./app/libs/keyman-engine.aar
+  ./gradlew $GRADLE_DAEMON $GRADLE_TARGET
 }
 
-echo Build KeyboardHarness test app
-
-#
-# Prevents 'clear' on exit of mingw64 bash shell
-#
-SHLVL=0
-
-echo Build KMEA first
-cd ../../KMEA
-./build.sh
-cd ../Tests/KeyboardHarness
-cp ../keyman-engine.aar app/libs/
-
-
-NO_DAEMON=false
-ONLY_DEBUG=false
-
-# Parse args
-while [[ $# -gt 0 ]] ; do
-    key="$1"
-    case $key in
-        -no-daemon)
-            NO_DAEMON=true
-            ;;
-        -debug)
-            ONLY_DEBUG=true
-            ;;
-        -h|-?)
-            display_usage
-            ;;
-    esac
-    shift # past argument
-done
-
-echo
-echo "NO_DAEMON: $NO_DAEMON"
-echo "ONLY_DEBUG: $ONLY_DEBUG"
-echo
-
-if [ "$NO_DAEMON" = true ]; then
-  DAEMON_FLAG=--no-daemon
-else
-  DAEMON_FLAG=
-fi
-
-if [ "$ONLY_DEBUG" = true ]; then
-  BUILD_FLAG=assembleDebug
-else
-  BUILD_FLAG=build
-fi
-
-echo Build KeyboardHarness
-./gradlew $DAEMON_FLAG clean $BUILD_FLAG
-
+builder_run_action  clean:app    rm -rf build app/build
+builder_run_action  build:app    do_build

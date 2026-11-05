@@ -1,0 +1,223 @@
+﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+		<PropertyGroup>
+			<ProjectGuid>{BA31B8A8-99E5-428C-BD1A-F8A9B16F455B}</ProjectGuid>
+			<MainSource>test_httpuploader.dpr</MainSource>
+			<Config Condition="'$(Config)'==''">Debug</Config>
+			<DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
+			<Base>true</Base>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Config)'=='Release' or '$(Cfg_1)'!=''">
+			<Cfg_1>true</Cfg_1>
+			<CfgParent>Base</CfgParent>
+			<Base>true</Base>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Config)'=='Debug' or '$(Cfg_2)'!=''">
+			<Cfg_2>true</Cfg_2>
+			<CfgParent>Base</CfgParent>
+			<Base>true</Base>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Base)'!=''">
+			<DCC_ImageBase>2C400000</DCC_ImageBase>
+			<DCC_DependencyCheckOutputName>test_httpuploader.exe</DCC_DependencyCheckOutputName>
+			<DCC_MapFile>3</DCC_MapFile>
+			<DCC_UsePackage>Vcl40;Vclx40;vcljpg40;comp51;VCLZipD4;dclkmn;Vcl50;Vclx50;vclie50;Inetdb50;Inet50;Vcldb50</DCC_UsePackage>
+			<DCC_IOChecking>false</DCC_IOChecking>
+			<DCC_Alignment>1</DCC_Alignment>
+			<DCC_RemoteDebug>true</DCC_RemoteDebug>
+			<DCC_UnitAlias>WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;$(DCC_UnitAlias)</DCC_UnitAlias>
+			<DCC_Platform>x86</DCC_Platform>
+			<DCC_Define>VISUALKEYBOARD_NOCUSTOMBITMAP;VERSION_KEYMAN_REDIST;RELEASE_KEYMAN;EXCMAGIC_GUI;$(DCC_Define)</DCC_Define>
+			<DCC_F>false</DCC_F>
+			<DCC_E>false</DCC_E>
+			<DCC_K>false</DCC_K>
+			<DCC_S>false</DCC_S>
+			<DCC_N>true</DCC_N>
+			<DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
+			<DCC_WriteableConstants>true</DCC_WriteableConstants>
+			<DCC_DebugInfoInExe>true</DCC_DebugInfoInExe>
+			<DCC_AssertionsAtRuntime>false</DCC_AssertionsAtRuntime>
+			<DebugSourcePath>C:\keyman\7.0\src\engine\kmcomapi\util\;C:\keyman\7.0\src\engine\kmcomapi\com\packages\;C:\keyman\7.0\src\engine\kmcomapi\com\products\;C:\keyman\7.0\src\engine\kmcomapi\com\system\;C:\keyman\7.0\src\engine\kmcomapi\com\;C:\keyman\7.0\src\engine\kmcomapi\com\customisation\;C:\keyman\7.0\src\global\delphi\cust\;C:\keyman\7.0\src\global\delphi\gettext\;C:\keyman\7.0\src\engine\kmcomapi\com\keyboards\;C:\keyman\7.0\src\engine\kmcomapi\processes\keyboard\;C:\keyman\7.0\src\engine\kmcomapi\processes\;C:\keyman\7.0\src\engine\kmcomapi\com\errors\;C:\keyman\7.0\src\engine\kmcomapi\processes\package\;$(DebugSourcePath)</DebugSourcePath>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Cfg_1)'!=''">
+			<DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
+			<DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
+			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
+			<DCC_DebugInformation>false</DCC_DebugInformation>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Cfg_2)'!=''">
+			<DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
+		</PropertyGroup>
+		<ItemGroup>
+			<DelphiCompile Include="test_httpuploader.dpr">
+				<MainSource>MainSource</MainSource>
+			</DelphiCompile>
+			<DCCReference Include="..\..\global\delphi\excmagic\unit\ExcMagicGUI.pas"/>
+			<DCCReference Include="..\..\global\delphi\excmagic\unit\ExcMagic.pas"/>
+			<DCCReference Include="..\..\global\delphi\excmagic\unit\ExcMagicUtils.pas"/>
+			<DCCReference Include="..\..\global\delphi\excmagic\unit\ExcMemMap.pas"/>
+			<DCCReference Include="..\..\global\delphi\excmagic\unit\ExcUnmangle.pas"/>
+			<DCCReference Include="..\..\global\delphi\excmagic\unit\ExcMagicDlg.pas"/>
+			<DCCReference Include="..\..\global\delphi\excmagic\unit\ExcMagicPatch.pas"/>
+			<DCCReference Include="..\..\global\delphi\excmagic\unit\ExcStackTracer.pas"/>
+			<DCCReference Include="..\..\..\..\common\windows\delphi\general\VersionInfo.pas"/>
+			<DCCReference Include="..\..\global\delphi\excmagic\unit\ExcMagicDefaultFilter.pas"/>
+			<DCCReference Include="main.pas">
+				<Form>Form2</Form>
+			</DCCReference>
+			<DCCReference Include="..\..\..\..\common\windows\delphi\general\httpuploader.pas"/>
+			<DCCReference Include="..\..\..\..\common\windows\delphi\general\Upload_Settings.pas"/>
+			<DCCReference Include="..\..\global\delphi\general\urlutil.pas"/>
+			<DCCReference Include="..\..\..\..\common\windows\delphi\general\RegistryKeys.pas"/>
+			<DCCReference Include="..\..\..\..\common\windows\delphi\general\DebugPaths.pas"/>
+			<DCCReference Include="..\..\..\..\common\windows\delphi\general\wininet5.pas"/>
+			<DCCReference Include="..\..\..\..\common\windows\delphi\general\GlobalProxySettings.pas"/>
+			<DCCReference Include="..\..\global\delphi\crypt\DCPbase64.pas"/>
+			<DCCReference Include="..\..\global\delphi\crypt\DCPconst.pas"/>
+			<DCCReference Include="..\..\global\delphi\crypt\DCPcrypt2.pas"/>
+			<DCCReference Include="..\..\global\delphi\crypt\DCPrc4.pas"/>
+			<DCCReference Include="..\..\global\delphi\online\UfrmOnlineUpdateSetup.pas">
+				<Form>frmOnlineUpdateSetup</Form>
+			</DCCReference>
+			<BuildConfiguration Include="Base">
+				<Key>Base</Key>
+			</BuildConfiguration>
+		</ItemGroup>
+		<Import Project="$(BDS)\Bin\CodeGear.Delphi.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Delphi.Targets')"/>
+		<ProjectExtensions>
+			<Borland.Personality>Delphi.Personality.12</Borland.Personality>
+			<Borland.ProjectType/>
+			<BorlandProject>
+				<Delphi.Personality>
+					<Source>
+						<Source Name="MainSource">test_httpuploader.dpr</Source>
+					</Source>
+					<Parameters>
+						<Parameters Name="RunParams">-c 1</Parameters>
+						<Parameters Name="UseLauncher">False</Parameters>
+						<Parameters Name="LoadAllSymbols">True</Parameters>
+						<Parameters Name="LoadUnspecifiedSymbols">False</Parameters>
+					</Parameters>
+					<DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="LANG">&apos;de&apos;</DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="__COMPAT_LAYER">&apos;EnableNXShowUI &apos;</DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="CLASSPATH">&apos;.;C:\Program Files\Java\jre1.5.0_06\lib\ext\QTJava.zip&apos;</DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="Path">&apos;C:\Program Files\Windows Resource Kits\Tools\;C:\Perl\bin\;c:\bin;C:\WINDOWS\Microsoft.NET\Framework\v1.1.4322\;C:\Program Files\Borland\BDS\4.0\Bin;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;c:\Program Files\Microsoft SQL Server\90\Tools\binn\;C:\Program Files\ATI Technologies\ATI Control Panel;C:\Program Files\Bitvise Tunnelier;C:\Program Files\Microsoft SQL Server\80\Tools\Binn\;C:\Program Files\Microsoft SQL Server\90\DTS\Binn\;C:\Program Files\Microsoft SQL Server\90\Tools\Binn\VSShell\Common7\IDE\;C:\Program Files\Microsoft Visual Studio 8\Common7\IDE\PrivateAssemblies\;c:\program files\WiX;C:\Program Files\Common Files\Roxio Shared\DLLShared\;C:\Program Files\QuickTime\QTSystem\;c:\cygwin\bin;C:\Documents and Settings\mcdurdin\My Documents\Borland Studio Projects\Bpl&apos;</DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="CLIENTNAME">&apos;Console&apos;</DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="lib">&apos;C:\Program Files\SQLXML 4.0\bin\&apos;</DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="APPVER">&apos;5.01&apos;</DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="Basemake">&apos;C:\Program Files\Microsoft Platform SDK\Include\BKOffice.Mak&apos;</DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="BCB">&apos;c:\program files\borland\bds\4.0&apos;</DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="Bkoffice">&apos;C:\Program Files\Microsoft Platform SDK\&apos;</DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="CPU">&apos;i386&apos;</DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="DevEnvDir">&apos;C:\Program Files\Microsoft Visual Studio 8\Common7\IDE&apos;</DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="FrameworkDir">&apos;C:\WINDOWS\Microsoft.NET\Framework&apos;</DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="FrameworkSDKDir">&apos;C:\Program Files\Microsoft Visual Studio 8\SDK\v2.0&apos;</DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="FrameworkVersion">&apos;v2.0.50727&apos;</DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="INCLUDE">&apos;C:\Program Files\Microsoft Platform SDK\Include;C:\Program Files\Microsoft Visual Studio 8\VC\ATLMFC\INCLUDE;C:\Program Files\Microsoft Visual Studio 8\VC\INCLUDE;C:\Program Files\Microsoft Visual Studio 8\VC\PlatformSDK\include;C:\Program Files\Microsoft Visual Studio 8\SDK\v2.0\include;C:\Program Files\Microsoft Visual Studio 8\VC\ATLMFC\INCLUDE;C:\Program Files\Microsoft Visual Studio 8\VC\INCLUDE;C:\Program Files\Microsoft Visual Studio 8\VC\PlatformSDK\include;C:\Program Files\Microsoft Visual Studio 8\SDK\v2.0\include;&apos;</DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="INETSDK">&apos;C:\Program Files\Microsoft Platform SDK&apos;</DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="LIBPATH">&apos;C:\WINDOWS\Microsoft.NET\Framework\v2.0.50727;C:\Program Files\Microsoft Visual Studio 8\VC\ATLMFC\LIB&apos;</DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="MSSdk">&apos;C:\Program Files\Microsoft Platform SDK&apos;</DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="Mstools">&apos;C:\Program Files\Microsoft Platform SDK&apos;</DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="MSVCVer">&apos;8.0&apos;</DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="PROMPT">&apos;$P$G&apos;</DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="TARGETOS">&apos;WINNT&apos;</DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="VCINSTALLDIR">&apos;C:\Program Files\Microsoft Visual Studio 8\VC&apos;</DebugEnvironmentVariables>
+						<DebugEnvironmentVariables Name="VSINSTALLDIR">&apos;C:\Program Files\Microsoft Visual Studio 8&apos;</DebugEnvironmentVariables>
+					</DebugEnvironmentVariables>
+					<DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="__COMPAT_LAYER">&apos;EnableNXShowUI &apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="ALLUSERSPROFILE">&apos;C:\Documents and Settings\All Users&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="APPDATA">&apos;C:\Documents and Settings\mcdurdin\Application Data&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="BDS">&apos;c:\program files\borland\bds\4.0&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="BDSPROJECTSDIR">&apos;C:\Documents and Settings\mcdurdin\My Documents\Borland Studio Projects&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="CLASSPATH">&apos;.;C:\Program Files\Java\jre1.5.0_06\lib\ext\QTJava.zip&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="CLIENTNAME">&apos;Console&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="CommonProgramFiles">&apos;C:\Program Files\Common Files&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="COMPUTERNAME">&apos;TV&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="ComSpec">&apos;C:\WINDOWS\system32\cmd.exe&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="DELPHI">&apos;c:\program files\borland\bds\4.0&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="FP_NO_HOST_CHECK">&apos;NO&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="HOMEDRIVE">&apos;C:&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="HOMEPATH">&apos;\Documents and Settings\mcdurdin&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="lib">&apos;C:\Program Files\SQLXML 4.0\bin\&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="LOGONSERVER">&apos;\\FRED&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="MOZ_TOOLS">&apos;c:\moztools&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="NUMBER_OF_PROCESSORS">&apos;2&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="OS">&apos;Windows_NT&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="Path">&apos;C:\Program Files\Windows Resource Kits\Tools\;C:\Perl\bin\;c:\bin;C:\WINDOWS\Microsoft.NET\Framework\v1.1.4322\;C:\Program Files\Borland\BDS\4.0\Bin;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;c:\Program Files\Microsoft SQL Server\90\Tools\binn\;C:\Program Files\ATI Technologies\ATI Control Panel;C:\Program Files\Bitvise Tunnelier;C:\Program Files\Microsoft SQL Server\80\Tools\Binn\;C:\Program Files\Microsoft SQL Server\90\DTS\Binn\;C:\Program Files\Microsoft SQL Server\90\Tools\Binn\VSShell\Common7\IDE\;C:\Program Files\Microsoft Visual Studio 8\Common7\IDE\PrivateAssemblies\;c:\program files\WiX;C:\Program Files\Common Files\Roxio Shared\DLLShared\;C:\Program Files\QuickTime\QTSystem\;c:\cygwin\bin;C:\Documents and Settings\mcdurdin\My Documents\Borland Studio Projects\Bpl&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="PATHEXT">&apos;.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="PROCESSOR_ARCHITECTURE">&apos;x86&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="PROCESSOR_IDENTIFIER">&apos;x86 Family 15 Model 6 Stepping 4, GenuineIntel&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="PROCESSOR_LEVEL">&apos;15&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="PROCESSOR_REVISION">&apos;0604&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="ProgramFiles">&apos;C:\Program Files&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="QTJAVA">&apos;C:\Program Files\Java\jre1.5.0_06\lib\ext\QTJava.zip&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="SESSIONNAME">&apos;Console&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="SonicCentral">&apos;C:\Program Files\Common Files\Sonic Shared\Sonic Central\&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="SystemDrive">&apos;C:&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="SystemRoot">&apos;C:\WINDOWS&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="TEMP">&apos;C:\DOCUME~1\mcdurdin\LOCALS~1\Temp&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="TMP">&apos;C:\DOCUME~1\mcdurdin\LOCALS~1\Temp&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="USERDNSDOMAIN">&apos;TAVULTESOFT.LOCAL&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="USERDOMAIN">&apos;TAVULTESOFT&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="USERNAME">&apos;mcdurdin&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="USERPROFILE">&apos;C:\Documents and Settings\mcdurdin&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="VS80COMNTOOLS">&apos;C:\Program Files\Microsoft Visual Studio 8\Common7\Tools\&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="windir">&apos;C:\WINDOWS&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="APPVER">&apos;5.01&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="Basemake">&apos;C:\Program Files\Microsoft Platform SDK\Include\BKOffice.Mak&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="BCB">&apos;c:\program files\borland\bds\4.0&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="Bkoffice">&apos;C:\Program Files\Microsoft Platform SDK\&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="CPU">&apos;i386&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="DevEnvDir">&apos;C:\Program Files\Microsoft Visual Studio 8\Common7\IDE&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="FrameworkDir">&apos;C:\WINDOWS\Microsoft.NET\Framework&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="FrameworkSDKDir">&apos;C:\Program Files\Microsoft Visual Studio 8\SDK\v2.0&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="FrameworkVersion">&apos;v2.0.50727&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="INCLUDE">&apos;C:\Program Files\Microsoft Platform SDK\Include;C:\Program Files\Microsoft Visual Studio 8\VC\ATLMFC\INCLUDE;C:\Program Files\Microsoft Visual Studio 8\VC\INCLUDE;C:\Program Files\Microsoft Visual Studio 8\VC\PlatformSDK\include;C:\Program Files\Microsoft Visual Studio 8\SDK\v2.0\include;C:\Program Files\Microsoft Visual Studio 8\VC\ATLMFC\INCLUDE;C:\Program Files\Microsoft Visual Studio 8\VC\INCLUDE;C:\Program Files\Microsoft Visual Studio 8\VC\PlatformSDK\include;C:\Program Files\Microsoft Visual Studio 8\SDK\v2.0\include;&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="INETSDK">&apos;C:\Program Files\Microsoft Platform SDK&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="LIBPATH">&apos;C:\WINDOWS\Microsoft.NET\Framework\v2.0.50727;C:\Program Files\Microsoft Visual Studio 8\VC\ATLMFC\LIB&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="MSSdk">&apos;C:\Program Files\Microsoft Platform SDK&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="Mstools">&apos;C:\Program Files\Microsoft Platform SDK&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="MSVCVer">&apos;8.0&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="PROMPT">&apos;$P$G&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="TARGETOS">&apos;WINNT&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="VCINSTALLDIR">&apos;C:\Program Files\Microsoft Visual Studio 8\VC&apos;</DebugSysEnvironmentVariables>
+						<DebugSysEnvironmentVariables Name="VSINSTALLDIR">&apos;C:\Program Files\Microsoft Visual Studio 8&apos;</DebugSysEnvironmentVariables>
+					</DebugSysEnvironmentVariables>
+					<Language>
+						<Language Name="ProjectLang">$00000C09</Language>
+					</Language>
+					<VersionInfo>
+						<VersionInfo Name="IncludeVerInfo">False</VersionInfo>
+						<VersionInfo Name="AutoIncBuild">True</VersionInfo>
+						<VersionInfo Name="MajorVer">5</VersionInfo>
+						<VersionInfo Name="MinorVer">0</VersionInfo>
+						<VersionInfo Name="Release">0</VersionInfo>
+						<VersionInfo Name="Build">29</VersionInfo>
+						<VersionInfo Name="Debug">False</VersionInfo>
+						<VersionInfo Name="PreRelease">False</VersionInfo>
+						<VersionInfo Name="Special">False</VersionInfo>
+						<VersionInfo Name="Private">False</VersionInfo>
+						<VersionInfo Name="DLL">False</VersionInfo>
+						<VersionInfo Name="Locale">3081</VersionInfo>
+						<VersionInfo Name="CodePage">1252</VersionInfo>
+					</VersionInfo>
+					<VersionInfoKeys>
+						<VersionInfoKeys Name="CompanyName"/>
+						<VersionInfoKeys Name="FileDescription">Tavultesoft Keyboard Manager</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">5.0.0.29</VersionInfoKeys>
+						<VersionInfoKeys Name="InternalName"/>
+						<VersionInfoKeys Name="LegalCopyright"/>
+						<VersionInfoKeys Name="LegalTrademarks"/>
+						<VersionInfoKeys Name="OriginalFilename"/>
+						<VersionInfoKeys Name="ProductName"/>
+						<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
+						<VersionInfoKeys Name="Comments"/>
+					</VersionInfoKeys>
+				</Delphi.Personality>
+			</BorlandProject>
+			<ProjectFileVersion>12</ProjectFileVersion>
+		</ProjectExtensions>
+	</Project>

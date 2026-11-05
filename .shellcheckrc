@@ -1,0 +1,6 @@
+external-sources=true
+
+source-path=resources/build/
+source-path=resources/
+source-path=SCRIPTDIR
+source-path=linux/ibus-keyman/tests/scripts/

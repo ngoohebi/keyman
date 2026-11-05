@@ -1,0 +1,52 @@
+{
+  "scopes": {
+    "android": {
+      "app": null,
+      "engine": null,
+      "samples": null
+    },
+    "common": {
+      "web": null
+    },
+    "core": null,
+    "developer": {
+      "compilers": null,
+      "ide": null
+    },
+    "ios": {
+      "app": null,
+      "engine": null,
+      "samples": null
+    },
+    "linux": {
+      "config": null,
+      "engine": null,
+      "samples": null
+    },
+    "mac": {
+      "config": null,
+      "engine": null,
+      "samples": null
+    },
+    "oem": {
+      "fv": {
+        "android": null,
+        "ios": null,
+        "windows": null
+      }
+    },
+    "resources": null,
+    "web": {
+      "bookmarklet": null,
+      "engine": null,
+      "ui": null,
+      "samples": null,
+      "predictive-text": null
+    },
+    "windows": {
+      "config": null,
+      "engine": null,
+      "samples": null
+    }
+  }
+}

@@ -21,16 +21,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
 
     FVRegionStorage.upgrade()
-
-    #if DEBUG
-      KeymanEngine.log.outputLevel = .debug
-      KeymanEngine.log.logAppDetails()
-    #else
-      KeymanEngine.log.outputLevel = .warning
-    #endif
-
+    
     // Replace with your application group id
     Manager.applicationGroupIdentifier = FVConstants.groupID
+    Manager.shared.spacebarText = .KEYBOARD
     return true
   }
 }

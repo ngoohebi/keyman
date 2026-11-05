@@ -148,7 +148,7 @@ begin
     begin
       if kmcom.Hotkeys[j].RawValue = NewHotkey then
       begin
-        case MessageDlg(MsgFromIdFormat(SKHotkeyConflicts_Product, [HotkeyText, MsgFromId(SKApplicationTitle)]), mtConfirmation, mbYesNoCancel, 0) of
+        case MessageDlg(MsgFromIdFormat(SKHotkeyConflicts_Interface, [HotkeyText]), mtConfirmation, mbYesNoCancel, 0) of
           mrYes:    kmcom.Hotkeys[j].Clear;
           mrNo:     Exit;
           mrCancel: Exit;
@@ -184,7 +184,7 @@ begin
   inherited;
   s := MsgFromId(SK_UIFontName);
   if s <> '' then Font.Name := s;
-  HelpTopic := 'context_changehotkey';
+  HelpTopic := 'context/change-hotkey';
   Caption := MsgFromId(SKChangeHotkeyTitle);
   cmdOK.Caption := MsgFromId(SKButtonOK);
   cmdCancel.Caption := MsgFromId(SKButtonCancel);

@@ -1,7 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 #
-# This prepare-commit-msg hook prepares commit messages to ensure 
+# This prepare-commit-msg hook prepares commit messages to ensure
 # that they meet our conventional commit standard.
 #
 # Whenever `git` detects an incoming commit, it will trigger this hook.  If the message does not
@@ -13,14 +13,28 @@
 # Reference: https://github.com/keymanapp/keyman/wiki/Pull-Request-and-Commit-workflow-notes
 #
 
-COMMIT_MSG_FILE=$1
-COMMIT_SOURCE=$2
-SHA1=$3
+COMMIT_MSG_FILE="$1"
+COMMIT_SOURCE="$2"
+SHA1="$3"
 
 # Get the directory where this script lives, i.e. resources/git-hooks
-HOOK_DIRECTORY="$(dirname "$(greadlink -f "${BASH_SOURCE[0]}" 2>/dev/null || readlink -f "${BASH_SOURCE[0]}")")"
+HOOK_DIRECTORY="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 
-. $HOOK_DIRECTORY/commit-msg-defs
+if [ -f $(dirname "${BASH_SOURCE[0]}")/commit-msg-defs ]; then
+  # This script was run from a symlink and the repo in question has its own commit-msg-defs.
+  . $(dirname "${BASH_SOURCE[0]}")/commit-msg-defs
+else
+  # We'll grab the settings from the keymanapp/keyman repository.
+  . "$HOOK_DIRECTORY/../build/jq.inc.sh"
+
+  # Configurable options for message length.
+  min_length=4
+  max_length=128
+
+  # Read from our globally shared JSON-formatted scopes and types
+  scopes=( $("$JQ" -r '[.scopes | paths | reduce .[] as $item (""; if . == "" then $item else . + "/" + $item end)] | join(" ")' < "$HOOK_DIRECTORY/../scopes/scopes.json") )
+  types=( $("$JQ" -r '.commitTypes | join(" ")' < "$HOOK_DIRECTORY/../scopes/commit-types.json") )
+fi
 
 # build the regex pattern based on the config file
 function build_regex() {
@@ -51,17 +65,17 @@ function prepend_scope() {
   # COMMIT_MSG_FILE and $COMMIT_SOURCE are already available.
 
   # Step 1:  if the branch follows our preferred branch conventions, we can use that!
-  branch=$(git rev-parse --abbrev-ref HEAD)
+  branch="$(git rev-parse --abbrev-ref HEAD)"
   build_regex
 
   # Perform the actual regex check.
   if [[ $branch =~ $regexp ]]; then
-    TYPE=${BASH_REMATCH[1]}
-    SCOPE=${BASH_REMATCH[2]}
-    # 3 - cherry-pick (if it exists)
+    TYPE="${BASH_REMATCH[1]}"
+    SCOPE="${BASH_REMATCH[2]}"
+    CHERRYPICK="${BASH_REMATCH[3]}"
     # 4 - just ISSUE, but with an appended '-'.  Ashame BASH doesn't support non-capture groups.
-    ISSUE=${BASH_REMATCH[5]}
-    NAME=${BASH_REMATCH[6]}
+    ISSUE="${BASH_REMATCH[5]}"
+    NAME="${BASH_REMATCH[6]}"
 
     EXTRA_WHITESPACE="\n"
 
@@ -72,18 +86,56 @@ function prepend_scope() {
       EXTRA_WHITESPACE=
     fi
 
-    # Now that we have the components finalized, we can proceed.
-    if [ -n "${ISSUE// }" ]; then # Refer to https://unix.stackexchange.com/a/146945 for explanation.
-      # This technically does pass the conventional commits test - it doesn't -ensure- that the
-      # "Fixes #____" section doesn't count toward the core message.
-      postfix="\n"
-      postfix="${postfix}# Keyman Conventional Commit suggestions:\n"
-      postfix="${postfix}# - Consider appending the text \". Fixes #$ISSUE\" to your commit message."
+    # Build commit message title
+
+    if [ -z "$SCOPE" ]; then
+      prefix="$TYPE: $EXTRA_WHITESPACE"
     else
-      postfix=""
+      prefix="$TYPE($SCOPE): $EXTRA_WHITESPACE"
     fi
-    prefix="$TYPE($SCOPE): $EXTRA_WHITESPACE"
-    
+
+    if [ ! -z "$CHERRYPICK" ]; then
+      prefix ="${prefix}🍒"
+    fi
+
+    # Add commit message trailers
+
+    if [ "${COMMIT_SOURCE}" != "merge" ]; then
+      if [ -n "${ISSUE// }" ] || [ ! -z "$CHERRYPICK" ]; then
+        prefix="${prefix}\n"
+      fi
+
+      if [ -n "${ISSUE// }" ]; then # Refer to https://unix.stackexchange.com/a/146945 for explanation.
+        prefix="${prefix}Fixes: #$ISSUE\n"
+      fi
+
+      if [ ! -z "$CHERRYPICK" ]; then
+        prefix="${prefix}Cherry-pick-of: #_ID_"
+      fi
+    fi
+
+    commentchar="#"
+    if [[ -n "$(git config core.commentString)" ]]; then
+      commentchar="$(git config core.commentString)"
+    elif [[ -n "$(git config core.commentChar)" ]]; then
+      commentchar="$(git config core.commentChar)"
+    fi
+
+    postfix=$(
+      cat <<EOF
+\n${commentchar} Keyman Conventional Commit suggestions:
+${commentchar}
+${commentchar} - Link to a Sentry issue with git trailer:
+${commentchar}     Fixes: _MODULE_-_ID_
+${commentchar} - Give credit to co-authors:
+${commentchar}     Co-authored-by: _Name_ <_email_>
+${commentchar} - Use imperative, present tense ('attach' not 'attaches', 'attached' etc)
+${commentchar} - Don't include a period at the end of the title
+${commentchar} - Always include a blank line before trailers
+${commentchar} - More: https://github.com/keymanapp/keyman/wiki/Pull-Request-and-Commit-workflow-notes
+EOF
+    )
+
     # Reuse any existing message text, wrapping it in our conventional commit formatting before
     # presenting it to the user for any final edits.
     echo -e "$prefix$(cat $COMMIT_MSG_FILE)$postfix" > $COMMIT_MSG_FILE
@@ -98,7 +150,7 @@ function prepend_scope() {
 
 # Step 1 - is the prepared message already in our conventional commits format?
 $HOOK_DIRECTORY/commit-msg -q $COMMIT_MSG_FILE
-isConventional=$? # Grabs the exit code. 
+isConventional=$? # Grabs the exit code.
 
 if [ $isConventional -eq 0 ]; then
   # If so, great!  Don't do a thing!

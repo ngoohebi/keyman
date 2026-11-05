@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# Keyman is copyright (C) SIL Global. MIT License.
+
+# Accomplishes some important tasks after the main installation
+# - moves the Keyman input method from the staging directory to the User's Input Methods folder
+# - starts the configuration app by adding a Launch Agent from a temporary location
+# - the Launch Agent is removed immediately after booting so that it does not run again
+# - at startup and the user is not notified about it by the system
+
+# input parameters to this script
+# $1 - full path of installer package
+# $2 - path to the target installation folder
+# $3 - root mountpoint of the destination drive receiving the installation ("/" for current startup disk)
+# $4 - path to the root directory of the currently booted OS
+
+echo "Keyman for Mac: postinstall script"
+
+# Get the actual user currently logged into the console
+# This works even if the installer is run with sudo or as root
+USER_NAME=$(stat -f "%Su" /dev/console)
+echo "user name is: $USER_NAME"
+
+# get the numerical User ID of the active logged-in GUI user
+USER_ID=$(stat -f "%u" /dev/console)
+echo "USER_ID is: $USER_ID"
+
+# Get the home directory of the user
+USER_HOME=$(eval echo "~$USER_NAME")
+echo "user home directory is: $USER_HOME"
+
+STAGED_APP="/Users/Shared/KeymanStaging/Keyman.app"
+STAGED_PLIST="/Users/Shared/KeymanStaging/com.keyman.deferred.plist"
+TEMP_PLIST="/tmp/com.keyman.deferred.plist"
+SERVICE_TARGET="gui/${USER_ID}/com.keyman.deferred"
+
+# Define the path to the Input Methods directory in the user's Library
+USER_IM_DIR="$USER_HOME/Library/Input Methods"
+echo "input methods directory is: $USER_IM_DIR"
+
+# create the user's Input Methods directory if it doesn't exist
+if [ ! -d "$USER_IM_DIR" ]; then
+    mkdir -p "$USER_IM_DIR"
+    # Set the user as owner of the Input Methods directory
+    chown "$USER_NAME":staff "$USER_IM_DIR"
+fi
+
+# install the input method 
+echo "move Keyman.app to Input Methods directory"
+if [ -d "$STAGED_APP" ]; then
+  rm -rf "${USER_IM_DIR}/Keyman.app" # Clean out any older versions
+  mv "$STAGED_APP" "$USER_IM_DIR/"
+  
+  # Set the user as owner
+  chown -R "${USER_NAME}:staff" "${USER_IM_DIR}/Keyman.app"
+fi
+
+# copy the staged launch agent plist to a temporary location and change ownership to active user
+cp "$STAGED_PLIST" "$TEMP_PLIST"
+chown "${USER_NAME}:staff" "$TEMP_PLIST"
+chmod 644 "$TEMP_PLIST"
+
+# TODO: see issue #5318
+# the following few lines must be updated to extract the package name from the path
+# and write it to a file for retrieval by the config app so it can download the package
+
+# add code here to extract package name from package path
+#echo "The installer package name is: $PACKAGE_PATH"
+
+# define path of tmp file to write keyboard info
+#KEYBOARD_FILE_PATH="$3/var/tmp/keyboard-to-install.txt"
+
+# write keyboard file containing package name
+#/bin/echo "sil_euro_latin" > "${KEYBOARD_FILE_PATH}"
+
+# first kill any old Keyman Configuration processes that are running
+# they would not receive the command line argument when we passed one
+echo "sending kill command"
+pkill -u "$USER_NAME" -if '/Keyman Configuration.app/Contents/MacOS/Keyman Configuration'
+
+# also kill Keyman because Keyman Configuration will invoke it during install
+pkill -u "$USER_NAME" -x "Keyman"
+
+echo "clearing out stale launch agent registrations"
+launchctl asuser "$USER_ID" launchctl bootout "$SERVICE_TARGET" 2>/dev/null
+
+# use the temp plist to start the service
+echo "⚙️ bootstrap launch agent to run Keyman Configuration"
+launchctl asuser "$USER_ID" launchctl bootstrap "gui/$USER_ID" "$TEMP_PLIST"
+launchctl asuser "$USER_ID" launchctl enable "$SERVICE_TARGET"
+launchctl asuser "$USER_ID" launchctl kickstart -k "$SERVICE_TARGET"
+
+# clean up our temporary staging folder
+rm -rf /Users/Shared/KeymanStaging
+# remove the temporary plist launch agent
+rm -f "$TEMP_PLIST"
+
+exit 0

@@ -1,13 +1,19 @@
-/**
- * Copyright (C) 2017 SIL International. All rights reserved.
+/*
+ * Keyman is copyright (C) SIL Global. MIT License.
  */
 
 package com.tavultesoft.kmapro;
 
+import java.io.File;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
-import com.tavultesoft.kmea.KMManager;
+import com.keyman.engine.BaseActivity;
+import com.keyman.engine.KMManager;
+import com.keyman.engine.util.KMPLink;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -17,10 +23,12 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.PorterDuff.Mode;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.util.Patterns;
 import android.view.KeyEvent;
 import android.view.View;
@@ -40,8 +48,10 @@ import android.webkit.WebViewClient;
 import androidx.appcompat.widget.Toolbar;
 import androidx.appcompat.app.AppCompatActivity;
 
-public class WebBrowserActivity extends AppCompatActivity {
+import static android.app.Application.getProcessName;
 
+public class WebBrowserActivity extends BaseActivity {
+  private static final String TAG = "WebBrowserActivity";
   private WebView webView;
   private EditText addressField;
   private ImageButton clearButton;
@@ -52,12 +62,23 @@ public class WebBrowserActivity extends AppCompatActivity {
   private String loadedFont;
   private boolean isLoading = false;
   private boolean didFinishLoading = false;
+  private static boolean didSetDataDirectorySuffix = false;
 
   @SuppressLint({"SetJavaScriptEnabled", "InflateParams"})
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     final Context context = this;
+
+    // Difference processes in the same application cannot directly share WebView-related data
+    // https://developer.android.com/reference/android/webkit/WebView.html#setDataDirectorySuffix(java.lang.String)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+       if (!didSetDataDirectorySuffix) {
+         String processName = getProcessName();
+         WebView.setDataDirectorySuffix(processName);
+         didSetDataDirectorySuffix = true;
+       }
+    }
 
     setContentView(R.layout.activity_web_browser);
 
@@ -230,6 +251,8 @@ public class WebBrowserActivity extends AppCompatActivity {
 
     webView.getSettings().setLayoutAlgorithm(WebSettings.LayoutAlgorithm.NORMAL);
     webView.getSettings().setJavaScriptEnabled(true);
+    // Intentionally disallow file:// access
+    webView.getSettings().setAllowFileAccess(false);
     webView.getSettings().setUseWideViewPort(true);
     webView.getSettings().setLoadWithOverviewMode(true);
     webView.getSettings().setBuiltInZoomControls(true);
@@ -256,10 +279,27 @@ public class WebBrowserActivity extends AppCompatActivity {
 
       @Override
       public boolean shouldOverrideUrlLoading(WebView view, String url) {
-        if (!url.toLowerCase().equals("about:blank"))
-          view.loadUrl(url);
+        String lowerURL = url.toLowerCase();
+        if (lowerURL.equals("about:blank")) {
+          return true; // never load a blank page, e.g. when the component initializes
+        }
+        if (KMPLink.isKeymanDownloadLink(lowerURL)) {
+          // KMAPro main activity will handle this intent
+          // Pass original url because path and query are case-sensitive
+          Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+          startActivityForResult(intent, 1);
 
-        return true;
+          // Finish activity
+          finish();
+        }
+        if (lowerURL.startsWith("keyman:")) {
+          // Warn for unsupported keyman schemes
+          Log.d(TAG, "Scheme for " + url + " not handled");
+          return true;
+        }
+
+        // Display URL
+        return false;
       }
 
       @Override
@@ -298,16 +338,31 @@ public class WebBrowserActivity extends AppCompatActivity {
           InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
           imm.hideSoftInputFromWindow(addressField.getWindowToken(), 0);
           String urlStr = v.getText().toString();
-          try {
-            new URL(urlStr);
-          } catch (MalformedURLException e) {
-            if (Patterns.WEB_URL.matcher(String.format("%s%s", "http://", urlStr)).matches()) {
-              urlStr = String.format("%s%s", "http://", urlStr);
-            } else {
-              urlStr = String.format("https://www.google.com/search?q=%s", urlStr);
+
+          boolean valid = false;
+          String originalUrl = urlStr;
+          while(!valid) {
+            try {
+              new URL(urlStr);
+              valid = true;
+            } catch (MalformedURLException e) {
+              // Intentionally not logging exception because it may be a query
+
+              if (Patterns.WEB_URL.matcher("http://" + urlStr).matches()) {
+                urlStr = "http://" + urlStr;
+                valid = true;
+              } else {
+                try {
+                  urlStr = String.format("https://www.google.com/search?q=%s",
+                    URLEncoder.encode(originalUrl, StandardCharsets.UTF_8.displayName()));
+                  valid = true; // no need to test again; we'll assume it's valid this time
+                } catch (UnsupportedEncodingException ue) {
+                  urlStr = String.format("https://www.google.com/search?q=%s", originalUrl);
+                  break;
+                }
+              }
             }
           }
-
           webView.loadUrl(urlStr);
           addressField.clearFocus();
           handled = true;
@@ -332,7 +387,7 @@ public class WebBrowserActivity extends AppCompatActivity {
     super.onResume();
     if (webView != null) {
       if (didFinishLoading) {
-        String fontFilename = KMManager.getKeyboardTextFontFilename();
+        String fontFilename = getKeyboardTextFontFilenameOnly();
         if (!loadedFont.equals(fontFilename)) {
           webView.reload();
         }
@@ -378,8 +433,19 @@ public class WebBrowserActivity extends AppCompatActivity {
     }
   }
 
+  /**
+   * Returns the filename without path of the display font of the current keyboard.
+   */
+  private String getKeyboardTextFontFilenameOnly() {
+    String fontPath = KMManager.getKeyboardTextFontFilename();
+    if (fontPath == null || fontPath.isEmpty()) {
+      return "";
+    }
+    return new File(fontPath).getName();
+  }
+
   private void loadFont() {
-    String font = KMManager.getKeyboardTextFontFilename();
+    String font = getKeyboardTextFontFilenameOnly();
     if (!font.isEmpty()) {
       loadedFont = font;
       String fontUrl = String.format("%s%s", fontBaseUri, font);

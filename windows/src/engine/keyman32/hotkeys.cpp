@@ -1,18 +1,18 @@
 /*
   Name:             hotkeys
   Copyright:        Copyright (C) SIL International.
-  Documentation:    
-  Description:      
+  Documentation:
+  Description:
   Create Date:      1 Aug 2006
 
   Modified Date:    25 Oct 2016
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
-  Bugs:             
-  Todo:             
-  Notes:            
+  Bugs:
+  Todo:
+  Notes:
   History:          01 Aug 2006 - mcdurdin - Initial version
                     11 Dec 2009 - mcdurdin - I934 - x64 - Initial version
                     12 Mar 2010 - mcdurdin - I934 - x64 - Complete
@@ -26,9 +26,9 @@
    // I5136
 #include "pch.h"
 
-#ifdef _WIN64
-#error hotkeys.cpp is not required for win64.
-#endif
+// This file is used only in keyman32.dll; it tracks hotkeys for Keyman keyboard
+// switching and events
+#ifndef _WIN64
 
 Hotkeys *g_Hotkeys = NULL;   // I4326
 
@@ -67,9 +67,12 @@ void Hotkeys::Reload() {   // I4326   // I4390
 }
 
 void Hotkeys::Load() {   // I4390
-	SendDebugMessageFormat(0, sdmGlobal, 0, "Hotkeys::Load() enter");
+	SendDebugEntry();
 	m_nHotkeys = 0;
-	RegistryReadOnly reg(HKEY_CURRENT_USER);
+
+  LoadRightModifierHotkeyOption();
+
+  RegistryReadOnly reg(HKEY_CURRENT_USER);
 
   /* Load interface hotkeys */
 
@@ -81,7 +84,7 @@ void Hotkeys::Load() {   // I4390
 			m_hotkeys[m_nHotkeys].HotkeyValue = reg.ReadInteger(name);
       m_hotkeys[m_nHotkeys].Target = atoi(name);
 
-			SendDebugMessageFormat(0, sdmGlobal, 0, "InterfaceHotkey[%d] = {HotkeyValue: %x, Target: %d}", 
+			SendDebugMessageFormat("InterfaceHotkey[%d] = {HotkeyValue: %x, Target: %d}",
         m_nHotkeys,
 				m_hotkeys[m_nHotkeys].HotkeyValue,
 				m_hotkeys[m_nHotkeys].Target);
@@ -95,6 +98,7 @@ void Hotkeys::Load() {   // I4390
   reg.CloseKey();
 
   if(m_nHotkeys >= MAX_HOTKEYS) {
+    SendDebugExit();
     return;
   }
 
@@ -117,8 +121,8 @@ void Hotkeys::Load() {   // I4390
       WCHAR hkval[64];
       reg.ReadString(valuename, hkval, 64);
       m_hotkeys[m_nHotkeys].HotkeyValue = _wtoi(hkval);
-		
-			SendDebugMessageFormat(0, sdmGlobal, 0, "LanguageHotkey[%d] = {HotkeyValue: %x, hkl: %x, profileGUID: %ws}", m_nHotkeys,
+
+			SendDebugMessageFormat("LanguageHotkey[%d] = {HotkeyValue: %x, hkl: %x, profileGUID: %ws}", m_nHotkeys,
 				m_hotkeys[m_nHotkeys].HotkeyValue,
 				m_hotkeys[m_nHotkeys].hkl,
         m_hotkeys[m_nHotkeys].hkl == 0 ? valuename : L"");
@@ -131,13 +135,35 @@ void Hotkeys::Load() {   // I4390
 
   reg.CloseKey();
 
-	SendDebugMessageFormat(0, sdmGlobal, 0, "Hotkeys::Load() exit");
+	SendDebugExit();
 }
 
 Hotkey *Hotkeys::GetHotkey(DWORD hotkey)
 {
-	for(int i = 0; i < m_nHotkeys; i++)
-		if(m_hotkeys[i].HotkeyValue == hotkey)
-			return &m_hotkeys[i];
+  for (int i = 0; i < m_nHotkeys; i++) {
+    if (m_hotkeys[i].HotkeyValue == hotkey) {
+      return &m_hotkeys[i];
+    }
+  }
 	return NULL;
 }
+
+void Hotkeys::LoadRightModifierHotkeyOption() {
+  m_AllowRightModifierHotkey = FALSE; // Default to off
+  RegistryReadOnly reg(HKEY_CURRENT_USER);
+  if (reg.OpenKeyReadOnly(REGSZ_KeymanCU)) {
+    if (reg.ValueExists(REGSZ_AllowRightModifierHotKey)) {
+      m_AllowRightModifierHotkey = !!reg.ReadInteger(REGSZ_AllowRightModifierHotKey);
+    }
+  }
+}
+
+BOOL Hotkeys::AllowRightModifierHotkey() {
+  if (GetCurrentThreadId() != Globals::get_InitialisingThread()) {
+    OutputThreadDebugString("Unexpected: no other thread should be attempting read allow right modifier option");
+    return FALSE;
+  }
+  return m_AllowRightModifierHotkey;
+}
+
+#endif

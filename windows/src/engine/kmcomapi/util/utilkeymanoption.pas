@@ -1,18 +1,18 @@
 (*
   Name:             utilkeymanoption
   Copyright:        Copyright (C) SIL International.
-  Documentation:    
-  Description:      
+  Documentation:
+  Description:
   Create Date:      20 Jun 2006
 
   Modified Date:    6 Feb 2015
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
-  Bugs:             
-  Todo:             
-  Notes:            
+  Bugs:
+  Todo:
+  Notes:
   History:          20 Jun 2006 - mcdurdin - Initial version
                     04 Dec 2006 - mcdurdin - Remove descriptions (localized)
                     16 May 2007 - mcdurdin - I819 - Add Test Keyman Functioning option
@@ -33,7 +33,7 @@
                     28 May 2014 - mcdurdin - I4243 - V9.0 - Remove kmuspmgr and keymanuc
                     16 Jun 2014 - mcdurdin - I4271 - V9.0 - Switch language for all applications is not working
                     28 Aug 2014 - mcdurdin - I4390 - V9.0 - Free vs Pro
-                    01 Sep 2014 - mcdurdin - I4393 - V9.0 - Keyman Desktop Free Edition polish
+                    01 Sep 2014 - mcdurdin - I4393 - V9.0 - Keyman D_esktop Free Edition polish
                     14 Nov 2014 - mcdurdin - I4515 - V9.0 - Switch for all apps is not disabled in Win 8
                     06 Feb 2015 - mcdurdin - I4552 - V9.0 - Add mnemonic recompile option to ignore deadkeys
 *)
@@ -121,33 +121,36 @@ type
     GroupName: string;
   end;
 
-const KeymanOptionInfo: array[0..13] of TKeymanOptionInfo = (  // I3331   // I3620   // I4552
+// The Default options here need to be consistent with the defaults set in TfrmRunDesktop.GetDefaultSettings
+const KeymanOptionInfo: array[0..14] of TKeymanOptionInfo = (  // I3331   // I3620   // I4552
   // Global options
 
   (opt: koKeyboardHotkeysAreToggle;          RegistryName: SRegValue_KeyboardHotkeysAreToggle;         OptionType: kotBool; BoolValue: False; GroupName: 'kogGeneral'),
-  (opt: koSwitchLanguageForAllApplications;  RegistryName: SRegValue_SwitchLanguageForAllApplications; OptionType: kotBool; BoolValue: True;  GroupName: 'kogGeneral'), // I2277   // I4393
   (opt: koAltGrCtrlAlt;                      RegistryName: SRegValue_AltGrCtrlAlt;                     OptionType: kotBool; BoolValue: False; GroupName: 'kogGeneral'),
+  (opt: koRightModifierHK;                   RegistryName: SRegValue_AllowRightModifierHotKey;           OptionType: kotBool; BoolValue: False; GroupName: 'kogGeneral'),
   (opt: koShowHints;                         RegistryName: SRegValue_EnableHints;                      OptionType: kotBool; BoolValue: True;  GroupName: 'kogGeneral'),
-  (opt: koBaseLayout;                        RegistryName: SRegValue_UnderlyingLayout;                 OptionType: kotLong; IntValue: 0;      GroupName: 'kogGeneral'),
+  (opt: koBaseLayout;                        RegistryName: SRegValue_UnderlyingLayout;                 OptionType: kotLong; IntValue:  0;     GroupName: 'kogGeneral'),
+  (opt: koCheckForUpdates;                   RegistryName: SRegValue_CheckForUpdates;                 OptionType: kotBool; BoolValue: True;  GroupName: 'kogGeneral'),
+
+  (opt: koAutomaticallyReportErrors;         RegistryName: SRegValue_AutomaticallyReportErrors;        OptionType: kotBool; BoolValue: True;  GroupName: 'kogGeneral'),   // I4393
+  (opt: koAutomaticallyReportUsage;          RegistryName: SRegValue_AutomaticallyReportUsage;         OptionType: kotBool; BoolValue: True;  GroupName: 'kogGeneral'),   // I4393
 
   // OSK options
 
   (opt: koReleaseShiftKeysAfterKeyPress;     RegistryName: SRegValue_ReleaseShiftKeysAfterKeyPress;    OptionType: kotBool; BoolValue: False; GroupName: 'kogOSK'),
   (opt: koAutoOpenOSK;                       RegistryName: SRegValue_AutoOpenOSK;                      OptionType: kotBool; BoolValue: True;  GroupName: 'kogOSK'),
-  (opt: koAutoSwitchOSKPages;                RegistryName: SRegValue_AutoSwitchOSKPages;               OptionType: kotBool; BoolValue: True;  GroupName: 'kogOSK'),
 
   // Startup options
 
-  (opt: koStartWithWindows;                  RegistryName: '';                                         OptionType: kotBool; BoolValue: False; GroupName: 'kogStartup'),
+  (opt: koStartWithWindows;                  RegistryName: '';                                         OptionType: kotBool; BoolValue: True; GroupName: 'kogStartup'),
   (opt: koShowStartup;                       RegistryName: SRegValue_ShowStartup;                      OptionType: kotBool; BoolValue: True;  GroupName: 'kogStartup'),
-  (opt: koCheckForUpdates;                   RegistryName: SRegValue_CheckForUpdates;                  OptionType: kotBool; BoolValue: True;  GroupName: 'kogStartup'),
   (opt: koTestKeymanFunctioning;             RegistryName: SRegValue_TestKeymanFunctioning;            OptionType: kotBool; BoolValue: True;  GroupName: 'kogStartup'),
 
   // Advanced options
 
   (opt: koDeadkeyConversion;                 RegistryName: SRegValue_DeadkeyConversionMode;            OptionType: kotBool; BoolValue: True;  GroupName: 'kogAdvanced'),   // I4552
   (opt: koDebugging;                         RegistryName: SRegValue_KeymanDebug;                      OptionType: kotBool; BoolValue: False; GroupName: 'kogAdvanced')   // I4393
-  );
+);
 
 implementation
 
@@ -186,14 +189,6 @@ begin
     o.FIntValue := KeymanOptionInfo[i].IntValue;
 
     o.FEnabled := True;
-
-    if (KeymanOptionInfo[i].opt = koSwitchLanguageForAllApplications) and
-      not (GetOs in [osVista, osWin7]) then
-    begin
-      o.FEnabled := False;   // I4271
-      o.FBoolValue := False;   // I4515
-      o.FDefaultBoolValue := False;   // I4515
-    end;
 
     o.FGroup := KeymanOptionInfo[i].GroupName;
 
@@ -318,7 +313,7 @@ begin
       if OpenKey('\'+SRegKey_WindowsRun_CU, True) then
       begin
         if FBoolValue then
-          WriteString(SRegValue_WindowsRun_Keyman, '"'+TKeymanPaths.KeymanDesktopInstallPath(TKeymanPaths.S_KMShell)+'" -s')
+          WriteString(SRegValue_WindowsRun_Keyman, '"'+TKeymanPaths.KeymanDesktopInstallPath(TKeymanPaths.S_KMShell)+'" -boot')
         else if ValueExists(SRegValue_WindowsRun_Keyman) then
           DeleteValue(SRegValue_WindowsRun_Keyman);
       end;
@@ -346,7 +341,13 @@ begin
       kotBool: FBoolValue := reg.ReadBool(FRegistryName);
       kotLong: FIntValue := StrToIntDef('$'+reg.ReadString(FRegistryName), 0);
       kotString: FStringValue := reg.ReadString(FRegistryName);
-    end;
+    end
+  else
+    case FOptionType of
+      kotBool: FBoolValue := FDefaultBoolValue;
+      kotLong: FIntValue := FDefaultIntValue;
+      kotString: FStringValue := FDefaultStringValue;
+    end
 end;
 
 procedure TUtilKeymanOptionEntry.Save(AContext: TKeymanContext; reg: TRegistryErrorControlled);  // I2890

@@ -5,10 +5,16 @@
 Keyman4MacIM/output/*
 Keyman4MacIM/Keyman4MacIM/Frameworks/**
 Keyman4MacIM/Pods/**
+Keyman4MacIM/Keyman4MacIM/Help/
 Keyman4Mac/Keyman4Mac/Frameworks/**
 Carthage/**
 **/build
 **/output
 localenv.sh
 setup/textinputsource/textinputsource
+setup/textinputsource/textinputsource.arm64
+setup/textinputsource/textinputsource.x86_64
 setup/Install Keyman.app
+
+# notarytool log
+developer_log.json

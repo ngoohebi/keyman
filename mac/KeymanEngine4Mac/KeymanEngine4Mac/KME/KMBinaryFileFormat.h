@@ -6,29 +6,35 @@
 //  Copyright (c) 2017 SIL International. All rights reserved.
 //
 
+/**
+ * Note that many of the constants defined here are also defined in the common header`kmx_file.h`
+ * Keyman for Mac only reads the kmx file to pass the contents to Keyman Core and for meta data.
+ * If the meta data can instead be returned by Keyman Core in the future, then the duplicate definitions
+ * found here can be removed.
+ */
+
 #ifndef KMBinaryFileFormat_h
 #define KMBinaryFileFormat_h
 
 typedef uint16_t WORD;
 typedef uint32_t DWORD;
-//typedef wchar_t* PWSTR;
 
 struct COMP_KEYBOARD {
-    DWORD dwIdentifier;     // 0000 Keyman compiled keyboard id
-    DWORD dwFileVersion;    // 0004 Version of the file - Keyman 4.0 is 0x0400
-    DWORD dwCheckSum;       // 0008 As stored in keyboard
-    DWORD KeyboardID;       // 000C as stored in HKEY_LOCAL_MACHINE//system//currentcontrolset//control//keyboard layouts
-    DWORD IsRegistered;     // 0010
-    DWORD version;          // 0014 keyboard version
-    DWORD cxStoreArray;     // 0018 in array entries
-    DWORD cxGroupArray;     // 001C in array entries
-    DWORD dpStoreArray;     // 0020 [LPCOMP_STORE] address of first item in store array
-    DWORD dpGroupArray;     // 0024 [LPCOMP_GROUP] address of first item in group array
-    DWORD StartGroup[2];    // 0028 index of starting groups [2 of them]
-    DWORD dwFlags;          // 0030 Flags for the keyboard file
-    DWORD dwHotKey;         // 0034 standard windows hotkey (hiword=shift/ctrl/alt stuff, loword=vkey)
-    DWORD dpBitmapOffset;   // 0038 offset of the bitmaps in the file
-    DWORD dwBitmapSize;     // 003C size in bytes of the bitmaps
+  DWORD dwIdentifier;     // 0000 Keyman compiled keyboard id
+  DWORD dwFileVersion;    // 0004 Version of the file - Keyman 4.0 is 0x0400
+  DWORD dwCheckSum;       // 0008 As stored in keyboard. DEPRECATED as of 16.0
+  DWORD KeyboardID;       // 000C as stored in HKEY_LOCAL_MACHINE//system//currentcontrolset//control//keyboard layouts
+  DWORD IsRegistered;     // 0010
+  DWORD version;          // 0014 keyboard version
+  DWORD cxStoreArray;     // 0018 in array entries
+  DWORD cxGroupArray;     // 001C in array entries
+  DWORD dpStoreArray;     // 0020 [LPCOMP_STORE] address of first item in store array
+  DWORD dpGroupArray;     // 0024 [LPCOMP_GROUP] address of first item in group array
+  DWORD StartGroup[2];    // 0028 index of starting groups [2 of them]
+  DWORD dwFlags;          // 0030 Flags for the keyboard file
+  DWORD dwHotKey;         // 0034 standard windows hotkey (hiword=shift/ctrl/alt stuff, loword=vkey)
+  DWORD dpBitmapOffset;   // 0038 offset of the bitmaps in the file
+  DWORD dwBitmapSize;     // 003C size in bytes of the bitmaps
 };
 
 #define VERSION_30  0x00000300
@@ -42,22 +48,18 @@ struct COMP_KEYBOARD {
 #define VERSION_80  0x00000800
 #define VERSION_90  0x00000900
 #define VERSION_100 0x00000A00
+#define VERSION_140 0x00000E00
+#define VERSION_150 0x00000F00
+#define VERSION_160 0x00001000
+#define VERSION_170 0x00001100
+#define VERSION_190 0x00001300
 #define VERSION_MIN VERSION_50
-#define VERSION_MAX VERSION_100
-
-struct COMP_GROUP {
-    DWORD dpName;           // string (only debug)
-    DWORD dpKeyArray;       // [LPCOMP_KEY] address of first item in key array
-    DWORD dpMatch;          // extended string
-    DWORD dpNoMatch;        // extended string
-    DWORD cxKeyArray;       // in array entries
-    BOOL  fUsingKeys;       // group(xx) [using keys] <-- specified or not
-};
+#define VERSION_MAX VERSION_190
 
 struct COMP_STORE {
-    DWORD dwSystemID;
-    DWORD dpName;           // string (only debug)
-    DWORD dpString;         // extended string
+  DWORD dwSystemID;
+  DWORD dpName;           // string (only debug)
+  DWORD dpString;         // extended string
 };
 
 // dwSystemID definitions
@@ -96,6 +98,7 @@ struct COMP_STORE {
 #define TSS__KEYMAN_70_MAX              29
 /* Keyman 8.0 system stores */
 #define TSS_COMPARISON                  30
+#define TSS__KEYMAN_80_MAX              30
 /* Keyman 9.0 system stores */
 #define TSS_PLATFORM                    31
 #define TSS_BASELAYOUT                  32
@@ -107,80 +110,32 @@ struct COMP_STORE {
 #define TSS_KEYBOARDVERSION             36      // &keyboardversion system store   // I4140
 #define TSS_KMW_EMBEDCSS                37
 #define TSS_TARGETS                     38
-#define TSS__MAX                        38
+#define TSS__KEYMAN_90_MAX              38
+/* Keyman 14.0 system stores */
+#define TSS_CASEDKEYS                   39
+#define TSS__KEYMAN_140_MAX             39
+/* Keyman 15.0 system stores */
+#define TSS_BEGIN_NEWCONTEXT            40
+#define TSS_BEGIN_POSTKEYSTROKE         41
+#define TSS_NEWLAYER                    42
+#define TSS_OLDLAYER                    43
+#define TSS__KEYMAN_150_MAX             43
 
-// ShiftFlags
-#define LCTRLFLAG       0x0001      // Left Control flag
-#define RCTRLFLAG       0x0002      // Right Control flag
-#define LALTFLAG        0x0004      // Left Alt flag
-#define RALTFLAG        0x0008      // Right Alt flag
-#define K_SHIFTFLAG     0x0010      // Either shift flag
-#define K_CTRLFLAG      0x0020      // Either ctrl flag
-#define K_ALTFLAG       0x0040      // Either alt flag
-#define CAPITALFLAG     0x0100      // Caps lock on
-#define NOTCAPITALFLAG  0x0200      // Caps lock NOT on
-#define NUMLOCKFLAG     0x0400      // Num lock on
-#define NOTNUMLOCKFLAG  0x0800      // Num lock NOT on
-#define SCROLLFLAG      0x1000      // Scroll lock on
-#define NOTSCROLLFLAG   0x2000      // Scroll lock NOT on
-#define ISVIRTUALKEY    0x4000      // It is a Virtual Key Sequence
-#define VIRTUALCHARKEY  0x8000      // Keyman 6.0: Virtual Key Cap Sequence
-#define K_MODIFIERFLAG  0x007F
-
-struct COMP_KEY {
-    WORD Key;  // Windows VK code or character value (VIRTUALCHARKEY, ISVIRTUALKEY)
-    DWORD Line;
-    DWORD ShiftFlags;
-    DWORD dpOutput;   // extended string
-    DWORD dpContext;  // extended string
-};
-
-#define UC_SENTINEL             0xFFFF
-#define UC_SENTINEL_EXTENDEDEND 0x10
-
-#define CODE_ANY                0x01
-#define CODE_INDEX              0x02
-#define CODE_CONTEXT            0x03
-#define CODE_NUL                0x04
-#define CODE_USE                0x05
-#define CODE_RETURN             0x06
-#define CODE_BEEP               0x07
-#define CODE_DEADKEY            0x08
-//  0x09 = bkspace.-- we don't need to keep this separate though with UC_SENTINEL
-#define CODE_EXTENDED           0x0A
-//#define CODE_EXTENDEDEND  0x0B  deprecated
-#define CODE_SWITCH             0x0C
-#define CODE_KEY                0x0D
-#define CODE_CLEARCONTEXT       0x0E
-#define CODE_CALL               0x0F
-// UC_SENTINEL_EXTENDEDEND  0x10
-#define CODE_CONTEXTEX          0x11
-#define CODE_NOTANY             0x12
-#define CODE_KEYMAN70_LASTCODE  0x12
-
-#define CODE_SETOPT             0x13
-#define CODE_IFOPT              0x14
-#define CODE_SAVEOPT            0x15
-#define CODE_RESETOPT           0x16
-#define CODE_KEYMAN80_LASTCODE  0x16
-
-/* Keyman 9.0 codes */
-#define CODE_IFSYSTEMSTORE      0x17
-#define CODE_SETSYSTEMSTORE     0x18
-#define CODE_LASTCODE           0x18
-
-/* Keyman4Mac codes */
-#define CODE_NULLCHAR           0x20
-
-
-#define NOT_EQUAL   0
-#define EQUAL       1
+#define TSS__MAX                        43
 
 /* KVK file format definitions */
 
+// KVK header flags
+#define KVKH_102                0x01
+#define KVKH_DISPLAY_UNDERLYING 0x02
+#define KVKH_USE_UNDERLYING     0x04
+#define KVKH_ALTGR              0x08
+
+// KVK key type flags
 #define KVKK_BITMAP             0x01
 #define KVKK_UNICODE            0x02
 
+// KVK modifier flags
 #define KVKS_NORMAL             0x00
 #define KVKS_SHIFT              0x01
 #define KVKS_CTRL               0x02
@@ -189,36 +144,5 @@ struct COMP_KEY {
 #define KVKS_RCTRL              0x10
 #define KVKS_LALT               0x20
 #define KVKS_RALT               0x40
-
-
-/*
-PWSTR incxstr(PWSTR p) {
-    if(*p == 0) return p;
-    if(*p != UC_SENTINEL)
-    {
-        if(*p >= 0xD800 && *p <= 0xDBFF && *(p+1) >= 0xDC00 && *(p+1) <= 0xDFFF) return p+2;
-        return p+1;
-    }
-    p+=2;
-    switch(*(p-1))
-    {
-        case CODE_ANY:      return p+1;
-        case CODE_NOTANY:   return p+1;
-        case CODE_INDEX:        return p+2;
-        case CODE_USE:          return p+1;
-        case CODE_DEADKEY:      return p+1;
-        case CODE_EXTENDED:     p += 2; while(*p != UC_SENTINEL_EXTENDEDEND) p++; return p+1;
-        case CODE_CLEARCONTEXT: return p+1;
-        case CODE_CALL:         return p+1;
-        case CODE_CONTEXTEX:    return p+1;
-        case CODE_IFOPT:    return p+3;
-        case CODE_IFSYSTEMSTORE: return p+3;
-        case CODE_SETOPT:   return p+2;
-        case CODE_SETSYSTEMSTORE: return p+2;
-        case CODE_RESETOPT: return p+1;
-        case CODE_SAVEOPT:  return p+1;
-        default:                return p;
-    }
-}*/
 
 #endif /* KMBinaryFileFormat_h */

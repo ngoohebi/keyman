@@ -1,0 +1,515 @@
+#
+# This workflow builds the source package for Keyman for Linux, and then builds
+# the binary packages for the released versions of Ubuntu. It also signs the
+# packages. Released Keyman versions get uploaded to the LLSO repository.
+# It is triggered by a repository_dispatch event with the
+# types `deb-release-packaging:*` and `deb-pr-packaging:*`.
+#
+# We use the filename `deb-packaging.yml` even though we only do Ubuntu
+# packaging here, because we're packaging the .deb format, and because it's shorter.
+#
+
+name: "Ubuntu packaging"
+run-name: "Ubuntu packaging - ${{ github.event.client_payload.branch }} (branch ${{ github.event.client_payload.baseBranch }}), by @${{ github.event.client_payload.user }}, testbuild: ${{ github.event.client_payload.isTestBuild }}"
+on:
+  repository_dispatch:
+    types: ['deb-release-packaging:*', 'deb-pr-packaging:*']
+
+# Input:
+# buildSha:    The SHA of the commit to build, e.g. of the branch or
+#              refs/pull/1234/head for PR
+# branch:      The branch to build, for a PR in the form `PR-1234`
+# baseBranch:  For a PR the base branch, otherwise the same as `branch`
+# baseRef:     The ref of the previous commit. For a PR the same as `baseBranch`.
+# user:        The user that triggered the build or created the PR
+# isTestBuild: false for Releases, otherwise true
+# skipApiCheck: true to skip the API check, otherwise false
+
+env:
+  COLOR_GREEN: "\e[32m"
+  GH_TOKEN: ${{ github.token }}
+  STATUS_CONTEXT: 'Ubuntu Packaging'
+  STATUS_CONTEXT_SOURCE_VERIFICATION: 'Linux source verification'
+  DEBFULLNAME: 'Keyman GHA packager'
+  DEBEMAIL: 'support@keyman.com'
+  _builder_timings: false
+
+jobs:
+  sourcepackage:
+    name: Build source package
+    if: github.repository == 'keymanapp/keyman' || github.event.client_payload.force
+    runs-on: ubuntu-24.04
+    outputs:
+      KEYMAN_VERSION: ${{ steps.version_step.outputs.KEYMAN_VERSION }}
+      PRERELEASE_TAG: ${{ steps.prerelease_tag.outputs.PRERELEASE_TAG }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        ref: '${{ github.event.client_payload.buildSha }}'
+
+    - name: Set pending status on PR builds
+      id: set_status
+      if: github.event.client_payload.isTestBuild == 'true'
+      shell: bash
+      run: |
+        gh api \
+          --method POST \
+          -H "Accept: application/vnd.github+json" \
+          /repos/$GITHUB_REPOSITORY/statuses/${{ github.event.client_payload.buildSha }} \
+          -f state='pending' \
+          -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+          -f description='Ubuntu packaging started' \
+          -f context="$STATUS_CONTEXT"
+
+    - name: Install devscripts
+      uses: ./.github/actions/apt-install
+      with:
+        packages: devscripts equivs
+
+    - name: Install dependencies
+      run: |
+        cd linux
+        ./scripts/deb-packaging.sh --gha dependencies
+
+    - name: Build source package
+      id: build_source_package
+      run: |
+        export KEYMAN_TIER=$(cat TIER.md)
+        export GHA_TEST_BUILD="${{ github.event.client_payload.isTestBuild }}"
+        export GHA_BRANCH="${{ github.event.client_payload.branch }}"
+        echo "KEYMAN_TIER=$KEYMAN_TIER" >> $GITHUB_ENV
+        echo "GHA_TEST_BUILD=${GHA_TEST_BUILD}" >> $GITHUB_ENV
+        echo "GHA_BRANCH=${GHA_BRANCH}" >> $GITHUB_ENV
+        cd linux
+        ./scripts/deb-packaging.sh --gha source
+
+    - name: Set version as output parameter
+      id: version_step
+      shell: bash
+      run: |
+        THIS_SCRIPT="$GITHUB_WORKSPACE/.github/workflows/deb-packaging.yml"
+        if [[ -f "${THIS_SCRIPT%/*}/../../resources/build/builder-basic.inc.sh" ]]; then
+          . "${THIS_SCRIPT%/*}/../../resources/build/builder-basic.inc.sh"
+        else
+          # TODO: remove following block post v19 release (file was renamed in v19 alpha)
+          if [[ -f "${THIS_SCRIPT%/*}/../../resources/build/build-utils.sh" ]]; then
+            . "${THIS_SCRIPT%/*}/../../resources/build/build-utils.sh"
+          fi
+        fi
+        echo "KEYMAN_VERSION=${KEYMAN_VERSION:-${VERSION}}" >> $GITHUB_OUTPUT
+
+    - name: Set prerelease tag as output parameter
+      id: prerelease_tag
+      shell: bash
+      run: |
+        if [ "${{ github.event.client_payload.isTestBuild }}" == "true" ]; then
+          PRERELEASE_TAG="~${{ github.event.client_payload.branch }}-$GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT"
+        else
+          PRERELEASE_TAG=""
+        fi
+        echo "PRERELEASE_TAG=$PRERELEASE_TAG" >> $GITHUB_OUTPUT
+
+    - name: Output which branch or PR we're building plus name of .dsc file
+      run: |
+        if [ "${{ github.event.client_payload.isTestBuild }}" == "true" ]; then
+          echo ":checkered_flag: **Test build of version ${{ steps.version_step.outputs.KEYMAN_VERSION }} for ${{ github.event.client_payload.branch }}**" >> $GITHUB_STEP_SUMMARY
+        else
+          echo ":ship: **Release build of ${{ github.event.client_payload.branch }} branch (${{ github.event.client_payload.branch}}), version ${{ steps.version_step.outputs.KEYMAN_VERSION }}**" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo ":gift: Generated source package:" >> $GITHUB_STEP_SUMMARY
+        echo "- $(find . -name keyman_\*.dsc)" >> $GITHUB_STEP_SUMMARY
+
+    - name: Store source package
+      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      with:
+        name: keyman-srcpkg
+        path: |
+          keyman_*
+          debian/***/*
+      if: always()
+
+  binary_packages_released:
+    name: Build binary packages for released versions
+    needs: sourcepackage
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        dist: [jammy, noble, resolute]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        ref: '${{ github.event.client_payload.buildSha }}'
+        sparse-checkout: '.github/actions/'
+
+    - name: Build
+      uses: ./.github/actions/build-binary-packages
+      with:
+        dist: ${{ matrix.dist }}
+        version: ${{ needs.sourcepackage.outputs.KEYMAN_VERSION }}
+        prerelease_tag: ${{ needs.sourcepackage.outputs.PRERELEASE_TAG }}
+        deb_fullname: ${{env.DEBFULLNAME}}
+        deb_email: ${{env.DEBEMAIL}}
+
+  binary_packages_unreleased:
+    name: Build binary packages for next Ubuntu version
+    needs: sourcepackage
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        dist: [devel]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        ref: '${{ github.event.client_payload.buildSha }}'
+        sparse-checkout: '.github/actions/'
+
+    - name: Build
+      uses: ./.github/actions/build-binary-packages
+      with:
+        dist: ${{ matrix.dist }}
+        version: ${{ needs.sourcepackage.outputs.KEYMAN_VERSION }}
+        prerelease_tag: ${{ needs.sourcepackage.outputs.PRERELEASE_TAG }}
+        deb_fullname: ${{env.DEBFULLNAME}}
+        deb_email: ${{env.DEBEMAIL}}
+
+  autopkg_test:
+    name: Run autopkgtests
+    needs: [binary_packages_released]
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Free disk space
+      run: |
+        # Free disk space by removing some large directories that we don't use (#15171)
+        # see https://dev.to/mathio/squeezing-disk-space-from-github-actions-runners-an-engineers-guide-3pjg
+
+        # Remove Android SDKs (frees 12 GB on Ubuntu 24.04)
+        sudo rm -rf /usr/local/lib/android
+
+        # Remove Haskell (GHC) (frees 6.4 GB)
+        sudo rm -rf /usr/local/.ghcup
+
+        # Remove CodeQL and other toolcaches (frees 5.8 GB)
+        sudo rm -rf /opt/hostedtoolcache
+
+        # Remove .NET SDKs (frees 4.0 GB)
+        sudo rm -rf /usr/share/dotnet
+
+    - name: Download Source Artifacts
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        name: keyman-srcpkg
+        path: artifacts
+
+    - name: Download Binary Artifacts
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        path: artifacts
+        pattern: keyman-binarypkgs-*
+        merge-multiple: true
+
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo DEBIAN_FRONTEND=noninteractive apt-get -q -y install autopkgtest qemu-system qemu-utils autodep8 genisoimage python3-distro-info
+
+    - name: Build test image
+      run: |
+        cd "${GITHUB_WORKSPACE}/artifacts"
+        sudo chown ${USER} /dev/kvm
+        autopkgtest-buildvm-ubuntu-cloud -v --release=$(lsb_release -c -s)
+
+    - name: Run tests
+      run: |
+        # Tests are defined in linux/debian/tests/test-build
+        cd "${GITHUB_WORKSPACE}/artifacts"
+        DIST="$(lsb_release -c -s)"
+        autopkgtest -B *${DIST}*.deb keyman_*.dsc -- qemu autopkgtest-${DIST}-amd64.img
+
+  deb_signing:
+    name: Sign source and binary packages
+    needs: [sourcepackage, binary_packages_released, binary_packages_unreleased]
+    runs-on: ubuntu-latest
+    environment: "deploy (linux)"
+    if: ${{always() && needs.sourcepackage.result == 'success' && needs.binary_packages_released.result == 'success' && github.event.client_payload.isTestBuild == 'false'}}
+
+    steps:
+      - name: Sign packages
+        uses: sillsdev/gha-deb-signing@a38dbde6bc9afabede5e07609105acc83c760ad4 # v0.6
+        with:
+          src-pkg-name: "keyman_${{ needs.sourcepackage.outputs.KEYMAN_VERSION }}-1_source.changes"
+          bin-pkg-name: "keyman_${{ needs.sourcepackage.outputs.KEYMAN_VERSION }}-1${{ needs.sourcepackage.outputs.PRERELEASE_TAG }}+"
+          artifacts-prefix: "keyman-"
+          artifacts-result-name: "keyman-signedpkgs"
+          gpg-signing-key: "${{ secrets.GPG_SIGNING_KEY }}"
+          debsign-keyid: "${{ secrets.DEBSIGN_KEYID }}"
+
+  upload-to-llso:
+    name: Upload packages to llso
+    needs: [sourcepackage, deb_signing]
+    runs-on: self-hosted
+    environment: "deploy (linux)"
+    if: github.event.client_payload.isTestBuild == 'false'
+
+    steps:
+    - name: Install dput
+      run: |
+        export DEBIAN_FRONTEND=noninteractive
+        export DEBIAN_PRIORITY=critical
+        export DEBCONF_NOWARNINGS=yes
+        sudo apt-get update
+        sudo apt-get install -q -y dput rsync
+
+    - name: Setup .dput.cf
+      run: |
+        echo "${{vars.ENV_DPUT_CONFIG}}" > ~/.dput.cf
+
+    - name: Configure GPG Key
+      shell: bash
+      run: |
+        echo -e "::group::\e[32mConfigure GPG key"
+        echo -n "${{ secrets.GPG_SIGNING_KEY }}" | base64 --decode | gpg --import
+        echo "${{ secrets.DEBSIGN_KEYID }}:6:" | gpg --import-ownertrust
+        echo "::endgroup::"
+
+    - name: Download Artifacts
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        name: keyman-signedpkgs
+
+    - name: Upload
+      run: |
+        function dput_retry() {
+          local i=1
+          local retval
+          local upload_log=$1
+          local hosttarget=$2
+          local max_retries=10
+          local tmpfile=/tmp/dput.output
+          shift 2
+          while ((i <= max_retries)); do
+            dput ${upload_log} ${hosttarget} "$@" 2>&1 | tee ${tmpfile}
+            retval=$?
+            echo "dput exited with ${retval}"
+            if ! grep -q "ssh: Could not resolve hostname package-drop.psonet: Name or service not known" ${tmpfile}; then
+              rm ${tmpfile}
+              if [[ ${retval} != 0 ]]; then
+                exit ${retval}
+              else
+                return 0
+              fi
+            fi
+            if ((++i <= max_retries)); then
+              sleep 10
+              echo "${COLOR_BLUE}Retry ${i}/${max_retries}:"
+            fi
+          done
+          rm ${tmpfile}
+          exit ${retval}
+        }
+
+        case ${{ github.event.client_payload.branch }} in
+          stable-*)  destination='' ;;
+          beta)      destination='-proposed' ;;
+          *)         destination='-experimental' ;;
+        esac
+
+        echo -e "::group::${COLOR_GREEN}Upload source package"
+        dput_retry -U llso:ubuntu/jammy${destination} *_source.changes
+        echo "::endgroup::"
+
+        echo -e "::group::${COLOR_GREEN}Uploading binary packages"
+        pattern="keyman_${{ needs.sourcepackage.outputs.KEYMAN_VERSION }}.+\+(.*)[0-9]_[^.]+.changes"
+        for f in *_amd64.changes; do
+          if [[ $f =~ $pattern ]]; then
+            dist=${BASH_REMATCH[1]}
+            dput_retry -U llso:ubuntu/${dist}${destination} $f
+          fi
+        done
+        echo "::endgroup::"
+
+  prepare_api_verification:
+    name: Prepare API verification
+    needs: [sourcepackage, binary_packages_released]
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Download Artifacts
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        path: artifacts
+        pattern: keyman-*
+        merge-multiple: true
+
+    - name: Save environment
+      run: |
+        echo "KEYMAN_VERSION=${{ needs.sourcepackage.outputs.KEYMAN_VERSION }}" > artifacts/env
+        echo "PRERELEASE_TAG=${{ needs.sourcepackage.outputs.PRERELEASE_TAG }}" >> artifacts/env
+        echo "GIT_SHA=${{ github.event.client_payload.buildSha }}" >> artifacts/env
+        echo "GIT_BASE=${{ github.event.client_payload.baseRef }}" >> artifacts/env
+        echo "IS_TEST_BUILD=${{ github.event.client_payload.isTestBuild }}" >> artifacts/env
+        echo "GIT_BRANCH=${{ github.event.client_payload.branch }}" >> artifacts/env
+        echo "GIT_BASE_BRANCH=${{ github.event.client_payload.baseBranch }}" >> artifacts/env
+        echo "GIT_USER=${{ github.event.client_payload.user }}" >> artifacts/env
+        echo "SKIP_API_CHECK=${{ github.event.client_payload.skipApiCheck }}" >> artifacts/env
+
+    - name: Cache artifacts
+      uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+      with:
+        path: |
+          artifacts
+        key: artifacts-key-${{ github.run_id }}
+
+  # We intentionally ignore the results of binary_packages_unreleased
+  set_status:
+    name: Set result status on PR builds
+    needs: [sourcepackage, binary_packages_released, prepare_api_verification, autopkg_test]
+    runs-on: ubuntu-latest
+    if: ${{ always() && github.event.client_payload.isTestBuild == 'true' }}
+    steps:
+    - name: Set success
+      if: needs.sourcepackage.result == 'success' && needs.binary_packages_released.result == 'success' && needs.prepare_api_verification.result == 'success' && needs.autopkg_test.result == 'success'
+      run: |
+        echo "RESULT=success" >> $GITHUB_ENV
+        echo "MSG=Package build succeeded" >> $GITHUB_ENV
+
+    - name: Set cancelled
+      if: needs.sourcepackage.result == 'cancelled' || needs.binary_packages_released.result == 'cancelled' || needs.prepare_api_verification.result == 'cancelled' || needs.autopkg_test.result == 'cancelled'
+      run: |
+        echo "RESULT=error" >> $GITHUB_ENV
+        echo "MSG=Package build cancelled" >> $GITHUB_ENV
+
+    - name: Set failure
+      if: needs.sourcepackage.result == 'failure' || needs.binary_packages_released.result == 'failure' || needs.prepare_api_verification.result == 'failure' || needs.autopkg_test.result == 'failure'
+      run: |
+        echo "RESULT=failure" >> $GITHUB_ENV
+        echo "MSG=Package build failed" >> $GITHUB_ENV
+
+    - name: Set final status
+      run: |
+        gh api \
+          --method POST \
+          -H "Accept: application/vnd.github+json" \
+          /repos/$GITHUB_REPOSITORY/statuses/${{ github.event.client_payload.buildSha }} \
+          -f state="$RESULT" \
+          -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+          -f description="$MSG" \
+          -f context="$STATUS_CONTEXT"
+
+  #---------------------------------------------------------------------------------------------
+  source_verification:
+    name: Verify source tarball and Linux source package
+    if: github.repository == 'keymanapp/keyman' || github.event.client_payload.force
+    needs: sourcepackage
+    runs-on: ubuntu-latest
+    outputs:
+      KEYMAN_VERSION: ${{ needs.sourcepackage.outputs.KEYMAN_VERSION }}
+      HAS_VERIFY_SOURCE: ${{ steps.check_requirements.outputs.HAS_VERIFY_SOURCE }}
+
+    steps:
+    - name: Set pending status on PR builds
+      id: set_status
+      if: github.event.client_payload.isTestBuild == 'true'
+      shell: bash
+      run: |
+        gh api \
+          --method POST \
+          -H "Accept: application/vnd.github+json" \
+          /repos/$GITHUB_REPOSITORY/statuses/${{ github.event.client_payload.buildSha }} \
+          -f state='pending' \
+          -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+          -f description='Linux source verification started' \
+          -f context="$STATUS_CONTEXT_SOURCE_VERIFICATION"
+
+    - name: Checkout
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        ref: '${{ github.event.client_payload.buildSha }}'
+        fetch-depth: 0
+        clean: false
+        path: ${{ github.workspace }}/keyman/
+
+    # TODO: Remove after release of Keyman 19
+    - name: Check requirements
+      id: check_requirements
+      shell: bash
+      run: |
+        if [[ -f "${GITHUB_WORKSPACE}/keyman/linux/scripts/verify_source.sh" ]]; then
+          echo "HAS_VERIFY_SOURCE=true" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Install devscripts
+      if: steps.check_requirements.outputs.HAS_VERIFY_SOURCE == 'true'
+      uses: ./keyman/.github/actions/apt-install
+      with:
+        packages: devscripts equivs
+
+    - name: Install dependencies
+      if: steps.check_requirements.outputs.HAS_VERIFY_SOURCE == 'true'
+      run: |
+        cd ${{ github.workspace }}/keyman/linux
+        ./scripts/deb-packaging.sh --gha dependencies
+
+    - name: Verify source tarball
+      if: steps.check_requirements.outputs.HAS_VERIFY_SOURCE == 'true'
+      shell: bash
+      run: |
+        cd ${{ github.workspace }}/keyman/linux
+        ./scripts/verify_source.sh --source-only --target-dir "${{ github.workspace }}/keyman-${{ needs.sourcepackage.outputs.KEYMAN_VERSION }}"
+
+    - name: Verify Ubuntu source package
+      if: steps.check_requirements.outputs.HAS_VERIFY_SOURCE == 'true'
+      shell: bash
+      run: |
+        cd ${{ github.workspace }}/keyman/linux
+        ./scripts/verify_source.sh --no-create-tarball --launchpad-only --target-dir "${{ github.workspace }}/keyman-${{ needs.sourcepackage.outputs.KEYMAN_VERSION }}"
+
+  set_status_source_verification:
+    name: Set result status of source verification on PR builds
+    needs: [source_verification]
+    runs-on: ubuntu-latest
+    if: ${{ always() && github.event.client_payload.isTestBuild == 'true' && (github.repository == 'keymanapp/keyman' || github.event.client_payload.force) }}
+    steps:
+    - name: Requirements not met
+      if: needs.source_verification.result == 'success' && needs.source_verification.outputs.HAS_VERIFY_SOURCE != 'true'
+      run: |
+        echo "RESULT=success" >> $GITHUB_ENV
+        echo "MSG=Linux source verification requirements not met" >> $GITHUB_ENV
+
+    - name: Set success
+      if: needs.source_verification.result == 'success' && needs.source_verification.outputs.HAS_VERIFY_SOURCE == 'true'
+      run: |
+        echo "RESULT=success" >> $GITHUB_ENV
+        echo "MSG=Linux source verification succeeded" >> $GITHUB_ENV
+
+    - name: Set cancelled
+      if: needs.source_verification.result == 'cancelled'
+      run: |
+        echo "RESULT=error" >> $GITHUB_ENV
+        echo "MSG=Linux source verification cancelled" >> $GITHUB_ENV
+
+    - name: Set failure
+      if: needs.source_verification.result == 'failure'
+      run: |
+        echo "RESULT=failure" >> $GITHUB_ENV
+        echo "MSG=Linux source verification failed" >> $GITHUB_ENV
+
+    - name: Set final status
+      run: |
+        gh api \
+          --method POST \
+          -H "Accept: application/vnd.github+json" \
+          /repos/$GITHUB_REPOSITORY/statuses/${{ github.event.client_payload.buildSha }} \
+          -f state="$RESULT" \
+          -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+          -f description="$MSG" \
+          -f context="$STATUS_CONTEXT_SOURCE_VERIFICATION"

@@ -28,25 +28,22 @@ type
   private
     FXML: WideString;
   protected
-    function XMLData(FRefreshKeyman: Boolean): WideString; override;
+    function XMLData: WideString; override;
   public
-    constructor Create(const AXML: WideString = '');
+    constructor Create(AOwner: TXMLRenderers; const AXML: WideString = '');
   end;
 
 implementation
 
-uses
-  kmint;
-
 { TGenericXMLRenderer }
 
-constructor TGenericXMLRenderer.Create(const AXML: WideString);
+constructor TGenericXMLRenderer.Create(AOwner: TXMLRenderers; const AXML: WideString);
 begin
-  inherited Create;
+  inherited Create(AOwner);
   FXML := AXML;
 end;
 
-function TGenericXMLRenderer.XMLData(FRefreshKeyman: Boolean): WideString;
+function TGenericXMLRenderer.XMLData: WideString;
 begin
   Result := FXML;
 end;

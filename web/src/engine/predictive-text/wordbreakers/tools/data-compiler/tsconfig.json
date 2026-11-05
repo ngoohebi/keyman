@@ -1,0 +1,16 @@
+{
+  "extends": "../../../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../build/tools/data-compiler/obj",
+    "tsBuildInfoFile": "../../build/tools/data-compiler/obj/tsconfig.tsbuildinfo",
+    "rootDir": "./",
+    "module": "node16",
+    "moduleResolution": "node16"
+  },
+  "include": [
+	  "./**/*"
+  ],
+  "exclude": [
+	  "node_modules"
+  ]
+}

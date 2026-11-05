@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import os.log
 
 public extension UserDefaults {
   func installableKeyboards(forKey key: String) -> [InstallableKeyboard]? {
@@ -18,7 +19,9 @@ public extension UserDefaults {
     do {
       return try array.map { try decoder.decode(InstallableKeyboard.self, from: $0) }
     } catch {
-      log.error("Error decoding keyboards: \(error)")
+      let message = "Error decoding keyboards: \(error))"
+      os_log("%{public}s", log:KeymanEngineLogger.settings, type: .error, message)
+      SentryManager.capture(error, message: message)
       return nil
     }
   }
@@ -31,7 +34,24 @@ public extension UserDefaults {
     do {
       return try array.map { try decoder.decode(InstallableLexicalModel.self, from: $0) }
     } catch {
-      log.error("Error decoding lexical models: \(error)")
+      let message = "Error decoding lexical models: \(error)"
+      os_log("%{public}s", log:KeymanEngineLogger.settings, type: .error, message)
+      SentryManager.capture(error, message: message)
+      return nil
+    }
+  }
+
+  internal func cachedPackageQueryMetadata(forKey key: String) -> [KeymanPackage.Key: KeymanPackage.DistributionStateMetadata]? {
+    guard let data = self.data(forKey: key) else {
+      // May not have been initialized.  Also, it IS just cache data.
+      return nil
+    }
+
+    // Since we're dealing with dictionaries & Codable, it's probably better to use JSON here.
+    let decoder = JSONDecoder()
+    if let dict = try? decoder.decode([KeymanPackage.Key: KeymanPackage.DistributionStateMetadata].self, from: data) {
+      return dict
+    } else {
       return nil
     }
   }
@@ -46,7 +66,9 @@ public extension UserDefaults {
       let array = try keyboards.map { try encoder.encode($0) }
       set(array, forKey: key)
     } catch {
-      log.error("Error encoding keyboards: \(error)")
+      let message = "Error encoding keyboards: \(error)"
+      os_log("%{public}s", log:KeymanEngineLogger.settings, type: .error, message)
+      SentryManager.capture(error, message: message)
     }
   }
     
@@ -60,7 +82,9 @@ public extension UserDefaults {
       let array = try lexicalModels.map { try encoder.encode($0) }
       set(array, forKey: key)
     } catch {
-      log.error("Error encoding lexicalModels: \(error)")
+      let message = "Error encoding lexicalModels: \(error)"
+      os_log("%{public}s", log:KeymanEngineLogger.settings, type: .error, message)
+      SentryManager.capture(error, message: message)
     }
   }
 
@@ -71,7 +95,9 @@ public extension UserDefaults {
     do {
       return try PropertyListDecoder().decode(FullKeyboardID.self, from: data)
     } catch {
-      log.error("Error decoding FullKeyboardID: \(error)")
+      let message = "Error decoding FullKeyboardID: \(error)"
+      os_log("%{public}s", log:KeymanEngineLogger.settings, type: .error, message)
+      SentryManager.capture(error, message: message)
       return nil
     }
   }
@@ -85,7 +111,9 @@ public extension UserDefaults {
       let data = try PropertyListEncoder().encode(id)
       set(data, forKey: key)
     } catch {
-      log.error("Error encoding FullKeyboardID: \(error)")
+      let message = "Error encoding FullKeyboardID: \(error)"
+      os_log("%{public}s", log:KeymanEngineLogger.settings, type: .error, message)
+      SentryManager.capture(error, message: message)
     }
   }
     
@@ -96,7 +124,9 @@ public extension UserDefaults {
     do {
       return try PropertyListDecoder().decode(FullLexicalModelID.self, from: data)
     } catch {
-      log.error("Error decoding FullLexicalModelID: \(error)")
+      let message = "Error decoding FullLexicalModelID: \(error)"
+      os_log("%{public}s", log:KeymanEngineLogger.settings, type: .error, message)
+      SentryManager.capture(error, message: message)
       return nil
     }
   }
@@ -110,7 +140,9 @@ public extension UserDefaults {
       let data = try PropertyListEncoder().encode(id)
       set(data, forKey: key)
     } catch {
-      log.error("Error encoding FullLexicalModelID: \(error)")
+      let message = "Error encoding FullLexicalModelID: \(error)"
+      os_log("%{public}s", log:KeymanEngineLogger.settings, type: .error, message)
+      SentryManager.capture(error, message: message)
     }
   }
 
@@ -134,12 +166,35 @@ public extension UserDefaults {
     }
   }
 
-  var userResources: [LanguageResource]? {
+  internal var cachedPackageQueryMetadata: [KeymanPackage.Key: KeymanPackage.DistributionStateMetadata] {
+    get {
+      return cachedPackageQueryMetadata(forKey: Key.userPackageQueryCacheDict) ?? [:]
+    }
+
+    set(metadata) {
+      let encoder = JSONEncoder()
+      if let data = try? encoder.encode(metadata) {
+        set(data, forKey: Key.userPackageQueryCacheDict)
+      }
+    }
+  }
+
+  func userResources<Resource: LanguageResource>(ofType: Resource.Type) -> [Resource]? {
+    if ofType == InstallableKeyboard.self {
+      return (userKeyboards as? [Resource])
+    } else if ofType == InstallableLexicalModel.self {
+      return (userLexicalModels as? [Resource])
+    } else {
+      return nil
+    }
+  }
+
+  var userResources: [AnyLanguageResource]? {
     get {
       let keyboards = userKeyboards ?? []
       let lexicalModels = userLexicalModels ?? []
       
-      let resources: [LanguageResource] = keyboards + lexicalModels
+      let resources: [AnyLanguageResource] = keyboards + lexicalModels
       if resources.count == 0 {
         return nil
       } else {
@@ -212,6 +267,10 @@ public extension UserDefaults {
     }) ?? []
   }
 
+  internal func cachedPackageQueryResult(forPackageKey packageKey: KeymanPackage.Key) -> KeymanPackage.DistributionStateMetadata? {
+    return cachedPackageQueryMetadata[packageKey]
+  }
+
   var migrationLevel: Int {
     get {
       return integer(forKey: Key.migrationLevel)
@@ -232,10 +291,25 @@ public extension UserDefaults {
     }
 
     set(version) {
-      set(version?.string, forKey: Key.engineVersion)
+      set(version?.plainString, forKey: Key.engineVersion)
     }
   }
   
+  var optSpacebarText: SpacebarText {
+    get {
+      if let valueString = string(forKey: Key.optSpacebarText),
+         let value = SpacebarText(rawValue: valueString) {
+        return value
+      } else {
+        return SpacebarText.LANGUAGE_KEYBOARD
+      }
+    }
+    
+    set(value) {
+      set(value.rawValue, forKey: Key.optSpacebarText)
+    }
+  }
+ 
   // stores a dictionary of predict-enablement settings keyed to language ids, i.e., [langID: Bool]
   var predictionEnablements: [String: Bool]? {
     get {
@@ -258,6 +332,37 @@ public extension UserDefaults {
     }
   }
   
+  // stores a dictionary of autocorrection-enablement settings keyed to language ids, i.e., [langID: Bool]
+  var autocorrectionEnablements: [String: Bool]? {
+    get {
+      return dictionary(forKey: Key.userAutocorrectSettings) as? [String : Bool]
+    }
+    
+    set(prefs) {
+      set(prefs, forKey: Key.userAutocorrectSettings)
+    }
+  }
+
+  var portraitKeyboardHeight: Double {
+    get {
+      return double(forKey: Key.portraitKeyboardHeight)
+    }
+
+    set(height) {
+      set(height, forKey: Key.portraitKeyboardHeight)
+    }
+  }
+
+  var landscapeKeyboardHeight: Double {
+    get {
+      return double(forKey: Key.landscapeKeyboardHeight)
+    }
+
+    set(height) {
+      set(height, forKey: Key.landscapeKeyboardHeight)
+    }
+  }
+
   func predictSettingForLanguage(languageID: String) -> Bool {
     if let dict = predictionEnablements {
       return dict[languageID] ?? true
@@ -292,5 +397,23 @@ public extension UserDefaults {
     }
     prefs?[forLanguageID] = correctSetting
     correctionEnablements = prefs
+  }
+  
+  func autocorrectSettingForLanguage(languageID: String) -> Bool {
+    if let dict = autocorrectionEnablements {
+      return dict[languageID] ?? true
+    } else {
+      return true
+    }
+  }
+  
+  func set(autocorrectSetting: Bool, forLanguageID: String) {
+    var prefs: [String: Bool]?
+    prefs = autocorrectionEnablements
+    if prefs == nil {
+      prefs = [String: Bool]()
+    }
+    prefs?[forLanguageID] = autocorrectSetting
+    autocorrectionEnablements = prefs
   }
 }

@@ -27,6 +27,19 @@ object frmVisualKeyboard: TfrmVisualKeyboard
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
+  object imgDown: TImage
+    Left = 224
+    Top = 80
+    Width = 105
+    Height = 105
+    Picture.Data = {
+      07544269746D61707E000000424D7E000000000000003E000000280000001000
+      000010000000010001000000000040000000C40E0000C40E0000020000000200
+      0000FFFFFF00000000000000000000000000000000000180000003C0000007E0
+      00000FF000001FF800003FFC00007FFE00000000000000000000000000000000
+      00000000000000000000}
+    Visible = False
+  end
   object panContent: TPanel
     AlignWithMargins = True
     Left = 2
@@ -45,7 +58,7 @@ object frmVisualKeyboard: TfrmVisualKeyboard
       Left = 0
       Top = 27
       Width = 547
-      Height = 198
+      Height = 219
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 0
@@ -55,7 +68,7 @@ object frmVisualKeyboard: TfrmVisualKeyboard
       Left = 0
       Top = 27
       Width = 547
-      Height = 198
+      Height = 219
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 1
@@ -65,7 +78,7 @@ object frmVisualKeyboard: TfrmVisualKeyboard
       Left = 0
       Top = 27
       Width = 547
-      Height = 198
+      Height = 219
       Margins.Left = 2
       Margins.Top = 1
       Margins.Right = 2
@@ -212,7 +225,7 @@ object frmVisualKeyboard: TfrmVisualKeyboard
       Left = 0
       Top = 27
       Width = 547
-      Height = 198
+      Height = 219
       Margins.Left = 2
       Margins.Top = 1
       Margins.Right = 2
@@ -225,45 +238,11 @@ object frmVisualKeyboard: TfrmVisualKeyboard
       VerticalAlignment = taAlignTop
       Visible = False
     end
-    object panHint: TPanel
-      Left = 0
-      Top = 225
-      Width = 547
-      Height = 21
-      Align = alBottom
-      BevelOuter = bvNone
-      TabOrder = 6
-      object webHint: TKeymanEmbeddedWB
-        Left = 0
-        Top = 0
-        Width = 547
-        Height = 21
-        Align = alClient
-        TabOrder = 0
-        DisableCtrlShortcuts = 'N'
-        UserInterfaceOptions = [DisableTextSelect, DontUse3DBorders, EnablesFormsAutoComplete, EnableThemes]
-        About = ' EmbeddedWB http://bsalsa.com/'
-        DisableErrors.fpExceptions = False
-        PrintOptions.HTMLHeader.Strings = (
-          '<HTML></HTML>')
-        PrintOptions.Orientation = poPortrait
-        ExplicitLeft = 72
-        ExplicitTop = 8
-        ExplicitWidth = 300
-        ExplicitHeight = 150
-        ControlData = {
-          4C00000032310000F70100000000000000000000000000000000000000000000
-          000000004C000000000000000000000001000000E0D057007335CF11AE690800
-          2B2E126208000000000000004C0000000114020000000000C000000000000046
-          8000000000000000000000000000000000000000000000000000000000000000
-          00000000000000000100000000000000000000000000000000000000}
-      end
-    end
     object panFontHelper: TPanel
       Left = 0
       Top = 27
       Width = 547
-      Height = 198
+      Height = 219
       Margins.Left = 2
       Margins.Top = 1
       Margins.Right = 2
@@ -272,7 +251,7 @@ object frmVisualKeyboard: TfrmVisualKeyboard
       BevelOuter = bvNone
       ParentBackground = False
       ParentColor = True
-      TabOrder = 7
+      TabOrder = 6
       VerticalAlignment = taAlignTop
       Visible = False
     end
@@ -304,5 +283,10 @@ object frmVisualKeyboard: TfrmVisualKeyboard
   object ilKeyboards: TexImageList
     Left = 136
     Top = 64
+  end
+  object mnuKeyboards: TPopupMenu
+    Images = ilKeyboards
+    Left = 264
+    Top = 120
   end
 end

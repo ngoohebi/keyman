@@ -19,8 +19,9 @@
                     06 Feb 2015 - mcdurdin - I4552 - V9.0 - Add mnemonic recompile option to ignore deadkeys
 */
 
-#include "stdafx.h"
+#include "pch.h"
 #include <vector>
+#include <string>
 
 enum ShiftState {
     Base = 0,                    // 0
@@ -462,7 +463,7 @@ bool ImportRules(WCHAR *kbid, LPKEYBOARD kp, std::vector<DeadkeyMapping> *FDeadk
   Loader loader;
 
   WCHAR inputHKL[12];
-  wsprintf(inputHKL, L"%08.8x", wcstol(kbid, NULL, 16));
+  wsprintf(inputHKL, L"%08.8x", (unsigned int) wcstol(kbid, NULL, 16));
 
   int cKeyboards = GetKeyboardLayoutList(0, NULL);
   HKL *rghkl = new HKL[cKeyboards];
@@ -470,6 +471,7 @@ bool ImportRules(WCHAR *kbid, LPKEYBOARD kp, std::vector<DeadkeyMapping> *FDeadk
   HKL hkl = LoadKeyboardLayout(inputHKL, KLF_NOTELLSHELL);
   if(hkl == NULL) {
       puts("Sorry, that keyboard does not seem to be valid.");
+      delete[] rghkl;
       return false;
   }
             
@@ -594,6 +596,8 @@ bool ImportRules(WCHAR *kbid, LPKEYBOARD kp, std::vector<DeadkeyMapping> *FDeadk
   if(hkl != NULL) {
     UnloadKeyboardLayout(hkl);
   }
+
+  delete[] rghkl;
 
   //-------------------------------------------------------------
   // Now that we've collected the key data, we need to

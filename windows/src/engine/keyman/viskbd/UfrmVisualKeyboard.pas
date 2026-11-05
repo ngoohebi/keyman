@@ -1,18 +1,18 @@
-(*
+﻿(*
   Name:             UfrmVisualKeyboard
   Copyright:        Copyright (C) SIL International.
-  Documentation:    
-  Description:      
+  Documentation:
+  Description:
   Create Date:      20 Jun 2006
 
   Modified Date:    10 Aug 2015
   Authors:          mcdurdin
-  Related Files:    
-  Dependencies:     
+  Related Files:
+  Dependencies:
 
-  Bugs:             
-  Todo:             
-  Notes:            
+  Bugs:
+  Todo:
+  Notes:
   History:          20 Jun 2006 - mcdurdin - Initial version
                     01 Aug 2006 - mcdurdin - Clean up visual keyboard display
                     23 Aug 2006 - mcdurdin - Initial refactor for new visual keyboard
@@ -76,11 +76,11 @@
                     03 Aug 2014 - mcdurdin - I4359 - V9.0 - OSK shows wrong base keyboard and doesn't refresh
                     12 Aug 2014 - mcdurdin - I4360 - V9.0 - When OSK opens, if Keyman is off then icon shows wrongly
                     28 Aug 2014 - mcdurdin - I4390 - V9.0 - Free vs Pro
-                    01 Sep 2014 - mcdurdin - I4393 - V9.0 - Keyman Desktop Free Edition polish
+                    01 Sep 2014 - mcdurdin - I4393 - V9.0 - Keyman Free Edition polish
                     11 Feb 2015 - mcdurdin - I4593 - V9.0 - The keyboard usage page can appear outside the OSK in some situations
                     04 Mar 2015 - mcdurdin - I4606 - V9.0 - Support single keyboard buttons on OSK toolbar
                     05 Mar 2015 - mcdurdin - I4606 - V9.0 - Support single keyboard buttons on OSK toolbar
-                    10 Aug 2015 - mcdurdin - I4849 - Keyman Desktop title in OSK has wrong grey background
+                    10 Aug 2015 - mcdurdin - I4849 - Keyman title in OSK has wrong grey background
 *)
 unit UfrmVisualKeyboard;  // I3306   // I3614
 
@@ -89,25 +89,16 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ExtCtrls, Menus, ActiveX, keymanapi_TLB, utilstr, custinterfaces,
-  OleCtrls, SHDocVw, ImgList, UfrmOSKPlugInBase,
-  UfrmOSKOnScreenKeyboard, UfrmOSKCharacterMap, UfrmOSKKeyboardUsage,
+  ImgList, UfrmOSKPlugInBase,
+  UfrmOSKOnScreenKeyboard, UfrmOSKCharacterMap,
   UfrmOSKEntryHelper,
   Buttons, ToolWin, PaintPanel, exImageList,
-  Menu_KeyboardItems, ComCtrls, StdCtrls, EmbeddedWB,
+  Menu_KeyboardItems, ComCtrls, StdCtrls,
   UfrmOSKFontHelper, LangSwitchManager,
-  WebBrowserManager, UserMessages, SHDocVw_EWB, EwbCore,
-  KeymanEmbeddedWB, System.ImageList;
+  UserMessages, System.ImageList;
 
 type
-  TOSKActivePage = (apKeyboard, apCharacterMap, apEntryHelper, apKeyboardUsage, apFontHelper, apUndefined);
-
-  TKeymanToolButton = class(TToolButton)   // I4606
-  private
-    FKeyboardName, FCmdLine: string;
-  public
-    property KeyboardName: string read FKeyboardName write FKeyboardName;
-    property CmdLine: string read FCmdLine write FCmdLine;
-  end;
+  TOSKActivePage = (apKeyboard, apCharacterMap, apEntryHelper, apFontHelper, apUndefined);
 
   TKeymanCustomisationMenuItem_Clone = class(TInterfacedObject, IKeymanCustomisationMenuItem)
   public
@@ -139,11 +130,10 @@ type
     tbRight: TToolBar;
     mnuPopup: TPopupMenu;
     ilKeyboards: TexImageList;
-    panKeyboardUsage: TPanel;
-    panHint: TPanel;
-    webHint: TKeymanEmbeddedWB;  // I2721
     panFontHelper: TPanel;
     tbKeyboards: TToolBar;
+    mnuKeyboards: TPopupMenu;
+    imgDown: TImage;
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
@@ -155,8 +145,6 @@ type
     procedure mnuPopupPopup(Sender: TObject);
     procedure panTopResize(Sender: TObject);
     procedure FormDeactivate(Sender: TObject);
-    procedure BtnShowHint(Sender: TObject);
-    procedure BtnHideHint(Sender: TObject);
     function FormHelp(Command: Word; Data: NativeInt;
       var CallHelp: Boolean): Boolean;
     procedure TitleMouseDown(Sender: TObject; Button: TMouseButton;
@@ -171,7 +159,6 @@ type
       Button: TToolButton; State: TCustomDrawState; Stage: TCustomDrawStage;
       var Flags: TTBCustomDrawFlags; var DefaultDraw: Boolean);   // I4849
   private
-    webHintManager: TWebBrowserManager;
     btnKeyboardHelp: TToolButton;
     cmi: IKeymanCustomisationMenuItem;
     FFadeVisualKeyboard: Boolean;
@@ -181,7 +168,6 @@ type
     FOnScreenKeyboard: TfrmOSKOnScreenKeyboard;
     FCharacterMap: TfrmOSKCharacterMap;
     FEntryHelper: TfrmOSKEntryHelper;
-    FKeyboardUsage: TfrmOSKKeyboardUsage;
     FFontHelper: TfrmOSKFontHelper;
     SizeMoveStartPos: TPoint;
     SizeMoveStartRect: TRect;
@@ -190,8 +176,10 @@ type
     FToolbarHintWindow: THintWindow;
     FUpdatingToolbar: Boolean;
     FActivePageSet: Boolean;
-    FRegistered: Boolean;
     FLastTotalKeyboards: Integer;   // I4606
+
+    FKeyboardButtons: TArray<TKeymanToolButton>;
+    btnKeyboardMenu: TToolButton;
 
     procedure ResetShiftStates;  // I1144
 
@@ -206,6 +194,7 @@ type
     procedure WMWindowPosChanging(var Message: TWMWindowPosChanging); message WM_WINDOWPOSCHANGING;
     procedure UpdateConstraints(Resize: Boolean = False);
 
+    procedure FixKeyboardToolbarOverflow;
 
     procedure WMMouseActivate(var Message: TWMMouseActivate); message WM_MOUSEACTIVATE;
 
@@ -214,6 +203,7 @@ type
     procedure WMNCHitTest(var Message: TWMNCHitTest); message WM_NCHITTEST;
 
     procedure WMUserFormShown(var Message: TMessage); message WM_USER_FormShown;   // I4225
+    procedure WMKeymanOskModifierEvent(var Message: TMessage); message WM_KEYMAN_OSK_MODIFIER_EVENT;
 
     procedure UpdatePanels;
     procedure SetActivePage(Page: TOSKActivePage);
@@ -225,18 +215,13 @@ type
     procedure LoadFontHelper;
 
     procedure RefreshToolbar;
-    procedure LoadKeyboardUsage;
     procedure UpdateActivePage;
-    procedure LoadHintSettings;
-    procedure ToggleHintPanel;
-    procedure webHintFireCommand(Sender: TObject; const command: WideString;
-      params: TStringList);
-    procedure webHintResize(Sender: TObject; X, Y: Integer);
-    procedure CreateWebHintManager;
     procedure AdjustToClosestMonitor(var x, y, cx, cy: Integer);
 
-    function IsHintBarEnabled: Boolean;
-    procedure KeyboardButtonClick(Sender: TObject);   // I4390
+    procedure KeyboardButtonClick(Sender: TObject);
+    procedure BtnHideHint(Sender: TObject);
+    procedure BtnShowHint(Sender: TObject);
+    procedure KeyboardMenuClick(Sender: TObject);
   protected
     procedure CreateParams(var Params: TCreateParams); override;
   public
@@ -247,9 +232,6 @@ type
     procedure PreRefreshKeyman;
     procedure UpdateToolbar;
     procedure RefreshSelectedKeyboard;  // I2398
-
-    procedure Unregister;
-    procedure Register;
 
     function GetToolbarPositionXML: WideString;
 
@@ -265,7 +247,6 @@ type
     procedure MnuOSK_ViewKeyboard(Sender: TObject);
     procedure MnuOSK_ViewCharMap(Sender: TObject);
     procedure MnuOSK_ViewEntryHelper(Sender: TObject);
-    procedure MnuOSK_ViewKeyboardUsage(Sender: TObject);
     procedure MnuOSK_ViewFontHelper(Sender: TObject);
 
     procedure MnuOSK_Close(Sender: TObject);
@@ -294,9 +275,9 @@ uses
   psapi,
   ErrorControlledRegistry,
   KeymanDesktopShell,
+  KeymanMenuItem,
   RegistryKeys,
   Keyman.System.Util.RenderLanguageIcon,
-  UfrmHelp,
   UfrmKeyman7Main,
   UnicodeData,
   utildir,
@@ -324,27 +305,9 @@ type
   TOSKHintWindow = class(THintWindow)
   end;
 
-procedure TfrmVisualKeyboard.webHintResize(Sender: TObject; X, Y: Integer);
-begin
-  panHint.Height := Y + 2;
-end;
-
-procedure TfrmVisualKeyboard.CreateWebHintManager;
-begin
-  if Assigned(webHintManager) then Exit;
-
-  webHintManager := TWebBrowserManager.Create(Self);  // I1256 - hint system
-  webHintManager.WebBrowser := webHint;
-  webHintManager.OnFireCommand := webHintFireCommand;
-  webHintManager.OnResize := webHintResize;
-  webHintManager.RenderTemplate := 'VKHints.xsl';
-end;
-
 procedure TfrmVisualKeyboard.FormCreate(Sender: TObject);
 begin
   inherited;
-
-  CreateWebHintManager;
 
   FToolbarHintWindow := TOSKHintWindow.Create(Self);
   FToolbarHintWindow.Color := clInfoBk;
@@ -354,11 +317,11 @@ begin
 
   ilToolbar.InitializeImageList;
   ilKeyboards.InitializeImageList;
+  ilKeyboards.AddMasked(imgDown.Picture.Bitmap, clWhite);
   ScreenSnap := True;
   SnapBuffer := 8;
 
   cmi := TKeymanCustomisationMenuItem_Clone.Create;
-  Register;  // I2444 - Keyman tries to re-init because OSK was not unregistering until after Keyman_Exit
 
   FUnicode := True;
 
@@ -394,7 +357,10 @@ begin
     for i := tbKeyboards.ButtonCount - 1 downto 0 do   // I4606
       tbKeyboards.Buttons[i].Free;
 
+    btnKeyboardMenu := nil;
     btnKeyboardHelp := nil;
+    ilKeyboards.Clear;
+    ilKeyboards.AddMasked(imgDown.Picture.Bitmap, clWhite);
 
     WidthSet := False;
 
@@ -414,7 +380,9 @@ begin
 
         { Text Entry Helper Test }
 
-        if (CustMenuItems.Items[i].Action = miaOSK_ViewEntryHelper) then Continue; 
+        if (CustMenuItems.Items[i].Action = miaOSK_ViewEntryHelper) or
+          (CustMenuItems.Items[i].Action = miaOSK_ViewKeyboardUsage) then
+          Continue;
 
         if (CustMenuItems.Items[i].Action = miaSelectKeyboard) then  // I4606
         begin
@@ -429,17 +397,20 @@ begin
             begin
               tbLeft.Perform(TB_AUTOSIZE, 0, 0);
 
-              AddKeyboardToolbarItems(kmcom, tbKeyboards, ilKeyboards, KeyboardButtonClick);
+              FKeyboardButtons := AddKeyboardToolbarItems(kmcom, tbKeyboards, ilKeyboards, KeyboardButtonClick);
 
-{              FKeyboardMenuButton := TToolButton.Create(Self);
-              FKeyboardMenuButton.Left := x;
-              FKeyboardMenuButton.Width := 23;
-              tbKeyboards.InsertControl(FKeyboardMenuButton);
-              //btn.Tag := CustMenuItems.Items[i].Action;
-              //btn.ShowHint := True;
-              //FKeyboardMenuButton.OnMouseEnter := BtnShowKeyboardHint;
-              //FKeyboardMenuButton.OnMouseLeave := BtnHideKeyboardHint;
-              FKeyboardMenuButton.OnClick := KeyboardMenuClick;}
+              btnKeyboardMenu := TKeymanToolButton.Create(Self);
+              btnKeyboardMenu.Width := 23;
+              btnKeyboardMenu.ImageIndex := 0;
+              btnKeyboardMenu.OnClick := KeyboardMenuClick;
+              if tbKeyboards.ControlCount > 0 then
+                btnKeyboardMenu.Left := tbKeyboards.Controls[tbKeyboards.ControlCount - 1].Left +
+                                        tbKeyboards.Controls[tbKeyboards.ControlCount - 1].Width
+              else
+                btnKeyboardMenu.Left := 0;
+              btnKeyboardMenu.Parent := tbKeyboards;
+
+              FixKeyboardToolbarOverflow;
               x := 0;
               tb := tbRight;
             end;
@@ -458,7 +429,7 @@ begin
               DesiredTarget := $FFFFFFFF;
               case CustMenuItems.Items[i].Action of
                 miaOSK_ViewKeyboard, miaOSK_ViewCharMap,
-                miaOSK_ViewEntryHelper, miaOSK_ViewKeyboardUsage,  // I1373,I1374 - keyboard usage and font helper
+                miaOSK_ViewEntryHelper,  // I1373,I1374 - keyboard usage and font helper
                 miaOSK_ViewFontHelper:
                   begin
                     btn.Style := tbsCheck;
@@ -530,11 +501,6 @@ begin
                     btn.OnClick := MnuOSK_ViewEntryHelper;
                     btn.Down := ActivePage = apEntryHelper;
                   end;
-                miaOSK_ViewKeyboardUsage:
-                  begin
-                    btn.OnClick := MnuOSK_ViewKeyboardUsage;
-                    btn.Down := ActivePage = apKeyboardUsage;
-                  end;
                 miaOSK_ViewFontHelper:
                   begin
                     btn.OnClick := MnuOSK_ViewFontHelper;
@@ -556,7 +522,7 @@ begin
                   Break;
                 end;
 
-              s := MsgFromStr(':String[@Caption='''+xmlencode(StripHotkey(CustMenuItems.Items[i].Caption))+''']');
+              s := MsgFromStr(xmlencode(StripHotkey(CustMenuItems.Items[i].Caption)));
               if s = ''
                 then btn.Hint := StripHotkey(CustMenuItems.Items[i].Caption) + FShortCut
                 else btn.Hint := s + FShortCut;
@@ -653,33 +619,16 @@ end;
 
 procedure TfrmVisualKeyboard.FormDestroy(Sender: TObject);
 begin
-  Unregister; // I2444 - Keyman tries to re-init because OSK was not unregistering until after Keyman_Exit
-
   SaveSettings;
 
   FreeAndNil(FOnScreenKeyboard);
   FreeAndNil(FCharacterMap);
   FreeAndNil(FEntryHelper);
-  FreeAndNil(FKeyboardUsage);
   FreeAndNil(FFontHelper);
 
   cmi := nil;
 
   Application.OnMessage := nil;
-end;
-
-procedure TfrmVisualKeyboard.Register; // I2444 - Keyman tries to re-init because OSK was not unregistering until after Keyman_Exit
-begin
-  if not FRegistered then // I2692
-    kmint.KeymanEngineControl.RegisterControllerWindow(Handle);
-  FRegistered := True;
-end;
-
-procedure TfrmVisualKeyboard.Unregister; // I2444 - Keyman tries to re-init because OSK was not unregistering until after Keyman_Exit
-begin
-  if FRegistered then // I2692
-    kmint.KeymanEngineControl.UnregisterControllerWindow(Handle);
-  FRegistered := False;
 end;
 
 function TfrmVisualKeyboard.FormHelp(Command: Word; Data: NativeInt; var CallHelp: Boolean): Boolean;
@@ -690,9 +639,10 @@ begin
   if Command in [HELP_CONTEXT, HELP_CONTEXTPOPUP, HELP_INDEX, HELP_CONTENTS] then
   begin
     case ActivePage of
-      apKeyboard: TKeymanDesktopShell.OpenHelp('context_onscreenkeyboard');
-      apCharacterMap: TKeymanDesktopShell.OpenHelp('context_charactermap');
-      apEntryHelper: TKeymanDesktopShell.OpenHelp('context_entryhelper');
+      apKeyboard: TKeymanDesktopShell.OpenHelp('context/toolbox-onscreenkeyboard');
+      apCharacterMap: TKeymanDesktopShell.OpenHelp('context/toolbox-charactermap');
+      apFontHelper: TKeymanDesktopShell.OpenHelp('context/toolbox-fonthelper');
+      apEntryHelper: TKeymanDesktopShell.OpenHelp('index');
     end;
   end;
 end;
@@ -700,6 +650,7 @@ end;
 procedure TfrmVisualKeyboard.FormResize(Sender: TObject);
 begin
   Update;
+  FixKeyboardToolbarOverflow;
 end;
 
 procedure TfrmVisualKeyboard.SetTopMost(ATopMost: Boolean);   // I4208
@@ -746,53 +697,72 @@ var
   id: string;
   kbd: TLangSwitchKeyboard;
 begin
-  if not (Sender is TKeymanToolButton) then
+  if Sender is TKeymanToolButton then
+    id := (Sender as TKeymanToolButton).KeyboardName
+  else if Sender is TKeymanMenuItem then
+    id := (Sender as TKeymanMenuItem).Keyboard.ID
+  else
     Exit;
-
-  id := (Sender as TKeymanToolButton).KeyboardName;
   kbd := frmKeyman7Main.LangSwitchManager.FindKeyboard(id);
   if Assigned(kbd) then
     frmKeyman7Main.ActivateKeyboard(kbd);
+end;
+
+procedure TfrmVisualKeyboard.KeyboardMenuClick(Sender: TObject);
+var
+  pt: TPoint;
+  i: Integer;
+  mi: TKeymanMenuItem;
+  j: Integer;
+  id: string;
+begin
+  pt := btnKeyboardMenu.ClientToScreen(Point(0, btnKeyboardMenu.ClientRect.Bottom));
+  mnuKeyboards.Items.Clear;
+  AddKeyboardItems(kmcom, mnuKeyboards, KeyboardButtonClick, nil);
+
+  for i := 0 to mnuKeyboards.Items.Count - 1 do
+  begin
+    mi := mnuKeyboards.Items[i] as TKeymanMenuItem;
+    id := mi.Keyboard.ID;
+    for j := 0 to High(FKeyboardButtons) do
+      if FKeyboardButtons[j].KeyboardName = id then
+      begin
+        mi.Visible := not FKeyboardButtons[j].Visible;
+        mi.Checked := FKeyboardButtons[j].Marked;
+        Break;
+      end;
+  end;
+
+  mnuKeyboards.Popup(pt.X, pt.Y);
+end;
+
+procedure TfrmVisualKeyboard.FixKeyboardToolbarOverflow;
+var
+  FMaxKeyboardsInToolbar: Integer;
+  i: Integer;
+begin
+  if Length(FKeyboardButtons) = 0 then Exit;
+
+  FMaxKeyboardsInToolbar := (panContent.ClientWidth - tbLeft.Width - tbRight.Width - panTitle.Width) div FKeyboardButtons[0].Width - 2;
+  if FMaxKeyboardsInToolbar > Length(FKeyboardButtons) then
+    FMaxKeyboardsInToolbar := Length(FKeyboardButtons);
+
+  for i := 0 to FMaxKeyboardsInToolbar - 1 do
+    FKeyboardButtons[i].Visible := True;
+
+  if FMaxKeyboardsInToolBar >= 0 then
+    for i := FMaxKeyboardsInToolbar to High(FKeyboardButtons) do
+      FKeyboardButtons[i].Visible := False;
+
+  btnKeyboardMenu.Visible := FMaxKeyboardsInToolbar < Length(FKeyboardButtons);
+
+  UpdateKeyboardIcon;
 end;
 
 procedure TfrmVisualKeyboard.CreateParams(var Params: TCreateParams);
 begin
   inherited;
   Params.ExStyle := Params.ExStyle or (WS_EX_NOACTIVATE or WS_EX_TOOLWINDOW);   // I3677   // I4208
-end;
-
-function TfrmVisualKeyboard.IsHintBarEnabled: Boolean;   // I4390
-begin
-  Result := IsHintEnabled(KH_OSKHINTBAR);
-end;
-
-procedure TfrmVisualKeyboard.LoadHintSettings;  // I1256 - Hint System
-begin
-  if not webHintManager.TemplateExists then
-  begin
-    if panHint.Visible then ToggleHintPanel;
-  end
-  else if (IsHintBarEnabled <> panHint.Visible) then
-  begin
-    ToggleHintPanel;
-  end;
-end;
-
-procedure TfrmVisualKeyboard.ToggleHintPanel;   // I1256 - Hint System
-begin
-  if panHint.Visible then
-  begin
-    panHint.Visible := False;
-    UpdateConstraints;
-    SetBounds(Left, Top+panHint.Height, Width, Height-panHint.Height);
-  end
-  else
-  begin
-    panHint.Visible := True;
-    SetBounds(Left, Top-panHint.Height, Width, Height+panHint.Height);
-    UpdateConstraints;
-    webHintManager.Content_Render;
-  end;
 end;
 
 procedure TfrmVisualKeyboard.TitleMouseDown(Sender: TObject;
@@ -887,7 +857,7 @@ begin
     AlphaBlendValue := 255;
   end;
 
-  
+
 {var
   buf: array[0..64] of char;
   pid: DWord;
@@ -1029,6 +999,12 @@ begin
   inherited;
 end;
 
+procedure TfrmVisualKeyboard.WMKeymanOskModifierEvent(var Message: TMessage);
+begin
+  if Assigned(FOnScreenKeyboard) then
+    FOnScreenKeyboard.OskModifierEvent(Message.WParam, Message.LParam);
+end;
+
 procedure TfrmVisualKeyboard.AdjustToClosestMonitor(var x, y, cx, cy: Integer);
 var
   m: TMonitor;
@@ -1138,6 +1114,7 @@ var
   kbd: TLangSwitchKeyboard;
   kbdId: string;
   i: Integer;
+  Found: Boolean;
   btn: TKeymanToolButton;
 begin
   kbd := frmKeyman7Main.LangSwitchManager.ActiveKeyboard;
@@ -1145,13 +1122,21 @@ begin
     then kbdId := kbd.ID
     else kbdId := '';
 
-  for i := 0 to tbKeyboards.ControlCount - 1 do
-    if (tbKeyboards.Controls[i] is TToolButton) then
-    begin
-      btn := tbKeyboards.Controls[i] as TKeymanToolButton;
-      btn.Down := btn.KeyboardName = kbdId;
-      btn.Marked := btn.Down;
-    end;
+  Found := False;
+  for i := 0 to High(FKeyboardButtons) do
+  begin
+    btn := FKeyboardButtons[i];
+    btn.Down := btn.KeyboardName = kbdId;
+    btn.Marked := btn.Down;
+    Found := Found or (btn.Down and btn.Visible);
+  end;
+  if Assigned(btnKeyboardMenu) then
+  begin
+    btnKeyboardMenu.Down := not Found;
+    btnKeyboardMenu.Marked := not Found;
+  end;
+  for i := 0 to mnuKeyboards.Items.Count - 1 do
+    mnuKeyboards.Items[i].Checked := (mnuKeyboards.Items[i] as TKeymanMenuItem).Keyboard.ID = kbdId;
 
   UpdateButtons(kbd, tbLeft);   // I4606
   UpdateButtons(kbd, tbRight);   // I4606
@@ -1224,34 +1209,17 @@ begin
   FUpdatingToolbar := False;
 end;
 
-procedure TfrmVisualKeyboard.webHintFireCommand(Sender: TObject; const command: WideString;
-  params: TStringList);
-begin
-  // I1256 - hint system
-
-  if command = 'closehintbar' then
-  begin
-    DisableHint(KH_OSKHINTBAR);
-    if panHint.Visible then ToggleHintPanel;
-  end;
-end;
-
 procedure TfrmVisualKeyboard.PreRefreshKeyman;
 begin
-  FreeAndNil(webHintManager);
 end;
 
 procedure TfrmVisualKeyboard.RefreshKeyman;
 begin
-  CreateWebHintManager;
-
   // Reload table of visual keyboard references
   if Assigned(FOnScreenKeyboard) then
     FOnScreenKeyboard.RefreshKeyboards;
 
   RefreshToolbar;   // I4606
-
-  LoadHintSettings;
 end;
 
 procedure TfrmVisualKeyboard.SaveSettings;
@@ -1283,7 +1251,6 @@ procedure TfrmVisualKeyboard.SetActivePage(Page: TOSKActivePage);
         miaOSK_ViewKeyboard: Toolbar.Buttons[i].Down := Page = apKeyboard;
         miaOSK_ViewCharMap: Toolbar.Buttons[i].Down := Page = apCharacterMap;
         miaOSK_ViewEntryHelper: Toolbar.Buttons[i].Down := Page = apEntryHelper;
-        miaOSK_ViewKeyboardUsage: Toolbar.Buttons[i].Down := Page = apKeyboardUsage;
         miaOSK_ViewFontHelper: Toolbar.Buttons[i].Down := Page = apFontHelper;
       end;
     end;
@@ -1301,7 +1268,6 @@ begin
   panKeyboard.Visible := Page = apKeyboard;
   panCharMap.Visible := Page = apCharacterMap;
   panEntryHelper.Visible := Page = apEntryHelper;
-  panKeyboardUsage.Visible := Page = apKeyboardUsage;
   panFontHelper.Visible := Page = apFontHelper;
 
   UpdateButtons(tbLeft);
@@ -1315,7 +1281,6 @@ begin
   if panKeyboard.Visible then Result := apKeyboard
   else if panCharMap.Visible then Result := apCharacterMap
   else if panEntryHelper.Visible then Result := apEntryHelper
-  else if panKeyboardUsage.Visible then Result := apKeyboardUsage
   else { if panFontHelper.Visible then } Result := apFontHelper;
 end;
 
@@ -1393,18 +1358,8 @@ procedure TfrmVisualKeyboard.LoadSettings;
   begin
     SetBounds(Screen.WorkAreaRect.Right - Width, Screen.WorkAreaRect.Bottom - Height, Width, Height);
   end;
-var
-  xml: string;
 begin
   FFadeVisualKeyboard := False;
-
-  LoadHintSettings;
-
-  xml := '';
-
-  if panHint.Visible then
-    webHintManager.Content_Render(False, xml);
-
 
   with TRegistryErrorControlled.Create do  // I2890
   try
@@ -1494,11 +1449,6 @@ begin
   ActivePage := apKeyboard;
 end;
 
-procedure TfrmVisualKeyboard.MnuOSK_ViewKeyboardUsage(Sender: TObject);
-begin
-  ActivePage := apKeyboardUsage;
-end;
-
 procedure TfrmVisualKeyboard.MnuOSK_ViewFontHelper(Sender: TObject);
 begin
   ActivePage := apFontHelper;
@@ -1564,26 +1514,12 @@ begin
   FFontHelper.SelectKeyboard(frmKeyman7Main.ActiveKeymanID);   // I3949
 end;
 
-procedure TfrmVisualKeyboard.LoadKeyboardUsage;
-begin
-  if not Assigned(FKeyboardUsage) then
-  begin
-    SetTopMost(False);   // I4208
-    FKeyboardUsage := TfrmOSKKeyboardUsage.Create(Self);
-    FKeyboardUsage.Parent := panKeyboardUsage;
-    FKeyboardUsage.Align := alClient;
-    FKeyboardUsage.Visible := True;
-  end;
-  FKeyboardUsage.SelectKeyboard(frmKeyman7Main.ActiveKeymanID);   // I3949
-end;
-
 procedure TfrmVisualKeyboard.UpdatePanels;
 begin
   case ActivePage of
     apKeyboard: LoadKeyboard;
     apCharacterMap: LoadCharacterMap;
     apEntryHelper: LoadEntryHelper;
-    apKeyboardUsage: LoadKeyboardUsage;
     apFontHelper: LoadFontHelper;
   end;
 
@@ -1597,7 +1533,6 @@ begin
     apKeyboard: Result := FOnScreenKeyboard;
     apCharacterMap: Result := FCharacterMap;
     apEntryHelper: Result := FEntryHelper;
-    apKeyboardUsage: Result := FKeyboardUsage;
     apFontHelper: Result := FFontHelper;
     else Result := nil;
   end;
@@ -1618,27 +1553,12 @@ end;
 
 procedure TfrmVisualKeyboard.BtnHelpClick(Sender: TObject);
 begin
-  with TfrmHelp.Create(Self) do   // I1251 - Combine help with keyboard help
-  try
-    HelpJump := 'context_onscreenkeyboard';
-    ActiveKeyboard := frmKeyman7Main.ActiveKeyboard;// KeymanInterface.Control.ActiveKeyboard;
-    ShowModal;
-    case HelpTarget of
-      htNone: ;
-      htProduct: OpenProductHelp;
-      htKeyboard: OpenKeyboardHelp;
-    end;
-  finally
-    Free;
+  case ActivePage of
+    apKeyboard: TKeymanDesktopShell.OpenHelpJump('context/toolbox-onscreenkeyboard', frmKeyman7Main.ActiveKeyboard);
+    apCharacterMap: TKeymanDesktopShell.OpenHelpJump('context/toolbox-charactermap', frmKeyman7Main.ActiveKeyboard);
+    apFontHelper: TKeymanDesktopShell.OpenHelpJump('context/toolbox-fonthelper', frmKeyman7Main.ActiveKeyboard);
+    apEntryHelper: TKeymanDesktopShell.OpenHelpJump('index', frmKeyman7Main.ActiveKeyboard);
   end;
-
-  {case ActivePage of
-    apKeyboard: prod.OpenHelp('context_onscreenkeyboard');
-    apCharacterMap: prod.OpenHelp('context_charactermap');
-    apEntryHelper: prod.OpenHelp('context_entryhelper');
-    apKeyboardUsage: prod.OpenHelp('context_keyboardusage');
-    apFontHelper:
-  end;}
 end;
 
 procedure TfrmVisualKeyboard.BtnHideHint(Sender: TObject);
@@ -1655,9 +1575,6 @@ begin
     FOnScreenKeyboard.SelectKeyboard(frmKeyman7Main.ActiveKeymanID, FUnicode);   // I3949   // I4359
   end;
 
-  if Assigned(FKeyboardUsage) and (ActivePage = apKeyboardUsage) then
-    FKeyboardUsage.SelectKeyboard(frmKeyman7Main.ActiveKeymanID);   // I3949
-
   if Assigned(FFontHelper) and (ActivePage = apFontHelper) then
     FFontHelper.SelectKeyboard(frmKeyman7Main.ActiveKeymanID);   // I3949
 
@@ -1670,20 +1587,11 @@ end;
 
 procedure TfrmVisualKeyboard.UpdateActivePage;
 begin
-  if ActivePage in [apUndefined, apKeyboard, apKeyboardUsage] then  // I2287
+  if ActivePage in [apUndefined, apKeyboard] then  // I2287
   begin
-    if frmKeyman7Main.Option_AutoSwitchOSKPages then
-    begin
-      { Select either Keyboard Usage or VK, depending on whether or not the VK exists }
-      LoadKeyboard;
-      if (frmKeyman7Main.ActiveKeymanID = KEYMANID_NONKEYMAN) or FOnScreenKeyboard.HasVisualKeyboard(frmKeyman7Main.ActiveKeymanID) then   // I3949
-        ActivePage := apKeyboard
-      else
-      begin
-        LoadKeyboardUsage;
-        ActivePage := apKeyboardUsage;
-      end;
-    end;
+    LoadKeyboard;
+    if (frmKeyman7Main.ActiveKeymanID = KEYMANID_NONKEYMAN) or FOnScreenKeyboard.HasVisualKeyboard(frmKeyman7Main.ActiveKeymanID) then   // I3949
+      ActivePage := apKeyboard
   end;
 end;
 

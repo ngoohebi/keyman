@@ -1,0 +1,81 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE = 1
+export DH_OPTIONS = -v
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+export PYBUILD_NAME=keyman-config
+export PYBUILD_INSTALL_ARGS=--install-scripts=/usr/share/keyman-config/
+
+export KEYMAN_PKG_BUILD=1
+
+export HOME=$(shell mktemp -d)
+export XDG_DATA_HOME=$(shell mktemp -d)
+export XDG_CONFIG_HOME=$(shell mktemp -d)
+
+# xenial needs this to be explicit
+export LC_ALL=C.UTF-8
+
+include /usr/share/dpkg/pkg-info.mk
+
+# Unfortunately dh-python 3.20180325 (bionic) doesn't provide the virtual dh-sequence-python3
+# package, so we'll have to pass --with-python3 here
+%:
+	dh $@ --with-python3
+
+override_dh_auto_configure:
+	# keyman core - we need to configure and build core before
+	# we can configure ibus-keyman!
+	core/build.sh --no-tests configure:arch build:arch -- \
+		--wrap-mode=nodownload --prefix=/usr --sysconfdir=/etc \
+		--localstatedir=/var --libdir=lib/$(DEB_TARGET_MULTIARCH) \
+		--libexecdir=lib/$(DEB_TARGET_MULTIARCH)
+	linux/keyman-system-service/build.sh configure -- \
+		--wrap-mode=nodownload --prefix=/usr --sysconfdir=/etc --localstatedir=/var
+	linux/ibus-keyman/build.sh configure -- \
+		--wrap-mode=nodownload --prefix=/usr --sysconfdir=/etc --localstatedir=/var \
+		 -Dkeyman_deb_pkg_build=true
+	linux/keyman-config/build.sh configure
+
+override_dh_auto_build:
+	cp linux/keyman-config/resources/keyman.sharedmimeinfo debian/
+	core/build.sh --no-tests build:arch
+	linux/keyman-system-service/build.sh build
+	linux/ibus-keyman/build.sh build
+	linux/keyman-config/build.sh build
+	cd linux/keyman-config && \
+		sed -i -e "s/^__pkgversion__ = \"[^\"]*\"/__pkgversion__ = \"$(DEB_VERSION)\"/g" keyman_config/version.py && \
+		make compile-po
+
+override_dh_auto_test:
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+	core/build.sh --no-tests test:arch
+	linux/keyman-system-service/build.sh test
+	linux/ibus-keyman/build.sh test
+	linux/keyman-config/build.sh test
+endif
+
+override_dh_auto_install:
+	install -d $(CURDIR)/debian/tmp
+	DESTDIR=$(CURDIR)/debian/tmp core/build.sh --no-tests install:arch
+	DESTDIR=$(CURDIR)/debian/tmp linux/keyman-system-service/build.sh install
+	DESTDIR=$(CURDIR)/debian/tmp linux/ibus-keyman/build.sh install
+	# keyman-config
+	install -d $(CURDIR)/debian/keyman/usr/share/
+	cp -r linux/keyman-config/locale/ $(CURDIR)/debian/keyman/usr/share/
+	rm $(CURDIR)/debian/keyman/usr/share/locale/*.po*
+	# Don't call `build.sh install` - dh_auto_install does some extra smarts
+	dh_auto_install --sourcedir=linux/keyman-config --buildsystem=pybuild $@
+	dh $@ --with-python3 --with bash-completion
+	dh_python3 -O--buildsystem=pybuild
+
+override_dh_missing:
+	dh_missing --fail-missing
+
+override_dh_auto_clean:
+	core/build.sh clean
+	linux/keyman-system-service/build.sh clean
+	linux/ibus-keyman/build.sh clean
+	linux/keyman-config/build.sh clean
+	rm -rf .pybuild/
+	dh_auto_clean $@

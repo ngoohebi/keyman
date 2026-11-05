@@ -3,110 +3,292 @@
 
     <!-- Device type  -->
     <string name="device_type" translatable="false">AndroidMobile</string>
-    
+
     <!-- Application name (Keyman Engine for Android) -->
     <string name="app_name" translatable="false">KMEA</string>
-    
-    <!-- Title for lists-->
-    <string name="title_keyboards" translatable="false">Keyboards</string>
-    <string name="title_keyboard" translatable="false">Keyboard</string>
-    <string name="title_add_language" translatable="false">Add New Language</string>
-    <string name="title_add_keyboard" translatable="false">Add New Keyboard</string>
-    <string name="title_add_keyboard_from_device" translatable="false">Add Keyboard from Device</string>
-    <string name="title_languages_settings" translatable="false">Installed Languages</string>
-    <string name="title_language_settings" translatable="false">%s Settings</string>
 
-    <!-- Button labels -->
-    <string name="label_add" translatable="false">Add</string>
-    <string name="label_cancel" translatable="false">Cancel</string>
-    <string name="label_close" translatable="false">Close</string>
-    <string name="label_close_keyman" translatable="false">Close Keyman</string>
+    <!-- Context: Title for list -->
+    <plurals name="title_keyboards">
+        <item quantity="one">Keyboard</item>
+        <item quantity="other">Keyboards</item>
+    </plurals>
 
-    <string name="label_download" translatable="false">Download</string>
-    <string name="label_install" translatable="false">Install</string>
-    <string name="label_later" translatable="false">Later</string>
-    <string name="label_ok" translatable="false">OK</string>
-    <string name="label_update" translatable="false">Update</string>
+    <!-- Context: Title for list -->
+    <plurals name="title_other_input_methods">
+        <item quantity="one">Other Input Method</item>
+        <item quantity="other">Other Input Methods</item>
+    </plurals>
 
-    <!-- For the following, &#8230; is the ellipsis character "..." -->
+    <!-- Context: Title for list -->
+    <string name="title_add_keyboard" comment="Add a new keyboard">Add New Keyboard</string>
 
-    <!-- Cloud API related strings -->
-    <string name="getting_cloud_catalog" translatable="false">Getting keyboard and dictionary catalogs.\nThis may take a while&#8230;</string>
+    <!-- Context: Title for list -->
+    <string name="title_languages_settings" comment="List of installed languages">Installed Languages</string>
 
-    <!-- Keyboard Updates -->
-    <string name="cannot_connect" translatable="false">Cannot connect to Keyman server!</string>
-    <string name="checking_keyboard_updates" translatable="false">Checking keyboard updates&#8230;</string>
-    <string name="confirm_delete_keyboard" translatable="false">Would you like to delete this keyboard?</string>
-    <string name="confirm_download_keyboard" translatable="false">Would you like to download the latest version of this keyboard?</string>
-    <string name="confirm_update" translatable="false">Would you like to update keyboards and dictionaries now?</string>
-    <string name="custom_keyboard" translatable="false">Custom Keyboard</string>
-    <string name="downloading_keyboard" translatable="false">Downloading keyboard&#8230;</string>
-    <string name="font_failed_to_download" translatable="false">Warning: Font failed to download</string>
-    <string name="keyboard_failed_to_download" translatable="false">Error: Keyboard failed to download</string>
-    <string name="keyboard_updates_channel" translatable="false">Resource Updates</string>
-    <string name="keyboard_updates_available" translatable="false">Resource Updates Available</string>
-    <string name="update_available" translatable="false">%s (Update Available)</string>
-    <string name="keyboard_update_message" translatable="false">Updates available for keyboard %s: %s </string>
-    <string name="dictionary_update_message" translatable="false">Updates available for dictionary %s: %s </string>
-    <string name="getting_keyboard_catalog" translatable="false">Getting keyboard catalog.\nThis may take a while&#8230;</string>
-    <string name="updating_keyboards" translatable="false">Updating keyboards&#8230;</string>
+    <!-- Context: Title for list -->
+    <string name="title_language_settings" comment="Keyman Settings for a language">%1$s Settings</string>
 
-    <!-- Keyboard Info and Keyboard Settings -->
-    <string name="keyboard_version" translatable="false">Keyboard version</string>
-    <string name="help_link" translatable="false">Help link</string>
-    <string name="uninstall_keyboard" translatable="false">Uninstall keyboard</string>
-    <string name="keyboard_picker_new_keyboard_prefix" translatable="false">[new]</string>
-    <string name="keyboard_qr_code" translatable="false">Scan this code to load this\nkeyboard on another device</string>
 
-    <!-- Model Updates -->
-    <string name="getting_model_catalog" translatable="false">Getting dictionary catalog.\nThis may take a while&#8230;</string>
-    <string name="confirm_download_model" translatable="false">Would you like to download the latest version of this dictionary?</string>
-    <string name="checking_model_download" translatable="false">Checking to download dictionary&#8230;</string>
-    <string name="downloading_model" translatable="false">Downloading dictionary&#8230;</string>
-    <string name="catalog_unavailable" translatable="false">The resource catalog is unavailable\n</string>
+    <!-- Context: Button label -->
+    <string name="label_add" comment="Button to add an item">Add</string>
 
-  <!-- Background download messages-->
-    <string name="catalog_download_start_in_background" translatable="false">Catalog update started in background.\n</string>
-    <string name="catalog_download_is_running_in_background" translatable="false">The catalog is still downloading; please try again in a moment!\n</string>
-    <string name="progress_message_catalog_download_is_running" translatable="false">The catalog is still downloading!\n</string>
-    <string name="keyboard_download_start_in_background" translatable="false">Downloading keyboard started in Background</string>
-    <string name="keyboard_download_is_running_in_background" translatable="false">The selected keyboard is already downloading; please try again in a moment!</string>
-    <string name="keyboard_download_finished" translatable="false">Keyboard download is finished!</string>
-    <string name="dictionary_download_start_in_background" translatable="false">Downloading dictionary started in Background</string>
-    <string name="dictionary_download_is_running_in_background" translatable="false">The selected dictionary is already downloading; please try again in a moment!</string>
-    <string name="dictionary_download_finished" translatable="false">Dictionary download is finished.</string>
+    <!-- Context: Button label -->
+    <string name="label_back" comment="Button to go back">Back</string>
 
-  <!-- General Updates -->
-    <string name="update_check_unavailable" translatable="false">Failed to access server!\n</string>
-    <string name="update_check_current" translatable="false">"All resources are up to date!"</string>
+    <!-- Context: Button label -->
+    <string name="label_cancel" comment="Button to cancel an action">Cancel</string>
 
-    <!-- Model Info -->
-    <string name="model_version" translatable="false">Dictionary version</string>
-    <string name="uninstall_model" translatable="false">Uninstall dictionary</string>
-    <string name="confirm_delete_model" translatable="false">Would you like to delete this dictionary?</string>
+    <!-- Context: Button label -->
+    <string name="label_close" comment="Close a dialog">Close</string>
 
-    <!-- Language Settings menu strings -->
-    <string name="enable_corrections" translatable="false">Enable corrections</string>
-    <string name="enable_predictions" translatable="false">Enable predictions</string>
-    <string name="model" translatable="false">Dictionary</string>
-    <string name="model_info_header" translatable="false">Dictionary: %s</string>
-    <string name="model_picker_header" translatable="false">%s dictionaries</string>
-    <string name="manage_dictionary" translatable="false">Manage dictionary</string>
-    <string name="model_install_toast" translatable="false">Dictionary installed</string>
-    <string name="single_keyboard_count" translatable="false">(1 keyboard)</string>
-    <string name="multiple_keyboard_count" translatable="false">(%d keyboards)</string>
+    <!-- Context: Button label. Removed in Keyman 15 -->
+    <string name="label_close_keyman" comment="Close the Keyman application">Close Keyman</string>
 
-    <!-- Content descriptions -->
-    <string name="image_button" translatable="false">Image Button</string>
+    <!-- Context: Button label -->
+    <string name="label_forward" comment="Button to go forward">Forward</string>
+
+    <!-- Context: Button label -->
+    <string name="label_next_input_method" comment="Switch to next input method (replaces label_close_keyman)">Next Input Method</string>
+
+    <!-- Context: Button label -->
+    <string name="label_download" comment="Button to confirm downloading an item">Download</string>
+
+    <!-- Context: Button label -->
+    <string name="label_install" comment="Confirmation to install a package">Install</string>
+
+    <!-- Context: Button label -->
+    <string name="label_later" comment="Do an action at a later time">Later</string>
+
+    <!-- Context: Button label -->
+    <string name="label_next" comment="Go to the next screen">Next</string>
+
+    <!-- Context: Button label -->
+    <string name="label_ok" comment="Button to acknowledge a dialog">OK</string>
+
+    <!-- Context: Button label -->
+    <string name="label_update" comment="Dialog button to update a resource">Update</string>
+
+    <!-- Context: No internet for updates -->
+    <string name="no_internet_connection" comment="Internet connection missing">No internet connection</string>
+
+    <!-- Context: Keyboard Updates -->
+    <string name="cannot_connect" comment="Error message when network connection fails">Cannot connect to Keyman server!</string>
+
+    <!-- Context: Keyboard Updates -->
+    <string name="confirm_delete_keyboard" comment="Confirmation to delete a keyboard">Would you like to delete this keyboard?</string>
+
+    <!-- Context: Keyboard Updates -->
+    <string name="confirm_download_keyboard" comment="Confirmation to download a keyboard update">Would you like to download the latest version of this keyboard?</string>
+
+    <!-- Context: Keyboard Updates -->
+    <string name="confirm_update" comment="Confirmation to update several resources">Would you like to update keyboards and dictionaries now?</string>
+
+    <!-- Context: Keyboard Updates -->
+    <string name="keyboard_updates_channel">Resource Updates</string>
+
+    <!-- Context: Keyboard Updates -->
+    <string name="keyboard_updates_available" comment="Notification when resource updates are available">Resource Updates Available</string>
+
+    <!-- Context: Keyboard Updates -->
+    <string name="update_available" comment="Currently installed version of a resource with an available update">%1$s (Update Available)</string>
+
+    <!-- Context: Keyboard Updates -->
+    <string name="keyboard_update_message" comment="language name: keyboard name">
+      Updates available for keyboard %1$s: %2$s </string>
+
+    <!-- Context: Keyboard Updates -->
+    <string name="dictionary_update_message">Updates available for dictionary %1$s: %2$s </string>
+
+    <!-- Context: Keyboard Info and Keyboard Settings -->
+    <string name="keyboard_version" comment="Label for keyboard version">Keyboard version</string>
+
+    <!-- Context: Keyboard Info and Keyboard Settings -->
+    <string name="help_link" comment="Label for help link">Help link</string>
+
+    <!-- Context: Keyboard Info and Keyboard Settings -->
+    <string name="uninstall_keyboard" comment="Label for uninstalling keyboard">Uninstall keyboard</string>
+
+    <!-- Context: Keyboard Info and Keyboard Settings -->
+    <string name="keyboard_picker_new_keyboard" comment="Mark a language name that's newly installed in keyboard list">[new] %1$s</string>
+
+    <!-- Context: Keyboard Info and Keyboard Settings -->
+    <string name="keyboard_qr_code" comment="QR Code description">Scan this code to load this\nkeyboard on another device</string>
+
+
+    <!-- Context: Keyboard Help welcome.htm title -->
+    <string name="welcome_package" comment="Title to welcome.htm page (name and version)">Welcome to %1$s</string>
+
+    <!-- Context: Keyboard app doesn't include FileProvider library needed to view help file -->
+    <string name="fileprovider_undefined" comment="FileProvider library needed to view help file">
+      FileProvider library needed to view help file: %1$s</string>
+
+    <!-- Context: Fatal keyboard error.  -->
+    <string name="fatal_keyboard_error" comment="Displays as a toast. Generally caused by a script error in keyboard view context, may be caused by keyboard or KeymanWeb.">
+      Keyman encountered an error and will restart</string>
+
+    <!-- Context: Alert Dialog body: System WebView not installed -->
+    <string name="body_install_webview" comment="Notification when WebView not installed">
+        Keyman requires WebView to be installed."</string>
+
+    <!-- Context: Alert Dialog body: System WebView installed but not enabled -->
+    <string name="body_enable_webview" comment="Notification when WebView installed but not enabled">
+        Keyman requires WebView to be enabled."</string>
+
+    <!-- Context Button label: Install WebView -->
+    <string name="label_install_webview" comment="Button label to install webview">Install WebView</string>
+
+    <!-- Context Button label: Enable WebView -->
+    <string name="label_enable_webview" comment="Button label to enable webview">Enable WebView</string>
+
+    <!-- Context: Query for associated dictionary -->
+    <string name="query_associated_model" comment="Check if there's an available dictionary to download">Checking for associated dictionary to download</string>
+
+    <string name="cannot_query_associated_model" comment="Cannot reach server to check if there's an available dictionary to download">
+      Cannot connect to Keyman server to check for associated dictionary to download</string>
+
+    <!-- Context: Model Updates -->
+    <string name="confirm_download_model" comment="Confirmation to download a dictionary update">Would you like to download the latest version of this dictionary?</string>
+
+    <!-- Context: No associated dictionary found -->
+    <string name="no_associated_model" comment="Confirmation there's no available dictionary to download">No dictionary to download</string>
+
+    <!-- Context: Model Updates -->
+    <string name="catalog_unavailable" comment="Notification that the cloud resource catalog can't be updated">The resource catalog is unavailable</string>
+
+
+    <!-- Context: Background download messages-->
+    <string name="catalog_download_start_in_background" comment="Notification that the resource catalog update will begin">Catalog update started in background</string>
+
+    <!-- Context: Background download messages-->
+    <string name="catalog_download_is_running_in_background" comment="Notification that the resource catalog update is still downloading">
+      The catalog is still downloading; please try again in a moment!</string>
+
+    <!-- Context: Background download messages-->
+    <string name="progress_message_checking_resource_is_running" comment="Progress notification that the check for a resource is still running ">Checking for resource</string>
+
+    <!-- Context: Background download messages-->
+    <string name="keyboard_download_start_in_background" comment="Notification that a keyboard download has started">Downloading keyboard started in Background</string>
+
+    <!-- Context: Background download messages-->
+    <string name="keyboard_download_is_running_in_background" comment="Notification that a keyboard download is still running">The selected keyboard is already downloading; please try again in a moment!</string>
+
+    <!-- Context: Background download messages-->
+    <string name="keyboard_download_finished" comment="Notification that a keyboard download has finished">Keyboard download is finished!</string>
+
+    <!-- Context: Background download messages-->
+    <string name="dictionary_download_start_in_background" comment="Notification that a dictionary download has started">Downloading dictionary started in Background</string>
+
+    <!-- Context: Background download messages-->
+    <string name="dictionary_download_is_running_in_background" comment="Notification that a dictionary download is still running">The selected dictionary is already downloading; please try again in a moment!</string>
+
+    <!-- Context: Background download messages. Removed in Keyman 17-->
+    <string name="dictionary_download_finished" comment="Notification that a dictionary download has finished">Dictionary download is finished.</string>
+
+    <!-- Context: Background download messages -->
+    <string name="download_failed" comment="Notification that a download failed">Download failed</string>
+
+    <!-- Context: Background download messages -->
+    <string name="failed_to_retrieve_file" comment="Failed to retrieve downloaded file">Failed to retrieve downloaded file</string>
+
+    <!-- Context: General Updates -->
+    <string name="update_check_unavailable" comment="Error message when a Keyman server can't be reached">Failed to access server!</string>
+
+    <!-- Context:  Update-check failure notification -->
+    <string name="update_check_download_manager_disabled" comment="Notification that a system service needed for updates is disabled">DownloadManager disabled - cannot check for updates</string>
+
+    <!-- Context: General Updates -->
+    <string name="update_check_current" comment="Notification that all resources are up to date">"All resources are up to date!"</string>
+
+    <!-- Context: General Updates -->
+    <string name="update_failed" comment="Notification that a resource update failed">One or more resources failed to update!</string>
+
+    <!-- Context: General Updates. Removed in Keyman 17 -->
+    <string name="update_success" comment="Notification that a resource update successfully updated">Resources successfully updated!</string>
+
+    <!-- Context: Model Info -->
+    <string name="model_version" comment="Title for a dictionary version">Dictionary version</string>
+
+    <!-- Context: Model Info -->
+    <string name="uninstall_model" comment="Label to uninstall a dictionary">Uninstall dictionary</string>
+
+    <!-- Context: Model Info -->
+    <string name="confirm_delete_model" comment="Confirmation to delete a dictionary">Would you like to delete this dictionary?</string>
+
+    <!-- Context: Model Deleted -->
+    <string name="model_deleted" comment="Notification when a dictionary is deleted">Dictionary deleted</string>
+
+    <!-- Context: Language Settings Keyboard install strings -->
+    <string name="keyboard_install_toast" comment="Notification when a keyboard is installed">%1$s keyboard installed</string>
+
+    <!-- Context: Language Settings Keyboard uninstall strings -->
+    <string name="keyboard_deleted_toast" comment="Notification when a keyboard is deleted">Keyboard deleted</string>
+
+    <!-- Context: Language Settings menu strings. Removed in Keyman 18 -->
+    <string name="enable_corrections" comment="Enable corrections from the suggestion banner">Enable corrections</string>
+
+    <!-- Context: Language Settings menu strings. Removed in Keyman 18 -->
+    <string name="enable_predictions" comment="Enable predictions from the suggestion banner">Enable predictions</string>
+
+    <!-- Context: Language Settings menu strings - radio buttons -->
+    <string name="suggestions_radio_0" comment="Predictions and corrections disabled">Disable suggestions</string>
+
+    <string name="suggestions_radio_1" comment="Suggestions Enabled: Predictions with no corrections">Predictions only</string>
+
+    <string name="suggestions_radio_2" comment="Suggestions Enabled: Predictions with corrections">Predictions with corrections</string>
+
+    <string name="suggestions_radio_3" comment="Suggestions Enabled: Predictions with auto-corrections">Predictions with auto-corrections</string>
+
+    <!-- Context: Language Settings menu strings -->
+    <string name="model_label">Dictionary</string>
+    <plurals name="model_count">
+        <item quantity="one">Dictionary</item>
+        <item quantity="other">Dictionaries</item>
+    </plurals>
+
+    <!-- Context: Language Settings menu substring - Check for available dictionary -->
+    <string name="check_available_model" comment="Check for available dictionary">Check for available dictionary</string>
+    <string name="check_model_online" comment="Check for dictionaries online">Check for dictionaries online</string>
+
+    <!-- Context: Language Settings menu strings -->
+    <string name="model_info_header" comment="Dictionary name">Dictionary: %1$s</string>
+
+    <!-- Context: Language Settings menu strings -->
+    <string name="model_picker_header" comment="Dictionaries for a specified language">%1$s dictionaries</string>
+
+    <!-- Context: Language Settings menu strings -->
+    <string name="manage_dictionary" comment="Placeholder for future feature" translatable="false">Manage dictionary</string>
+
+    <!-- Context: Language Settings menu strings -->
+    <string name="model_install_toast" comment="Notification when a dictionary is installed">Dictionary installed</string>
+
+    <!-- Context: Language Settings menu strings -->
+    <plurals name="keyboard_count">
+        <item quantity="one">(%1$d keyboard)</item>
+        <item quantity="other">(%1$d keyboards)</item>
+    </plurals>
+
+
+    <!-- Context: "Change Display Language" menu -->
+    <string name="default_locale" comment="Use the device's current locale">Default Locale</string>
+
+    <!-- Context: Content descriptions -->
+    <string name="image_button" translatable="false">Image</string>
+
+    <!-- Context: Content descriptions -->
     <string name="image_view" translatable="false">Image View</string>
-    
-    <!-- Popup menu labels -->
-    <string name="label_delete" translatable="false">Delete</string>
-    
-    <!-- Shared preferences name -->
+
+
+    <!-- Context: Popup menu labels -->
+    <string name="label_delete" comment="Confirmation to delete an item">Delete</string>
+
+
+    <!-- Context: Shared preferences name -->
     <string name="kma_prefs_name" translatable="false">KMAPreferences</string>
-    
-    <!-- Other strings -->
-    <string name="help_bubble_text" translatable="false">Tap here to change keyboard</string>
+
+    <!-- Context: Other strings -->
+    <string name="help_bubble_text">Tap here to change keyboard</string>
+
+    <!-- Context: anywhere -->
+    <string name="unable_to_open_browser" comment="Notification when a browser activity cannot be launched">Unable to launch web browser</string>
 
 </resources>
